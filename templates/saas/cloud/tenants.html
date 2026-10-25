@@ -1,0 +1,130 @@
+{% extends "saas/cloud/base.html" %}
+{% load humanize %}
+
+{% block title %}Tenants — SORA Cloud{% endblock %}
+{% block crumb %}Tenants{% endblock %}
+
+{% block topbar_actions %}
+<a href="/cloud/tenants/new/" class="cloud-btn primary"><i class="fas fa-plus"></i> New tenant</a>
+{% endblock %}
+
+{% block content %}
+<div class="cloud-page-head">
+    <h1>Tenant directory</h1>
+    <p>Every SORA workspace, its plan, status and licensed modules.</p>
+</div>
+
+<div class="cloud-filter-chips" style="margin-bottom:12px;">
+    <a href="/cloud/tenants/" class="{% if not status %}active{% endif %}">All</a>
+    {% for value, label in status_choices %}
+    <a href="/cloud/tenants/?status={{ value }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if module_code %}&module={{ module_code }}{% endif %}"
+       class="{% if status == value %}active{% endif %}">{{ label }}</a>
+    {% endfor %}
+</div>
+
+<form method="get" action="/cloud/tenants/" class="cloud-filter-bar">
+    <div class="cloud-search">
+        <i class="fas fa-magnifying-glass"></i>
+        <input type="text" name="q" class="form-control" value="{{ query }}" placeholder="Search company, slug or email">
+    </div>
+    <select name="status" class="form-control">
+        <option value="">All statuses</option>
+        {% for value, label in status_choices %}
+        <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <select name="module" class="form-control">
+        <option value="">All modules</option>
+        {% for module in modules %}
+        <option value="{{ module.code }}" {% if module_code == module.code %}selected{% endif %}>{{ module.brand_name|default:module.name }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit" class="cloud-btn primary"><i class="fas fa-filter"></i> Filter</button>
+    {% if query or status or module_code %}
+    <a href="/cloud/tenants/" class="cloud-btn"><i class="fas fa-xmark"></i> Clear</a>
+    {% endif %}
+    <span class="cloud-bulk-note">{{ page_obj.paginator.count }} workspace{{ page_obj.paginator.count|pluralize }}</span>
+</form>
+
+<div class="cloud-card">
+    {% if tenants %}
+    <div class="cloud-card-body flush">
+        <table class="cloud-table">
+            <thead>
+                <tr>
+                    <th>Tenant</th>
+                    <th>Plan</th>
+                    <th>Status</th>
+                    <th>Licensed modules</th>
+                    <th>Seats</th>
+                    <th>Term</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tenant in tenants %}
+                <tr>
+                    <td>
+                        <a href="/cloud/tenants/{{ tenant.id }}/" class="cloud-tenant-name">
+                            <span class="cloud-avatar">{{ tenant.display_name|slice:":2"|upper }}</span>
+                            <span>
+                                {{ tenant.display_name }}
+                                <small>{{ tenant.slug }} · {{ tenant.admin_email }}</small>
+                            </span>
+                        </a>
+                    </td>
+                    <td>{{ tenant.plan.name|default:"Trial" }}</td>
+                    <td><span class="cloud-pill {{ tenant.effective_status }}">{{ tenant.effective_status_label }}</span></td>
+                    <td>
+                        <div class="cloud-mini-chips">
+                            {% for licence in tenant.licence_list %}
+                            <span class="cloud-mini-chip">{{ licence.module.brand_name|default:licence.module.name }}</span>
+                            {% empty %}
+                            <span class="cloud-muted">None</span>
+                            {% endfor %}
+                        </div>
+                    </td>
+                    <td>
+                        {{ tenant.member_count }}{% if tenant.max_users %} / {{ tenant.max_users }}{% endif %}
+                    </td>
+                    <td>
+                        {% if tenant.effective_status == 'trial' %}
+                            <span style="font-size:10.5px;color:#1d4ed8;font-weight:600;">Trial · {{ tenant.trial_days_left }}d left</span>
+                        {% elif tenant.subscription_ends_at %}
+                            <span style="font-size:10.5px;color:#475569;">{{ tenant.subscription_ends_at|date:"d M Y" }}</span>
+                        {% else %}
+                            <span class="cloud-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:right;">
+                        <a href="/cloud/tenants/{{ tenant.id }}/" class="cloud-btn"><i class="fas fa-arrow-right"></i> Open</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="cloud-empty">
+        <i class="fas fa-building-circle-exclamation"></i>
+        No tenants match this filter.
+        <div style="margin-top:12px;"><a href="/cloud/tenants/new/" class="cloud-btn primary"><i class="fas fa-plus"></i> Provision a workspace</a></div>
+    </div>
+    {% endif %}
+</div>
+
+{% if page_obj.has_other_pages %}
+<div class="cloud-pagination">
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    <div class="links">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if module_code %}&module={{ module_code }}{% endif %}">Previous</a>
+        {% endif %}
+        <span class="current">{{ page_obj.number }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if module_code %}&module={{ module_code }}{% endif %}">Next</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

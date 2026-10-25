@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load static sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-ticket"></i> {{ ticket.ticket_number }} <span class="badge badge-{{ ticket.status|status_class }}" style="font-size:12px; vertical-align:middle;">{{ ticket.get_status_display }}</span></h1>
+        <p>{{ ticket.title }}{% if contract %} &middot; <a href="/projects/sla/contracts/{{ contract.id }}">{{ contract.contract_number }}</a>{% endif %}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/sla/tickets" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Tickets</a>
+        {% if project %}<a href="/projects/{{ project.id }}" class="btn btn-secondary"><i class="fas fa-folder-open"></i> Project</a>{% endif %}
+    </div>
+</div>
+
+{% if ticket.breached %}
+<div class="alert alert-error"><i class="fas fa-stopwatch"></i> This ticket has breached its SLA deadline{% if ticket.sla_due_at %} (due {{ ticket.sla_due_at|date:"M d, Y H:i" }}){% endif %}.</div>
+{% endif %}
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-circle-info"></i> Ticket details</span></div>
+            <div style="padding:20px;">
+                <div class="detail-grid">
+                    <div class="detail-item"><div class="detail-label">Contract</div><div class="detail-value">{% if contract %}<a href="/projects/sla/contracts/{{ contract.id }}">{{ contract.contract_number }}</a>{% else %}—{% endif %}</div></div>
+                    <div class="detail-item"><div class="detail-label">Project</div><div class="detail-value">{% if project %}<a href="/projects/{{ project.id }}">{{ project.project_code }}</a>{% else %}—{% endif %}</div></div>
+                    <div class="detail-item"><div class="detail-label">Priority</div><div class="detail-value">{{ ticket.get_priority_display }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Assigned to</div><div class="detail-value">{{ ticket.assignee_name }}</div></div>
+                    <div class="detail-item"><div class="detail-label">SLA deadline</div><div class="detail-value {% if ticket.breached %}text-danger{% endif %}">{{ ticket.sla_due_at|date:"M d, Y H:i"|default:"—" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">First response</div><div class="detail-value">{{ ticket.first_response_at|date:"M d, Y H:i"|default:"Awaiting response" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Resolved</div><div class="detail-value">{{ ticket.resolved_at|date:"M d, Y H:i"|default:"—" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Created</div><div class="detail-value">{{ ticket.created_at|date:"M d, Y H:i" }}</div></div>
+                </div>
+                <div class="mt-3">
+                    <div class="detail-label">Description</div>
+                    <div style="white-space:pre-line;">{{ ticket.description|default:"—" }}</div>
+                </div>
+                {% if source_task %}
+                <div class="mt-3">
+                    <div class="detail-label">Converted from project task</div>
+                    <div>Task #{{ source_task.id }} &middot; {{ source_task.task_name }} &middot; <a href="/projects/{{ project.id }}/tasks">View tasks</a></div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="sticky-summary">
+        {% if can_edit %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-pen-to-square"></i> Update ticket</span></div>
+            <div style="padding:18px 20px;">
+                <form method="post" action="/projects/sla/tickets/{{ ticket.id }}/update">
+                    {% csrf_token %}
+                    {% include "project_management/partials/form_fields.html" with form=update_form %}
+                    <button class="btn btn-primary" style="width:100%; justify-content:center;"><i class="fas fa-check"></i> Save update</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-shield-halved"></i> Traceability</span></div>
+            <div style="padding:14px 20px; font-size:12px; line-height:1.7;">
+                {% if project %}
+                <p>Status changes and assignments are written to the project audit trail.</p>
+                <a href="/projects/{{ project.id }}/audit" class="btn btn-secondary" style="width:100%; justify-content:center;"><i class="fas fa-shield-halved"></i> Audit trail</a>
+                {% else %}
+                <p>This ticket is not linked to a project, so no project audit entries are generated.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

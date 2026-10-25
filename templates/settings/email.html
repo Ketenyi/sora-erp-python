@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-envelope"></i> Email Settings</h1><p>Configure the SMTP server used for invoices, notifications and reports.</p></div>
+    <div class="page-actions"><a href="/settings/email-templates" class="btn btn-secondary"><i class="fas fa-file-lines"></i> Templates</a><a href="/settings" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Settings</a></div>
+</div>
+{% include "settings/_nav.html" %}
+{% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+<form method="post">
+    {% csrf_token %}
+    <div class="detail-layout">
+        <div>
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-server"></i> SMTP server</span><span class="badge {% if settings.mail_enabled == 'true' %}badge-success{% else %}badge-secondary{% endif %}">{% if settings.mail_enabled == 'true' %}Enabled{% else %}Disabled{% endif %}</span></div>
+                <div style="padding:18px;">
+                    <div class="form-grid">
+                        <div class="form-group span-2" style="display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid #e2e8f0; border-radius:10px;">{{ form.mail_enabled }}<label style="margin:0;">{{ form.mail_enabled.label }}</label></div>
+                        <div class="form-group"><label>SMTP host</label>{{ form.mail_host }}{{ form.mail_host.errors }}</div>
+                        <div class="form-group"><label>Port</label>{{ form.mail_port }}{{ form.mail_port.errors }}</div>
+                        <div class="form-group"><label>Username</label>{{ form.mail_username }}{{ form.mail_username.errors }}</div>
+                        <div class="form-group"><label>Password</label>{{ form.mail_password }}{{ form.mail_password.errors }}<small class="info">Leave blank to keep the saved password.</small></div>
+                        <div class="form-group"><label>Encryption</label>{{ form.mail_encryption }}{{ form.mail_encryption.errors }}</div>
+                        <div class="form-group"><label>From address</label>{{ form.mail_from_address }}{{ form.mail_from_address.errors }}</div>
+                        <div class="form-group"><label>From name</label>{{ form.mail_from_name }}{{ form.mail_from_name.errors }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-paper-plane"></i> Send a test message</span></div>
+                <div style="padding:18px;">
+                    <div class="filter-bar">
+                        <div class="form-group" style="min-width:280px;"><label>Recipient</label><input type="email" name="test_email_address" class="form-control" value="{{ request.user.email }}" placeholder="you@example.com"></div>
+                        <div class="form-group"><button type="submit" name="action" value="test" class="btn btn-secondary"><i class="fas fa-vial"></i> Save &amp; send test</button></div>
+                    </div>
+                    <p class="info" style="font-size:12px; color:#64748b; margin-top:10px;">The settings above are saved before the test email is sent.</p>
+                </div>
+            </div>
+        </div>
+        <div>
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-circle-check"></i> Save</span></div>
+                <div style="padding:18px;">
+                    <button type="submit" name="action" value="save" class="btn btn-primary" style="width:100%;"><i class="fas fa-save"></i> Save email settings</button>
+                    <a href="/settings/email-templates" class="btn btn-secondary" style="width:100%; margin-top:8px;">Manage templates</a>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-at"></i> Module senders</span><span class="badge badge-info">{{ identity_count }}</span></div>
+                <div style="padding:16px 18px; font-size:12px; color:#64748b; line-height:1.7;">
+                    Give modules their own no-reply addresses such as <code>hr-no-reply@</code> or <code>sales-no-reply@</code>. Modules without an identity use the workspace server above.
+                    <a href="/settings/email-identities" class="btn btn-secondary btn-sm" style="width:100%; margin-top:10px;"><i class="fas fa-at"></i> Manage sender identities</a>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-circle-info"></i> Common providers</span></div>
+                <div style="padding:16px 18px; font-size:12px; color:#64748b; line-height:1.8;">
+                    <div><strong>Gmail:</strong> smtp.gmail.com · 587 · TLS</div>
+                    <div><strong>Outlook:</strong> smtp.office365.com · 587 · TLS</div>
+                    <div><strong>Zoho:</strong> smtp.zoho.com · 465 · SSL</div>
+                    <div><strong>Mailgun:</strong> smtp.mailgun.org · 587 · TLS</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}

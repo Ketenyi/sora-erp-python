@@ -1,0 +1,18 @@
+<div class="tabs">
+    <a href="/settings" class="{% if request.path == '/settings' %}active{% endif %}"><i class="fas fa-sliders-h"></i> Overview</a>
+    <a href="/settings/company" class="{% if request.path == '/settings/company' %}active{% endif %}"><i class="fas fa-building"></i> Company</a>
+    <a href="/settings/users" class="{% if '/settings/users' in request.path %}active{% endif %}"><i class="fas fa-users"></i> Users</a>
+    <a href="/settings/roles" class="{% if '/settings/roles' in request.path %}active{% endif %}"><i class="fas fa-user-shield"></i> Roles</a>
+    <a href="/settings/multi-roles" class="{% if request.path == '/settings/multi-roles' %}active{% endif %}"><i class="fas fa-user-tag"></i> Multi-role</a>
+    <a href="/settings/access" class="{% if '/settings/access' in request.path %}active{% endif %}"><i class="fas fa-key"></i> Access</a>
+    <a href="/settings/email" class="{% if request.path == '/settings/email' %}active{% endif %}"><i class="fas fa-envelope"></i> Email</a>
+    <a href="/settings/email-identities" class="{% if '/settings/email-identities' in request.path %}active{% endif %}"><i class="fas fa-at"></i> Senders</a>
+    <a href="/settings/email-templates" class="{% if '/settings/email-templates' in request.path %}active{% endif %}"><i class="fas fa-file-lines"></i> Templates</a>
+    <a href="/settings/etims" class="{% if request.path == '/settings/etims' %}active{% endif %}"><i class="fas fa-receipt"></i> eTIMS</a>
+    <a href="/settings/pos" class="{% if request.path == '/settings/pos' %}active{% endif %}"><i class="fas fa-cash-register"></i> POS</a>
+    <a href="/settings/agents" class="{% if request.path == '/settings/agents' %}active{% endif %}"><i class="fas fa-desktop"></i> Agents</a>
+    <a href="/settings/openai" class="{% if request.path == '/settings/openai' %}active{% endif %}"><i class="fas fa-robot"></i> AI</a>
+    <a href="/settings/sso" class="{% if request.path == '/settings/sso' %}active{% endif %}"><i class="fas fa-id-card"></i> SSO</a>
+    <a href="/settings/zoho" class="{% if request.path == '/settings/zoho' %}active{% endif %}"><i class="fas fa-cloud"></i> Zoho</a>
+    <a href="/settings/system" class="{% if request.path == '/settings/system' %}active{% endif %}"><i class="fas fa-database"></i> System</a>
+</div>

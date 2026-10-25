@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-users"></i> User Management</h1><p>Create accounts, set the primary role and assign module roles.</p></div>
+    <div class="page-actions"><a href="/settings/users/create" class="btn btn-primary"><i class="fas fa-user-plus"></i> New user</a><a href="/settings" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Settings</a></div>
+</div>
+{% include "settings/_nav.html" %}
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-filter"></i> Filters</span><span class="badge badge-info">{{ page_obj.paginator.count }} user{{ page_obj.paginator.count|pluralize }}</span></div>
+    <div style="padding:16px 18px;">
+        <form method="get" class="filter-bar">
+            <div class="form-group"><label>Search</label><input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Name, email or username"></div>
+            <div class="form-group"><label>Primary role</label><select name="role" class="form-control"><option value="">All roles</option>{% for value, label in role_choices %}<option value="{{ value }}" {% if role_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+            <div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="">All statuses</option>{% for value, label in status_choices %}<option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+            <div class="form-group"><button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Apply</button></div>
+            <div class="form-group"><a href="/settings/users" class="btn btn-secondary">Reset</a></div>
+        </form>
+    </div>
+</div>
+<div class="card">
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>User</th><th>Roles</th><th>Primary role</th><th>Status</th><th>Last login</th><th class="text-right">Actions</th></tr></thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td><strong>{{ user.get_full_name }}</strong><div class="info" style="font-size:12px;">{{ user.email }}{% if user.employee %} · {{ user.employee.employee_code }}{% endif %}</div></td>
+                    <td>{% for role in user.assigned_roles %}<span class="badge badge-info" style="margin:2px;">{{ role }}</span>{% empty %}<span class="info">No module roles</span>{% endfor %}</td>
+                    <td><span class="badge badge-secondary">{{ user.get_role_display|default:user.role }}</span></td>
+                    <td><span class="badge {% if user.status == 'active' %}badge-success{% else %}badge-danger{% endif %}">{{ user.get_status_display }}</span></td>
+                    <td>{{ user.last_login|date:"M d, Y H:i"|default:"Never" }}</td>
+                    <td class="text-right">
+                        <div class="table-actions">
+                            <a href="/settings/users/edit/{{ user.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-pen"></i></a>
+                            {% if user.id != request.user.id %}
+                            <form method="post" action="/settings/users/delete/{{ user.id }}" onsubmit="return confirm('Delete {{ user.email }}? This cannot be undone.');">{% csrf_token %}<button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button></form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6"><div class="empty-state"><i class="fas fa-users"></i><p>No users match the filters.</p></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        <span class="current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">Previous</a>{% endif %}
+        {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">Next</a>{% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

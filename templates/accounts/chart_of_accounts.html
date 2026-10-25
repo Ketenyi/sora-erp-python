@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-list"></i> Chart of Accounts</h1>
+        <p>{{ accounts|length }} account{{ accounts|length|pluralize }} in the ledger.</p>
+    </div>
+    <div class="page-actions">
+        {% if can_create %}<a href="/accounts/chart-of-accounts/create" class="btn btn-primary"><i class="fas fa-plus"></i> New Account</a>{% endif %}
+        <a href="/accounts/trial-balance" class="btn btn-secondary"><i class="fas fa-balance-scale"></i> Trial Balance</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="filter-bar">
+            <div class="form-group">
+                <label>Search</label>
+                <input type="text" name="q" class="form-control" value="{{ search_query }}" placeholder="Code or name">
+            </div>
+            <div class="form-group">
+                <label>Type</label>
+                <select name="type" class="form-control">
+                    <option value="">All types</option>
+                    {% for value, label in account_types %}
+                    <option value="{{ value }}" {% if type_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All</option>
+                    <option value="active" {% if status_filter == "active" %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if status_filter == "inactive" %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <button class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button>
+                {% if search_query or type_filter or status_filter %}<a href="/accounts/chart-of-accounts" class="btn btn-secondary">Reset</a>{% endif %}
+            </div>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Account</th>
+                    <th>Type</th>
+                    <th>Normal</th>
+                    <th>Status</th>
+                    <th class="text-right">Debits</th>
+                    <th class="text-right">Credits</th>
+                    <th class="text-right">Balance</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for account in accounts %}
+                <tr>
+                    <td class="mono">{{ account.account_code }}</td>
+                    <td><a href="/accounts/ledger/account/{{ account.id }}"><strong>{{ account.account_name }}</strong></a>{% if account.description %}<br><span class="info">{{ account.description|truncatechars:60 }}</span>{% endif %}</td>
+                    <td>{{ account.get_account_type_display }}</td>
+                    <td>{{ account.get_normal_balance_display }}</td>
+                    <td><span class="badge badge-{{ account.status|status_class }}">{{ account.get_status_display|default:"Active" }}</span></td>
+                    <td class="text-right">{{ currency_symbol }} {{ account.debit_total|floatformat:2|intcomma }}</td>
+                    <td class="text-right">{{ currency_symbol }} {{ account.credit_total|floatformat:2|intcomma }}</td>
+                    <td class="text-right money">{{ currency_symbol }} {{ account.balance|floatformat:2|intcomma }}</td>
+                    <td>
+                        <div class="table-actions">
+                            <a href="/accounts/ledger/account/{{ account.id }}" class="btn btn-sm btn-secondary" title="Ledger"><i class="fas fa-table"></i></a>
+                            {% if can_edit %}<a href="/accounts/chart-of-accounts/edit/{{ account.id }}" class="btn btn-sm btn-secondary" title="Edit"><i class="fas fa-pen"></i></a>{% endif %}
+                            {% if can_delete %}
+                            <form method="post" action="/accounts/chart-of-accounts/delete/{{ account.id }}" onsubmit="return confirm('Delete {{ account.account_code }}?');">
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-danger" title="Delete"><i class="fas fa-trash"></i></button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="9"><div class="empty-state"><i class="fas fa-list"></i><p>No accounts match your filters.</p><a href="/accounts/chart-of-accounts/create">Create an account</a></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

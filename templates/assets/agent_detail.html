@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<style>
+    .timeline { padding: 6px 20px 18px; }
+    .timeline-item { position:relative; padding: 12px 0 12px 22px; border-left:2px solid #eef2f6; }
+    .timeline-item:last-child { border-left-color:transparent; }
+    .timeline-dot { position:absolute; left:-6px; top:16px; width:10px; height:10px; border-radius:50%; background:#6366f1; border:2px solid #fff; }
+    body[data-theme="dark"] .timeline-item { border-color:#334155; }
+    body[data-theme="dark"] .timeline-dot { border-color:#0f172a; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-laptop-code"></i> {{ agent.display_name|default:agent.hostname }}
+            <span class="badge badge-{{ agent.connectivity|status_class }}" style="font-size:12px; vertical-align:middle;">{{ agent.connectivity|title }}</span>
+        </h1>
+        <p>{{ agent.hostname }} &middot; {{ agent.get_os_family_display }}{% if agent.os_name %} &middot; {{ agent.os_name }}{% endif %}{% if agent.primary_ip %} &middot; {{ agent.primary_ip }}{% endif %}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/assets/agents" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Agents</a>
+        {% if can_manage %}<a href="/assets/agents/enrollment" class="btn btn-secondary"><i class="fas fa-key"></i> Tokens</a>{% endif %}
+        {% if can_manage %}
+            {% if agent.is_active %}
+            <form method="post" action="/assets/agents/{{ agent.id }}/toggle" onsubmit="return confirm('Deactivate this agent? It will stop being able to report inventory.');" style="display:inline;">
+                {% csrf_token %}<input type="hidden" name="active" value="0">
+                <button class="btn btn-secondary"><i class="fas fa-pause"></i> Deactivate</button>
+            </form>
+            {% else %}
+            <form method="post" action="/assets/agents/{{ agent.id }}/toggle" style="display:inline;">
+                {% csrf_token %}<input type="hidden" name="active" value="1">
+                <button class="btn btn-primary"><i class="fas fa-play"></i> Activate</button>
+            </form>
+            {% endif %}
+        {% endif %}
+        {% if can_delete %}
+        <form method="post" action="/assets/agents/{{ agent.id }}/delete" onsubmit="return confirm('Remove {{ agent.hostname }} and its inventory history? This cannot be undone.');" style="display:inline;">
+            {% csrf_token %}<button class="btn btn-danger"><i class="fas fa-trash"></i> Remove</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-window-restore"></i></div>
+        <div><div class="stat-number">{{ stats.software|intcomma }}</div><div class="stat-label">Applications detected</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-memory"></i></div>
+        <div><div class="stat-number">{% if stats.memory_gb %}{{ stats.memory_gb }} GB{% else %}—{% endif %}</div><div class="stat-label">Installed memory{% if agent.cpu_cores %} &middot; {{ agent.cpu_cores }} core{{ agent.cpu_cores|pluralize }}{% endif %}</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-hard-drive"></i></div>
+        <div><div class="stat-number">{% if agent.disk_total_gb %}{{ agent.disk_total_gb|floatformat:0 }} GB{% else %}—{% endif %}</div><div class="stat-label">Total storage{% if stats.disk_used_gb is not None %} &middot; {{ stats.disk_used_gb }} GB used{% endif %}</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-camera-retro"></i></div>
+        <div><div class="stat-number">{{ stats.snapshots }}</div><div class="stat-label">Inventory snapshots kept</div></div>
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-circle-info"></i> System</span><span class="badge badge-{{ agent.connectivity|status_class }}">{{ agent.connectivity|title }}</span></div>
+            <div style="padding: 20px;">
+                <div class="detail-grid">
+                    <div class="detail-item"><div class="detail-label">Hostname</div><div class="detail-value mono">{{ agent.hostname }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Machine ID</div><div class="detail-value mono">{{ agent.machine_id|truncatechars:34 }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Operating system</div><div class="detail-value">{{ agent.os_name|default:agent.get_os_family_display }}{% if agent.os_version %} <span class="text-muted">({{ agent.os_version }})</span>{% endif %}{% if agent.os_build %} <span class="text-muted">build {{ agent.os_build }}</span>{% endif %}</div></div>
+                    <div class="detail-item"><div class="detail-label">Architecture</div><div class="detail-value">{{ agent.architecture|default:"—" }}{% if agent.cpu_architecture %} <span class="text-muted">/ {{ agent.cpu_architecture }}</span>{% endif %}</div></div>
+                    <div class="detail-item"><div class="detail-label">Manufacturer</div><div class="detail-value">{{ agent.manufacturer|default:"—" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Model</div><div class="detail-value">{{ agent.model_name|default:"—" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Serial number</div><div class="detail-value mono">{{ agent.serial_number|default:"—" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">CPU</div><div class="detail-value">{{ agent.cpu_model|default:"—" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Primary address</div><div class="detail-value mono">{{ agent.primary_ip|default:"—" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">MAC addresses</div><div class="detail-value mono">{% for mac in agent.mac_addresses %}{{ mac }}{% if not forloop.last %}<br>{% endif %}{% empty %}—{% endfor %}</div></div>
+                    <div class="detail-item"><div class="detail-label">Signed-in user</div><div class="detail-value">{{ agent.logged_in_user|default:"—" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Agent version</div><div class="detail-value">{{ agent.agent_version|default:"—" }} <span class="text-muted">· {{ agent.get_provisioning_method_display }}</span></div></div>
+                    <div class="detail-item"><div class="detail-label">Hardware fingerprint</div><div class="detail-value mono">{{ agent.fingerprint|default:"—"|truncatechars:24 }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Token version</div><div class="detail-value">v{{ agent.token_version }}{% if agent.last_token_at %} <span class="text-muted">· issued {{ agent.last_token_at|timesince }} ago</span>{% endif %}</div></div>
+                    <div class="detail-item"><div class="detail-label">Enrolled</div><div class="detail-value">{{ agent.enrolled_at|date:"M d, Y H:i" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Last report</div><div class="detail-value">{% if agent.last_inventory_at %}{{ agent.last_inventory_at|date:"M d, Y H:i" }} <span class="text-muted">({{ agent.last_inventory_at|timesince }} ago)</span>{% else %}Never{% endif %}</div></div>
+                    <div class="detail-item"><div class="detail-label">Last seen</div><div class="detail-value">{% if agent.last_seen_at %}{{ agent.last_seen_at|date:"M d, Y H:i" }}{% else %}Never{% endif %}</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-hard-drive"></i> Storage</span><span class="badge badge-secondary">{{ disks|length }} volume{{ disks|length|pluralize }}</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Device</th><th>Mount</th><th>Type</th><th>Serial / model</th><th>Filesystem</th><th class="text-right">Capacity</th><th class="text-right">Free</th><th class="text-right">Used</th></tr></thead>
+                    <tbody>
+                        {% for disk in disks %}
+                        <tr>
+                            <td class="mono">{{ disk.device|default:"—" }}</td>
+                            <td class="mono">{{ disk.mountpoint|default:"—" }}</td>
+                            <td>{% if disk.disk_type %}<span class="badge badge-secondary">{{ disk.disk_type|upper }}</span>{% else %}—{% endif %}</td>
+                            <td class="mono">{{ disk.serial|default:disk.model|default:"—" }}</td>
+                            <td>{{ disk.filesystem|default:"—" }}</td>
+                            <td class="text-right">{{ disk.total_gb|floatformat:1 }} GB</td>
+                            <td class="text-right">{{ disk.free_gb|floatformat:1 }} GB</td>
+                            <td class="text-right">{% if disk.used_gb is not None %}{{ disk.used_gb|floatformat:1 }} GB{% else %}—{% endif %}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="8"><div class="empty-state"><i class="fas fa-hard-drive"></i><p>No storage details reported yet.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-network-wired"></i> Network interfaces</span><span class="badge badge-secondary">{{ network|length }}</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Interface</th><th>MAC</th><th>IPv4</th><th>IPv6</th></tr></thead>
+                    <tbody>
+                        {% for nic in network %}
+                        <tr>
+                            <td>{{ nic.name|default:"—" }}</td>
+                            <td class="mono">{{ nic.mac|default:"—" }}</td>
+                            <td class="mono">{% for ip in nic.ipv4 %}{{ ip }}{% if not forloop.last %}<br>{% endif %}{% empty %}—{% endfor %}</td>
+                            <td class="mono">{% for ip in nic.ipv6 %}{{ ip|truncatechars:34 }}{% if not forloop.last %}<br>{% endif %}{% empty %}—{% endfor %}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4"><div class="empty-state"><i class="fas fa-network-wired"></i><p>No network interfaces reported yet.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-shield-halved"></i> Security posture</span><span class="badge badge-secondary">Endpoint protection</span></div>
+            <div style="padding: 18px 20px;">
+                {% if security %}
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <div class="detail-label">Antivirus</div>
+                        <div class="detail-value">
+                            {% for av in security.antivirus %}
+                            <div style="margin-bottom:6px;">{{ av.name }}
+                                {% if av.enabled == False %}<span class="badge badge-danger">Disabled</span>{% elif av.enabled %}<span class="badge badge-active">Active</span>{% endif %}
+                                {% if av.up_to_date == False %}<span class="badge badge-warning">Outdated</span>{% elif av.up_to_date %}<span class="badge badge-secondary">Up to date</span>{% endif %}
+                            </div>
+                            {% empty %}<span class="text-muted">None reported</span>{% endfor %}
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">EDR</div>
+                        <div class="detail-value">
+                            {% for agent_row in security.edr %}
+                            <div style="margin-bottom:6px;">{{ agent_row.name }}{% if agent_row.status %} <span class="badge badge-secondary">{{ agent_row.status }}</span>{% endif %}{% if agent_row.version %} <span class="text-muted">{{ agent_row.version }}</span>{% endif %}</div>
+                            {% empty %}<span class="text-muted">None reported</span>{% endfor %}
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Firewall</div>
+                        <div class="detail-value">{{ security.firewall.name|default:"Host firewall" }}
+                            {% if security.firewall.enabled == False %}<span class="badge badge-danger">Disabled</span>{% elif security.firewall.enabled %}<span class="badge badge-active">Enabled</span>{% else %}<span class="text-muted">Unknown</span>{% endif %}
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Disk encryption</div>
+                        <div class="detail-value">{{ security.disk_encryption.solution|default:"Not reported" }}
+                            {% if security.disk_encryption.enabled == False %}<span class="badge badge-danger">Off</span>{% elif security.disk_encryption.enabled %}<span class="badge badge-active">On</span>{% endif %}
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Secure boot</div>
+                        <div class="detail-value">{% if security.secure_boot == False %}<span class="badge badge-danger">Disabled</span>{% elif security.secure_boot %}<span class="badge badge-active">Enabled</span>{% else %}<span class="text-muted">Unknown</span>{% endif %}</div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="empty-state"><i class="fas fa-shield-halved"></i><p>No security posture reported yet.</p></div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-plug-circle-bolt"></i> Listening ports</span><span class="badge badge-secondary">{{ ports|length }}</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Proto</th><th>Local address</th><th>Port</th><th>Process</th><th>State</th></tr></thead>
+                    <tbody>
+                        {% for row in ports %}
+                        <tr>
+                            <td><span class="badge badge-secondary">{{ row.protocol|upper }}</span></td>
+                            <td class="mono">{{ row.local_address|default:"0.0.0.0" }}</td>
+                            <td class="mono">{{ row.port }}</td>
+                            <td>{{ row.process|default:"—" }}</td>
+                            <td>{{ row.state|default:"—" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5"><div class="empty-state"><i class="fas fa-plug-circle-bolt"></i><p>No listening ports reported yet.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-window-restore"></i> Software inventory</span>
+                <a href="/assets/agents/{{ agent.id }}/software/export" class="btn btn-sm btn-secondary"><i class="fas fa-file-csv"></i> Export</a>
+            </div>
+            <div style="padding: 14px 20px 0;">
+                <form method="get" class="filter-bar" style="padding:0; border:none; box-shadow:none;">
+                    <div class="form-group">
+                        <label>Search applications</label>
+                        <input type="text" name="sw_q" class="form-control" value="{{ software_query }}" placeholder="Name, publisher or version">
+                    </div>
+                    <div class="form-group"><button class="btn btn-primary"><i class="fas fa-magnifying-glass"></i> Search</button></div>
+                    {% if software_query %}<div class="form-group"><a href="/assets/agents/{{ agent.id }}" class="btn btn-secondary">Clear</a></div>{% endif %}
+                </form>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Application</th><th>Version</th><th>Publisher</th><th>Source</th><th>Installed</th></tr></thead>
+                    <tbody>
+                        {% for app in software_rows %}
+                        <tr>
+                            <td><strong>{{ app.name }}</strong><div class="text-muted" style="font-size:11px;">First seen {{ app.first_seen_at|date:"M d, Y" }}</div></td>
+                            <td class="mono">{{ app.version|default:"—" }}</td>
+                            <td>{{ app.publisher|default:"—"|truncatechars:46 }}</td>
+                            <td>{{ app.source|default:"—" }}</td>
+                            <td>{{ app.installed_on|date:"M d, Y"|default:"—" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5"><div class="empty-state"><i class="fas fa-window-restore"></i><p>No applications match this view.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if software_page.paginator.num_pages > 1 %}
+            <div class="pagination">
+                {% if software_page.has_previous %}
+                <a href="?sw_q={{ software_query|urlencode }}&sw_page={{ software_page.previous_page_number }}">&laquo; Prev</a>
+                {% else %}<span class="disabled">&laquo; Prev</span>{% endif %}
+                <span class="current">Page {{ software_page.number }} of {{ software_page.paginator.num_pages }} &middot; {{ software_page.paginator.count|intcomma }} apps</span>
+                {% if software_page.has_next %}
+                <a href="?sw_q={{ software_query|urlencode }}&sw_page={{ software_page.next_page_number }}">Next &raquo;</a>
+                {% else %}<span class="disabled">Next &raquo;</span>{% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-clock-rotate-left"></i> Inventory snapshots</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Received</th><th>Collected</th><th class="text-right">Apps</th><th>Checksum</th><th></th></tr></thead>
+                    <tbody>
+                        {% for snapshot in snapshots %}
+                        <tr>
+                            <td>{{ snapshot.received_at|date:"M d, Y H:i" }}</td>
+                            <td>{{ snapshot.collected_at|date:"M d, Y H:i" }}</td>
+                            <td class="text-right">{{ snapshot.software_count|intcomma }}</td>
+                            <td class="mono">{{ snapshot.checksum|truncatechars:16 }}</td>
+                            <td><a href="/assets/agents/{{ agent.id }}/snapshots/{{ snapshot.id }}" class="btn btn-sm btn-secondary" title="View raw payload" target="_blank" rel="noopener"><i class="fas fa-code"></i></a></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5"><div class="empty-state"><i class="fas fa-camera-retro"></i><p>No inventory has been received yet.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card" id="link">
+            <div class="card-header"><span><i class="fas fa-link"></i> Asset link</span></div>
+            <div style="padding: 20px;">
+                {% if agent.asset %}
+                <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
+                    <div>
+                        <a href="/assets/{{ agent.asset.id }}" style="font-size:16px; font-weight:700;">{{ agent.asset.asset_code }}</a>
+                        <div class="info">{{ agent.asset.name }}</div>
+                    </div>
+                    <span class="badge badge-{{ agent.asset.status|status_class }}">{{ agent.asset.get_status_display }}</span>
+                </div>
+                <div class="summary-box" style="margin-top:14px;">
+                    <div class="summary-line"><span>Serial</span><span>{{ agent.asset.serial_number|default:agent.serial_number|default:"—" }}</span></div>
+                    <div class="summary-line"><span>Location</span><span>{{ agent.asset.location|default:"—" }}</span></div>
+                    <div class="summary-line"><span>Custodian</span><span>{% if agent.asset.assigned_to %}{{ agent.asset.assigned_to.first_name }} {{ agent.asset.assigned_to.last_name }}{% else %}Store{% endif %}</span></div>
+                </div>
+                {% if can_manage %}
+                <form method="post" action="/assets/agents/{{ agent.id }}/unlink" style="margin-top:16px;" onsubmit="return confirm('Unlink this endpoint from {{ agent.asset.asset_code }}?');">
+                    {% csrf_token %}
+                    <button class="btn btn-secondary" style="width:100%;"><i class="fas fa-link-slash"></i> Unlink asset</button>
+                </form>
+                {% endif %}
+                {% else %}
+                <p class="info">This endpoint is not linked to an asset yet. Linking keeps warranty, custody and book value next to the live inventory.</p>
+                {% if can_manage %}
+                <form method="post" action="/assets/agents/{{ agent.id }}/link">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="{{ link_form.asset.id_for_label }}">Asset</label>
+                        {{ link_form.asset }}
+                        {{ link_form.asset.errors }}
+                    </div>
+                    <button class="btn btn-primary" style="width:100%;"><i class="fas fa-link"></i> Link asset</button>
+                </form>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-key"></i> Enrolment</span></div>
+            <div style="padding: 16px 20px; font-size: 13px;">
+                <div class="summary-line"><span>Token</span><span>{% if agent.enrolled_via %}{{ agent.enrolled_via.label }}{% else %}—{% endif %}</span></div>
+                <div class="summary-line"><span>Enrolled</span><span>{{ agent.enrolled_at|date:"M d, Y" }}</span></div>
+                <div class="summary-line"><span>Last IP</span><span class="mono">{{ agent.last_ip|default:"—" }}</span></div>
+                <div class="summary-line"><span>Agent state</span><span>{% if agent.is_active %}Active{% else %}Disabled{% endif %}</span></div>
+                <div class="summary-line"><span>Snapshots kept</span><span>{{ stats.snapshots }} of 60</span></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-list-check"></i> Activity</span></div>
+            <div class="timeline">
+                {% for event in events %}
+                <div class="timeline-item">
+                    <span class="timeline-dot"></span>
+                    <div style="font-size:13px; font-weight:600;">{{ event.get_kind_display }}</div>
+                    <div style="font-size:12px; color:#64748b; margin-top:3px;">{{ event.detail }}</div>
+                    <div class="text-muted" style="font-size:11px; margin-top:4px;">{{ event.created_at|date:"M d, Y H:i" }}{% if event.ip_address %} &middot; {{ event.ip_address }}{% endif %}</div>
+                </div>
+                {% empty %}
+                <p class="info">No activity recorded yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

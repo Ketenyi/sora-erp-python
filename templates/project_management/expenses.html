@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-receipt"></i> Field Expenses</h1>
+        <p>{{ project.project_code }} &middot; {{ financials.expense_burn_percent }}% of the allocated expense budget consumed.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/{{ project.id }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Project</a>
+        <a href="/projects/expenses" class="btn btn-secondary"><i class="fas fa-table-list"></i> All projects</a>
+    </div>
+</div>
+
+{% include "project_management/partials/project_tabs.html" with active="expenses" %}
+
+{% if financials.expense_alert %}
+<div class="alert alert-error"><i class="fas fa-triangle-exclamation"></i> Expense burn has reached {{ financials.expense_burn_percent }}% of the allocated budget. Finance is alerted at the 80% threshold.</div>
+{% endif %}
+
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-wallet"></i></div><div><div class="stat-number">{{ currency_symbol }} {{ financials.allocated_expense_budget|floatformat:0|intcomma }}</div><div class="stat-label">Allocated expense budget</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-check"></i></div><div><div class="stat-number">{{ currency_symbol }} {{ financials.approved_expenses|floatformat:0|intcomma }}</div><div class="stat-label">Approved expenses</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-hourglass-half"></i></div><div><div class="stat-number">{{ currency_symbol }} {{ financials.pending_expenses|floatformat:0|intcomma }}</div><div class="stat-label">Pending approval</div></div></div>
+    <div class="stat-box {% if financials.expense_alert %}alert-card{% endif %}"><div class="stat-icon"><i class="fas fa-gauge-high"></i></div><div><div class="stat-number">{{ financials.expense_burn_percent }}%</div><div class="stat-label">Burn rate</div></div></div>
+</div>
+
+<div class="detail-layout">
+    <div class="card">
+        <div class="card-header">
+            <span><i class="fas fa-list"></i> Expense claims</span>
+            <form method="get"><select name="status" class="form-control" onchange="this.form.submit()" style="font-size:12px;"><option value="">All statuses</option><option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option><option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option><option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option></select></form>
+        </div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Vendor</th><th class="text-right">Amount</th><th>Receipt</th><th>Submitted by</th><th>Status</th>{% if can_approve %}<th></th>{% endif %}</tr></thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        <td>{{ row.expense_date|date:"M d, Y" }}</td>
+                        <td>{{ row.category|humanize_label }}</td>
+                        <td>{{ row.description|default:"—"|truncatechars:50 }}</td>
+                        <td>{{ row.vendor_name|default:"—" }}</td>
+                        <td class="text-right money">{{ currency_symbol }} {{ row.amount|floatformat:2|intcomma }}</td>
+                        <td>{% if row.receipt_url %}<a href="{{ row.receipt_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-secondary"><i class="fas fa-paperclip"></i></a>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                        <td>{{ row.submitter_name }}</td>
+                        <td><span class="badge badge-{{ row.status|status_class }}">{{ row.get_status_display }}</span></td>
+                        {% if can_approve %}
+                        <td>
+                            {% if row.status == 'pending' %}
+                            <div class="table-actions">
+                                <form method="post" action="/projects/{{ project.id }}/expenses/{{ row.id }}/decision">{% csrf_token %}<input type="hidden" name="action" value="approve"><button class="btn btn-sm btn-primary" title="Approve"><i class="fas fa-check"></i></button></form>
+                                <form method="post" action="/projects/{{ project.id }}/expenses/{{ row.id }}/decision">{% csrf_token %}<input type="hidden" name="action" value="reject"><button class="btn btn-sm btn-danger" title="Reject"><i class="fas fa-times"></i></button></form>
+                            </div>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="9"><div class="empty-state"><i class="fas fa-receipt"></i><p>No expenses submitted.</p></div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if can_submit %}
+    <div class="card sticky-summary">
+        <div class="card-header"><span><i class="fas fa-upload"></i> Submit expense</span></div>
+        <div style="padding:18px 20px;">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                {% include "project_management/partials/form_fields.html" with form=form %}
+                <button class="btn btn-primary" style="width:100%; justify-content:center; margin-top:8px;"><i class="fas fa-plus"></i> Submit claim</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

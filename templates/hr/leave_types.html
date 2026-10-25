@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load static sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-tags"></i> Leave Types</h1><p>Configure annual entitlement, carry-over and documentation rules.</p></div>
+    <div class="page-actions"><a href="/hr/leave/types/create" class="btn btn-primary"><i class="fas fa-plus"></i> New leave type</a><a href="/hr/leave" class="btn btn-secondary">Leave home</a></div>
+</div>
+<div class="card">
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Type</th><th>Code</th><th class="text-right">Days/year</th><th>Paid</th><th>Carry over</th><th>Approval</th><th class="text-right">Balances</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                {% for leave_type in leave_types %}
+                <tr>
+                    <td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:{{ leave_type.color }};margin-right:7px;"></span><strong>{{ leave_type.leave_name }}</strong></td>
+                    <td>{{ leave_type.leave_code }}</td>
+                    <td class="text-right">{{ leave_type.days_allowed }}</td>
+                    <td>{% if leave_type.is_paid %}Yes{% else %}No{% endif %}</td>
+                    <td>{% if leave_type.is_carry_over %}Yes · max {{ leave_type.max_carry_over }}{% else %}No{% endif %}</td>
+                    <td>{% if leave_type.requires_approval %}Required{% else %}Optional{% endif %}</td>
+                    <td class="text-right">{{ leave_type.balance_count }}</td>
+                    <td><span class="badge badge-{{ leave_type.status|status_class }}">{{ leave_type.get_status_display }}</span></td>
+                    <td><a href="/hr/leave/types/edit/{{ leave_type.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-pen"></i></a></td>
+                </tr>
+                {% empty %}<tr><td colspan="9"><div class="empty-state"><i class="fas fa-tags"></i><p>No leave types configured.</p><a href="/hr/leave/types/create">Create the first leave type</a></div></td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

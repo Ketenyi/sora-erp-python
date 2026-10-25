@@ -1,0 +1,568 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<style>
+    .pos-layout { display: grid; grid-template-columns: minmax(0, 1fr) 410px; gap: 18px; align-items: start; }
+    @media (max-width: 1180px) { .pos-layout { grid-template-columns: 1fr; } .pos-cart { position: static !important; } }
+    .pos-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+    .pos-toolbar .form-control { max-width: 280px; }
+    .cat-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+    .cat-chip { border: 1px solid #e2e8f0; background: #fff; color: #475569; padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .cat-chip.active { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+    .pos-products { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: 12px; }
+    .product-card { text-align: left; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; cursor: pointer; transition: .15s ease; display: flex; flex-direction: column; gap: 6px; min-height: 124px; }
+    .product-card:hover { border-color: #6366f1; box-shadow: 0 8px 20px rgba(79,70,229,.10); transform: translateY(-1px); }
+    .product-card:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+    .product-name { font-weight: 700; font-size: 13px; color: #0f172a; line-height: 1.3; }
+    .product-code { font-family: monospace; font-size: 10px; color: #94a3b8; }
+    .product-price { margin-top: auto; font-weight: 800; color: #3730a3; font-size: 14px; }
+    .product-stock { font-size: 10px; color: #64748b; }
+    .pos-cart { position: sticky; top: 16px; }
+    .cart-line { display: grid; grid-template-columns: 1fr 92px 58px; gap: 8px; align-items: center; padding: 9px 0; border-bottom: 1px solid #eef2f6; }
+    .cart-line-name { font-size: 12px; font-weight: 600; line-height: 1.3; }
+    .cart-line-meta { font-size: 10px; color: #94a3b8; }
+    .qty-input { width: 100%; text-align: center; padding: 6px 4px; font-size: 12px; }
+    .cart-line-total { text-align: right; font-weight: 700; font-size: 12px; }
+    .cart-line-actions { display: flex; gap: 4px; margin-top: 4px; }
+    .mini-btn { border: 0; background: #eef2ff; color: #4338ca; border-radius: 5px; width: 22px; height: 22px; cursor: pointer; font-size: 11px; line-height: 1; }
+    .mini-btn.danger { background: #fee2e2; color: #b91c1c; }
+    .payment-row { display: grid; grid-template-columns: 105px 1fr 1fr 26px; gap: 6px; align-items: center; margin-bottom: 8px; }
+    .payment-row .form-control { padding: 7px 8px; font-size: 12px; }
+    .payment-row .mini-btn { width: 26px; height: 26px; }
+    .pos-total-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 13px; }
+    .pos-total-row.grand { font-size: 20px; font-weight: 800; border-top: 1px dashed #cbd5e1; margin-top: 8px; padding-top: 10px; }
+    .pos-paid { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; color: #475569; }
+    .pos-error { display: none; background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; border-radius: 8px; padding: 8px 10px; font-size: 12px; margin-top: 10px; }
+    .pos-error.show { display: block; }
+    .pos-muted { color: #94a3b8; font-size: 12px; text-align: center; padding: 18px 6px; }
+    .session-bar { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; justify-content: space-between; background: #0f172a; color: #e2e8f0; border-radius: 12px; padding: 12px 18px; margin-bottom: 16px; font-size: 12px; }
+    .session-bar strong { color: #fff; }
+    .session-bar .dot { width: 8px; height: 8px; border-radius: 50%; background: #34d399; display: inline-block; margin-right: 6px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-cash-register"></i> POS Terminal</h1>
+        <p>Scan or tap products, take split payments and print a receipt in seconds.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/pos/dashboard" class="btn btn-secondary"><i class="fas fa-chart-line"></i> Dashboard</a>
+        <a href="/pos/sales" class="btn btn-secondary"><i class="fas fa-receipt"></i> Sales</a>
+        <a href="/pos/sessions" class="btn btn-secondary"><i class="fas fa-cash-register"></i> Sessions</a>
+    </div>
+</div>
+
+{% if not open_session %}
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-circle-play"></i> Open a till session</span></div>
+            <div style="padding: 22px;">
+                <p class="info" style="margin-bottom: 16px;">Start a shift by declaring the cash float in the drawer. All sales and cash-ups will be attached to this session.</p>
+                {% if can_sell %}
+                <form method="post" action="/pos/sessions/open">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="/pos/">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="{{ open_form.terminal_name.id_for_label }}">Terminal name</label>
+                            {{ open_form.terminal_name }}
+                            {{ open_form.terminal_name.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ open_form.opening_float.id_for_label }}">Opening float</label>
+                            {{ open_form.opening_float }}
+                            {{ open_form.opening_float.errors }}
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ open_form.notes.id_for_label }}">Notes</label>
+                        {{ open_form.notes }}
+                        {{ open_form.notes.errors }}
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-lock-open"></i> Open Till</button>
+                </form>
+                {% else %}
+                <div class="alert alert-error">You do not have permission to open a till. Ask a supervisor to start a session.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-chart-simple"></i> Today</span></div>
+            <div style="padding: 18px;">
+                <div class="summary-line"><span>Completed sales</span><span>{{ today.sales }}</span></div>
+                <div class="summary-line"><span>Revenue</span><span>{{ currency_symbol }} {{ today.revenue|floatformat:2|intcomma }}</span></div>
+                <div class="summary-line"><span>Open tills</span><span>{{ today.open_sessions }}</span></div>
+                <div class="summary-line total"><span>Expected drawer cash</span><span>{{ currency_symbol }} {{ today.expected_cash|floatformat:2|intcomma }}</span></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-lightbulb"></i> Quick tip</span></div>
+            <div style="padding: 18px;"><p class="info">You can take cash, M-Pesa, card, bank transfers and on-account payments. Split a payment across methods by adding another payment line in the cart.</p></div>
+        </div>
+    </div>
+</div>
+{% else %}
+
+<div class="session-bar">
+    <div><span class="dot"></span><strong>{{ open_session.terminal_name }}</strong> &middot; {{ open_session.session_number }}</div>
+    <div>Opened {{ open_session.opened_at|date:"M d, H:i" }} &middot; float {{ currency_symbol }} {{ open_session.opening_float|floatformat:2|intcomma }}</div>
+    <div>{{ session_stats.count }} sale{{ session_stats.count|pluralize }} &middot; <strong>{{ currency_symbol }} {{ session_stats.net|floatformat:2|intcomma }}</strong>{% if session_stats.refunds %} &middot; {{ session_stats.refund_count }} refund{{ session_stats.refund_count|pluralize }} {{ currency_symbol }} {{ session_stats.refunds|floatformat:2|intcomma }}{% endif %}</div>
+    <div>Drawer expected <strong>{{ currency_symbol }} {{ session_stats.expected_cash|floatformat:2|intcomma }}</strong></div>
+    <a href="/pos/sessions/{{ open_session.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-cash-register"></i> Close / Cash-up</a>
+</div>
+
+<div class="pos-layout">
+    <div>
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-barcode"></i> Products</span>
+                <span class="info">{{ products|length }} active item{{ products|length|pluralize }}</span>
+            </div>
+            <div style="padding: 16px 18px 18px;">
+                <div class="pos-toolbar">
+                    <input type="text" id="posSearch" class="form-control" placeholder="Search product name or code..." autocomplete="off">
+                </div>
+                <div class="cat-chips" id="catChips">
+                    <button type="button" class="cat-chip active" data-cat="all">All</button>
+                    {% for category in categories %}
+                    <button type="button" class="cat-chip" data-cat="{{ category.id|default:'none' }}">{{ category.name }}</button>
+                    {% endfor %}
+                </div>
+                <div class="pos-products" id="productGrid">
+                    {% for product in products %}
+                    <button type="button" class="product-card" {% if product.stock_state == "out" %}disabled{% endif %}
+                        data-id="{{ product.id }}"
+                        data-name="{{ product.name }}"
+                        data-code="{{ product.product_code }}"
+                        data-price="{{ product.unit_price|floatformat:2 }}"
+                        data-tax="{{ product.tax_rate|default:0|floatformat:2 }}"
+                        data-stock="{{ product.current_stock|default:0|floatformat:2 }}"
+                        data-type="{{ product.type|default:'product' }}"
+                        data-unit="{{ product.unit|default:'pcs' }}"
+                        data-category="{{ product.category_id|default:'none' }}">
+                        <span class="product-name">{{ product.name }}</span>
+                        <span class="product-code">{{ product.product_code }}{% if product.stock_state == "low" %} &middot; low stock{% endif %}</span>
+                        <span class="product-price">{{ currency_symbol }} {{ product.unit_price|floatformat:2|intcomma }}</span>
+                        <span class="product-stock">{{ product.display_stock }}{% if product.type == "service" %} &middot; no stock tracking{% endif %}</span>
+                    </button>
+                    {% empty %}
+                    <div class="empty-state"><i class="fas fa-boxes"></i><p>No active products. Add products in Inventory first.</p></div>
+                    {% endfor %}
+                </div>
+                <div class="pos-muted" id="posNoResults" style="display:none;">No products match your search.</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-clock-rotate-left"></i> Recent sales this session</span><a href="/pos/sales?session={{ open_session.id }}" class="btn btn-sm btn-secondary">Full history</a></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Sale</th><th>Time</th><th class="text-right">Items</th><th class="text-right">Total</th><th>Payment</th><th></th></tr></thead>
+                    <tbody>
+                        {% for sale in recent_sales %}
+                        <tr>
+                            <td class="mono"><strong>{{ sale.sale_number }}</strong>{% if sale.status == "voided" %} <span class="badge badge-danger">Voided</span>{% endif %}</td>
+                            <td>{{ sale.created_at|date:"H:i" }}</td>
+                            <td class="text-right">{{ sale.item_count|floatformat:0 }}</td>
+                            <td class="text-right money">{{ currency_symbol }} {{ sale.total_amount|floatformat:2|intcomma }}</td>
+                            <td>{{ sale.payment_label }}</td>
+                            <td><a href="/pos/sales/{{ sale.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-receipt"></i></a></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6"><div class="empty-state"><i class="fas fa-receipt"></i><p>No sales in this session yet.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="pos-cart">
+        <div class="card" style="margin-bottom: 0;">
+            <div class="card-header">
+                <span><i class="fas fa-basket-shopping"></i> Current sale</span>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="clearCart()"><i class="fas fa-trash-can"></i> Clear</button>
+            </div>
+            <div style="padding: 16px 18px;">
+                <div class="form-group" style="margin-bottom: 10px;">
+                    <label>Customer</label>
+                    <select id="posClient" class="form-control">
+                        <option value="">Walk-in customer</option>
+                        {% for client in clients %}<option value="{{ client.id }}">{{ client.company_name }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <input type="text" id="posCustomerName" class="form-control" placeholder="Customer name (optional)" maxlength="150">
+                </div>
+
+                <div id="cartLines">
+                    <div class="pos-muted" id="cartEmpty">Tap a product to start the sale.</div>
+                </div>
+
+                <div style="margin-top: 12px;">
+                    <div class="pos-total-row"><span>Subtotal</span><span id="posSubtotal">0.00</span></div>
+                    <div class="pos-total-row"><span>Tax</span><span id="posTax">0.00</span></div>
+                    <div class="pos-total-row" style="align-items:center;">
+                        <span>Discount{% if pos_policy.max_discount_percent < 100 %} <span class="info">(max {{ pos_policy.max_discount_percent|floatformat:0 }}%)</span>{% endif %}</span>
+                        <input type="number" id="posDiscount" class="form-control" style="width:110px; padding:5px 8px; font-size:12px; text-align:right;" min="0" step="0.01" value="0">
+                    </div>
+                    <div class="pos-total-row grand"><span>Total</span><span id="posTotal">{{ currency_symbol }} 0.00</span></div>
+                </div>
+
+                <div style="margin-top: 16px; border-top: 1px solid #eef2f6; padding-top: 14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#64748b;">Payments</span>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="addPayment()"><i class="fas fa-plus"></i> Add</button>
+                    </div>
+                    <div id="paymentRows"></div>
+                    <div class="pos-paid"><span>Paid</span><span id="posPaid">{{ currency_symbol }} 0.00</span></div>
+                    <div class="pos-paid"><span>Change</span><span id="posChange">{{ currency_symbol }} 0.00</span></div>
+                </div>
+
+                <div class="pos-error" id="posError"></div>
+
+                <button type="button" class="btn btn-primary" id="posCheckout" onclick="completeSale()" style="width:100%; justify-content:center; margin-top: 14px; padding: 12px;">
+                    <i class="fas fa-check-circle"></i> Complete Sale
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var CURRENCY = "{{ currency_symbol|escapejs }}";
+    var SESSION_ID = {{ open_session.id }};
+    var CHECKOUT_URL = "/pos/checkout";
+    var CSRF = document.querySelector('meta[name="csrf-token"]').content;
+    var METHODS = {{ payment_methods_json|safe }};
+    var MAX_DISCOUNT_PCT = parseFloat("{{ pos_policy.max_discount_percent }}") || 100;
+    var cart = {};
+    var payments = [{ method: defaultMethod(), amount: "", reference: "" }];
+    var paymentsDirty = false;
+    var lastTotal = 0;
+    var clientReference = newReference();
+
+    function defaultMethod() {
+        return METHODS.length ? METHODS[0].code : "cash";
+    }
+
+    function newReference() {
+        if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+        return "pos-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+    }
+
+    function tender(code) {
+        return METHODS.find(function (row) { return row.code === code; }) || { label: code, requires_reference: false, is_credit: false };
+    }
+
+    function money(value) {
+        var number = Number(value) || 0;
+        return CURRENCY + " " + number.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function parseNumber(value) {
+        var number = parseFloat(String(value || "").replace(/,/g, ""));
+        return isNaN(number) ? 0 : number;
+    }
+
+    function escapeHtml(value) {
+        return String(value == null ? "" : value).replace(/[&<>"']/g, function (character) {
+            return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character];
+        });
+    }
+
+    function computeTotals() {
+        var subtotal = 0;
+        var tax = 0;
+        Object.keys(cart).forEach(function (id) {
+            var line = cart[id];
+            var lineTotal = line.price * line.qty;
+            subtotal += lineTotal;
+            tax += lineTotal * (line.tax / 100);
+        });
+        var discountInput = document.getElementById("posDiscount");
+        var discount = Math.max(parseNumber(discountInput.value), 0);
+        var cap = subtotal * (MAX_DISCOUNT_PCT / 100);
+        if (discount > cap) {
+            discount = cap;
+            discountInput.value = discount.toFixed(2);
+        }
+        var ratio = subtotal ? (subtotal - discount) / subtotal : 0;
+        var taxNet = tax * ratio;
+        var total = Math.max(subtotal - discount + taxNet, 0);
+        return { subtotal: subtotal, tax: taxNet, discount: discount, total: total };
+    }
+
+    function renderCart() {
+        var container = document.getElementById("cartLines");
+        var ids = Object.keys(cart);
+        if (!ids.length) {
+            container.innerHTML = '<div class="pos-muted" id="cartEmpty">Tap a product to start the sale.</div>';
+        } else {
+            var html = "";
+            ids.forEach(function (id) {
+                var line = cart[id];
+                var meta = escapeHtml(line.code) + " · " + money(line.price);
+                if (line.type !== "service") {
+                    meta += " · stock " + line.stock.toFixed(2);
+                }
+                html += '<div class="cart-line">' +
+                    '<div><div class="cart-line-name">' + escapeHtml(line.name) + '</div><div class="cart-line-meta">' + meta + '</div>' +
+                    '<div class="cart-line-actions">' +
+                    '<button type="button" class="mini-btn" onclick="changeQty(' + id + ', -1)">−</button>' +
+                    '<button type="button" class="mini-btn" onclick="changeQty(' + id + ', 1)">+</button>' +
+                    '<button type="button" class="mini-btn danger" onclick="removeLine(' + id + ')">×</button>' +
+                    '</div></div>' +
+                    '<input type="number" class="form-control qty-input" min="0.01" step="0.01" value="' + line.qty.toFixed(2) + '" onchange="setQty(' + id + ', this.value)">' +
+                    '<div class="cart-line-total">' + money(line.price * line.qty) + '</div>' +
+                    '</div>';
+            });
+            container.innerHTML = html;
+        }
+        var totals = computeTotals();
+        lastTotal = totals.total;
+        document.getElementById("posSubtotal").textContent = money(totals.subtotal);
+        document.getElementById("posTax").textContent = money(totals.tax);
+        document.getElementById("posTotal").textContent = money(totals.total);
+        if (payments.length === 1 && !paymentsDirty) {
+            payments[0].amount = totals.total ? totals.total.toFixed(2) : "";
+        }
+        renderPayments();
+        document.getElementById("posCheckout").disabled = !ids.length;
+    }
+
+    function renderPayments() {
+        var container = document.getElementById("paymentRows");
+        var html = "";
+        payments.forEach(function (payment, index) {
+            var options = METHODS.map(function (row) {
+                return '<option value="' + escapeHtml(row.code) + '"' + (payment.method === row.code ? " selected" : "") + ">" + escapeHtml(row.label) + "</option>";
+            }).join("");
+            var current = tender(payment.method);
+            html += '<div class="payment-row">' +
+                '<select class="form-control" onchange="updatePayment(' + index + ', \'method\', this.value)">' + options + '</select>' +
+                '<input type="number" class="form-control" min="0" step="0.01" placeholder="Amount" value="' + payment.amount + '" oninput="updatePayment(' + index + ', \'amount\', this.value)">' +
+                '<input type="text" class="form-control" placeholder="' + (current.requires_reference ? "Reference required" : "Reference") + '" value="' + escapeHtml(payment.reference || "") + '" oninput="updatePayment(' + index + ', \'reference\', this.value)">' +
+                (payments.length > 1 ? '<button type="button" class="mini-btn danger" onclick="removePayment(' + index + ')">×</button>' : "<span></span>") +
+                '</div>';
+        });
+        container.innerHTML = html;
+        updatePaidDisplay();
+    }
+
+    function updatePaidDisplay() {
+        var paid = payments.reduce(function (sum, row) { return sum + parseNumber(row.amount); }, 0);
+        var change = Math.max(paid - lastTotal, 0);
+        document.getElementById("posPaid").textContent = money(paid);
+        document.getElementById("posChange").textContent = money(change);
+    }
+
+    function showError(message) {
+        var box = document.getElementById("posError");
+        if (!message) {
+            box.classList.remove("show");
+            box.textContent = "";
+            return;
+        }
+        box.textContent = message;
+        box.classList.add("show");
+    }
+
+    window.addToCart = function (id, name, price, tax, stock, type, code) {
+        showError("");
+        if (cart[id]) {
+            if (type !== "service" && cart[id].qty + 1 > stock) {
+                showError("Only " + stock.toFixed(2) + " units of " + name + " are available.");
+                return;
+            }
+            cart[id].qty += 1;
+        } else {
+            if (type !== "service" && stock <= 0) {
+                showError(name + " is out of stock.");
+                return;
+            }
+            cart[id] = { name: name, price: price, tax: tax, stock: stock, type: type, code: code, qty: 1 };
+        }
+        renderCart();
+    };
+
+    window.changeQty = function (id, delta) {
+        if (!cart[id]) return;
+        var next = cart[id].qty + delta;
+        if (next <= 0) {
+            delete cart[id];
+        } else if (cart[id].type !== "service" && next > cart[id].stock) {
+            showError("Only " + cart[id].stock.toFixed(2) + " units are available.");
+            return;
+        } else {
+            cart[id].qty = next;
+        }
+        renderCart();
+    };
+
+    window.setQty = function (id, value) {
+        if (!cart[id]) return;
+        var qty = parseNumber(value);
+        if (qty <= 0) {
+            delete cart[id];
+        } else if (cart[id].type !== "service" && qty > cart[id].stock) {
+            showError("Only " + cart[id].stock.toFixed(2) + " units are available.");
+            cart[id].qty = cart[id].stock;
+        } else {
+            cart[id].qty = qty;
+        }
+        renderCart();
+    };
+
+    window.removeLine = function (id) {
+        delete cart[id];
+        renderCart();
+    };
+
+    window.clearCart = function () {
+        cart = {};
+        payments = [{ method: defaultMethod(), amount: "", reference: "" }];
+        paymentsDirty = false;
+        clientReference = newReference();
+        document.getElementById("posDiscount").value = "0";
+        showError("");
+        renderCart();
+    };
+
+    window.addPayment = function () {
+        var paid = payments.reduce(function (sum, row) { return sum + parseNumber(row.amount); }, 0);
+        var remaining = Math.max(lastTotal - paid, 0);
+        var next = METHODS.find(function (row) { return row.code === "m-pesa"; }) || METHODS[1] || METHODS[0];
+        payments.push({ method: next ? next.code : "cash", amount: remaining ? remaining.toFixed(2) : "", reference: "" });
+        paymentsDirty = true;
+        renderPayments();
+    };
+
+    window.removePayment = function (index) {
+        if (payments.length <= 1) return;
+        payments.splice(index, 1);
+        paymentsDirty = true;
+        renderPayments();
+    };
+
+    window.updatePayment = function (index, field, value) {
+        if (!payments[index]) return;
+        payments[index][field] = value;
+        paymentsDirty = true;
+        updatePaidDisplay();
+    };
+
+    document.getElementById("posDiscount").addEventListener("input", function () {
+        renderCart();
+    });
+
+    document.getElementById("posSearch").addEventListener("input", filterProducts);
+    document.querySelectorAll(".cat-chip").forEach(function (chip) {
+        chip.addEventListener("click", function () {
+            document.querySelectorAll(".cat-chip").forEach(function (item) { item.classList.remove("active"); });
+            chip.classList.add("active");
+            filterProducts();
+        });
+    });
+
+    function filterProducts() {
+        var query = document.getElementById("posSearch").value.toLowerCase();
+        var activeChip = document.querySelector(".cat-chip.active");
+        var category = activeChip ? activeChip.getAttribute("data-cat") : "all";
+        var shown = 0;
+        document.querySelectorAll(".product-card").forEach(function (card) {
+            var matchesText = card.getAttribute("data-name").toLowerCase().indexOf(query) !== -1 ||
+                card.getAttribute("data-code").toLowerCase().indexOf(query) !== -1;
+            var matchesCat = category === "all" || card.getAttribute("data-category") === category;
+            var visible = matchesText && matchesCat;
+            card.style.display = visible ? "" : "none";
+            if (visible) shown += 1;
+        });
+        document.getElementById("posNoResults").style.display = shown ? "none" : "block";
+    }
+
+    document.querySelectorAll(".product-card").forEach(function (card) {
+        card.addEventListener("click", function () {
+            addToCart(
+                card.getAttribute("data-id"),
+                card.getAttribute("data-name"),
+                parseNumber(card.getAttribute("data-price")),
+                parseNumber(card.getAttribute("data-tax")),
+                parseNumber(card.getAttribute("data-stock")),
+                card.getAttribute("data-type"),
+                card.getAttribute("data-code")
+            );
+        });
+    });
+
+    window.completeSale = function () {
+        var ids = Object.keys(cart);
+        if (!ids.length) {
+            showError("Add at least one product to the cart.");
+            return;
+        }
+        var clientId = document.getElementById("posClient").value;
+        var invalid = null;
+        payments.forEach(function (row) {
+            if (parseNumber(row.amount) <= 0) return;
+            var info = tender(row.method);
+            if (info.requires_reference && !String(row.reference || "").trim()) {
+                invalid = "Add the " + info.label + " transaction reference.";
+            }
+            if (info.is_credit && !clientId) {
+                invalid = "Select a customer before putting a sale on account.";
+            }
+        });
+        if (invalid) {
+            showError(invalid);
+            return;
+        }
+        showError("");
+        var button = document.getElementById("posCheckout");
+        button.disabled = true;
+        var payload = {
+            session_id: SESSION_ID,
+            items: ids.map(function (id) { return { product_id: Number(id), quantity: cart[id].qty }; }),
+            payments: payments
+                .filter(function (row) { return parseNumber(row.amount) > 0; })
+                .map(function (row) { return { method: row.method, amount: row.amount, reference: row.reference }; }),
+            discount: parseNumber(document.getElementById("posDiscount").value),
+            client_id: clientId || null,
+            customer_name: document.getElementById("posCustomerName").value || "",
+            customer_phone: "",
+            client_reference: clientReference
+        };
+        fetch(CHECKOUT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
+            body: JSON.stringify(payload)
+        }).then(function (response) {
+            return response.json().then(function (data) { return { ok: response.ok, data: data }; });
+        }).then(function (result) {
+            if (result.ok && result.data.ok) {
+                window.location.href = result.data.redirect;
+            } else {
+                showError((result.data && result.data.error) || "The sale could not be completed.");
+                button.disabled = false;
+            }
+        }).catch(function () {
+            showError("Network error. Please try again.");
+            button.disabled = false;
+        });
+    };
+
+    renderCart();
+})();
+</script>
+{% endif %}
+{% endblock %}

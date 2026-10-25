@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}"><style>@media print { .sidebar, .topbar, .page-actions, .no-print { display:none !important; } .main-content { margin:0 !important; padding:0 !important; } .payslip { box-shadow:none; border:none; } }</style>{% endblock %}
+{% block content %}
+<div class="page-head no-print">
+    <div><h1><i class="fas fa-file-invoice-dollar"></i> Payslip</h1><p>{{ employee.first_name }} {{ employee.last_name }} &middot; {{ period.period_name }}</p></div>
+    <div class="page-actions">
+        <a href="/hr/payroll/view/{{ period.id }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to payroll</a>
+        <button type="button" class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Print payslip</button>
+    </div>
+</div>
+<div class="card payslip" style="max-width:860px; margin:0 auto;">
+    <div style="padding:28px 30px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--brand, #FFD700); padding-bottom:18px;">
+            <div>
+                <h2 style="margin:0;">{{ company.company_name|default:"SORA ERP" }}</h2>
+                <p class="info" style="margin:4px 0;">{{ company.address|default:"" }}{% if company.city %}, {{ company.city }}{% endif %}</p>
+                <p class="info" style="margin:0;">{{ company.email|default:"" }}{% if company.phone %} &middot; {{ company.phone }}{% endif %}</p>
+            </div>
+            <div class="text-right">
+                <div class="badge badge-primary">PAYSLIP</div>
+                <h3 style="margin:8px 0 0;">{{ period.period_name }}</h3>
+                <p class="info" style="margin:0;">{{ period.start_date|date:"M d" }} – {{ period.end_date|date:"M d, Y" }}</p>
+            </div>
+        </div>
+        <div class="detail-grid" style="margin-top:20px;">
+            <div><span class="label">Employee</span><strong>{{ employee.first_name }} {{ employee.last_name }}</strong></div>
+            <div><span class="label">Employee code</span><strong>{{ employee.employee_code }}</strong></div>
+            <div><span class="label">Job title</span><strong>{{ employee.job_title|default:"—" }}</strong></div>
+            <div><span class="label">Payment date</span><strong>{{ period.payment_date|date:"M d, Y" }}</strong></div>
+            <div><span class="label">Bank account</span><strong>{{ item.bank_account|default:"—" }}</strong></div>
+            <div><span class="label">Mobile money</span><strong>{{ item.mobile_money_number|default:"—" }}</strong></div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:24px;">
+            <div>
+                <h4 style="border-bottom:1px solid #e2e8f0; padding-bottom:6px;">Earnings</h4>
+                <table class="data-table"><tbody>
+                    <tr><td>Basic salary</td><td class="text-right">{{ currency_symbol }} {{ item.basic_salary|floatformat:2|intcomma }}</td></tr>
+                    <tr><td>Overtime ({{ item.overtime_hours|floatformat:1 }} hrs)</td><td class="text-right">{{ currency_symbol }} {{ item.overtime_amount|floatformat:2|intcomma }}</td></tr>
+                    {% for row in allowance_rows %}<tr><td>{{ row.name }}</td><td class="text-right">{{ currency_symbol }} {{ row.amount|floatformat:2|intcomma }}</td></tr>{% endfor %}
+                    {% if item.bonus %}<tr><td>Bonus</td><td class="text-right">{{ currency_symbol }} {{ item.bonus|floatformat:2|intcomma }}</td></tr>{% endif %}
+                    {% if item.commission %}<tr><td>Commission</td><td class="text-right">{{ currency_symbol }} {{ item.commission|floatformat:2|intcomma }}</td></tr>{% endif %}
+                    <tr style="border-top:2px solid #e2e8f0;"><td><strong>Gross pay</strong></td><td class="text-right"><strong>{{ currency_symbol }} {{ item.gross_pay|floatformat:2|intcomma }}</strong></td></tr>
+                </tbody></table>
+            </div>
+            <div>
+                <h4 style="border-bottom:1px solid #e2e8f0; padding-bottom:6px;">Deductions</h4>
+                <table class="data-table"><tbody>
+                    <tr><td>PAYE</td><td class="text-right">{{ currency_symbol }} {{ item.paye_tax|floatformat:2|intcomma }}</td></tr>
+                    <tr><td>NSSF</td><td class="text-right">{{ currency_symbol }} {{ item.nssf|floatformat:2|intcomma }}</td></tr>
+                    <tr><td>NHIF</td><td class="text-right">{{ currency_symbol }} {{ item.nhif|floatformat:2|intcomma }}</td></tr>
+                    {% for row in deduction_rows %}<tr><td>{{ row.name }}</td><td class="text-right">{{ currency_symbol }} {{ row.amount|floatformat:2|intcomma }}</td></tr>{% endfor %}
+                    <tr style="border-top:2px solid #e2e8f0;"><td><strong>Total deductions</strong></td><td class="text-right"><strong>{{ currency_symbol }} {{ item.total_deductions|floatformat:2|intcomma }}</strong></td></tr>
+                </tbody></table>
+            </div>
+        </div>
+        <div class="summary-box" style="margin-top:24px; background:#0f172a; color:#fff; display:flex; justify-content:space-between; align-items:center;">
+            <div><div style="font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:#94a3b8;">Net pay</div><div style="font-size:22px; font-weight:700;">{{ currency_symbol }} {{ item.net_pay|floatformat:2|intcomma }}</div></div>
+            <span class="badge badge-{{ item.payment_status|status_class }}">{{ item.get_payment_status_display }}</span>
+        </div>
+        <p class="info" style="margin-top:16px;"><strong>Amount in words:</strong> {{ net_words }}</p>
+        {% if item.payment_reference %}<p class="info" style="font-size:12px;">Payment reference: {{ item.payment_reference }}{% if item.paid_at %} &middot; paid {{ item.paid_at|date:"M d, Y H:i" }}{% endif %}</p>{% endif %}
+        <p class="info" style="margin-top:28px; font-size:11px; border-top:1px solid #e2e8f0; padding-top:12px;">This payslip is computer generated by {{ company.company_name|default:"SORA ERP" }}. Payroll period {{ period.period_name }}, generated {{ today|date:"M d, Y" }}.</p>
+    </div>
+</div>
+{% endblock %}

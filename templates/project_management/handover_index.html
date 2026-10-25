@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-people-arrows"></i> Project Handovers</h1>
+        <p>Structured offboarding: state-of-play memos, task reassignment and asset notes preserved in the audit trail.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/portfolio" class="btn btn-secondary"><i class="fas fa-folder-open"></i> Portfolio</a>
+        <a href="/projects/scorecards" class="btn btn-secondary"><i class="fas fa-ranking-star"></i> Scorecards</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-clock-rotate-left"></i> Handover history</span></div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr><th>Project</th><th>Departing</th><th>Incoming</th><th>Status</th><th>Completed</th><th>State of play</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for handover in handovers %}
+                <tr>
+                    <td><a href="/projects/{{ handover.project_id }}">{{ handover.project_label }}</a></td>
+                    <td>{{ handover.departing_name }}</td>
+                    <td>{{ handover.incoming_name }}</td>
+                    <td><span class="badge badge-{% if handover.status == 'completed' %}success{% elif handover.status == 'in_progress' %}warning{% else %}secondary{% endif %}">{{ handover.get_status_display }}</span></td>
+                    <td>{{ handover.completed_at|date:"M d, Y H:i"|default:"—" }}</td>
+                    <td>{{ handover.state_of_play|truncatechars:90 }}</td>
+                    <td><a href="/projects/handovers/{{ handover.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7"><div class="empty-state"><i class="fas fa-people-arrows"></i><p>No handovers recorded yet. Start one from a project's team tab.</p></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

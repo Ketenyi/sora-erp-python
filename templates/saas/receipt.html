@@ -1,0 +1,117 @@
+{% load static humanize %}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if payment.status == 'completed' %}Receipt{% else %}Payment request{% endif %} {{ payment.id }} — {{ platform.platform_name|default:"SORA ERP" }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/saas.css' %}">
+</head>
+<body class="receipt-body">
+    <div class="receipt-actions">
+        <a href="/billing/"><i class="fas fa-arrow-left"></i> Back to billing</a>
+        <button type="button" class="print" onclick="window.print()"><i class="fas fa-print"></i> Print / Save PDF</button>
+    </div>
+
+    <div class="receipt-page">
+        <div class="receipt-top">
+            <div>
+                <div class="receipt-brand">
+                    <span class="mark">S</span>
+                    {{ platform.platform_name|default:"SORA ERP" }}
+                </div>
+                <p style="margin-top:6px;">{{ platform.platform_tagline|default:"Modular business cloud" }}</p>
+            </div>
+            <div style="text-align:right;">
+                <h1>{% if payment.status == 'completed' %}Payment receipt{% else %}Payment request{% endif %}</h1>
+                <p>Reference <strong>#{{ payment.id|stringformat:"05d" }}</strong></p>
+                <p>Issued {{ payment.created_at|date:"d M Y" }}</p>
+            </div>
+        </div>
+
+        {% if platform.invoice_header_text %}
+        <p style="font-size:12px;color:#475569;line-height:1.7;margin-bottom:22px;">{{ platform.invoice_header_text|linebreaksbr }}</p>
+        {% endif %}
+
+        <div class="receipt-meta">
+            <div>
+                <h3>Billed to</h3>
+                <p>
+                    <strong>{{ tenant.company_name }}</strong><br>
+                    {{ tenant.brand_name|default:"" }}{% if tenant.brand_name %}<br>{% endif %}
+                    {{ tenant.admin_email }}<br>
+                    {% if tenant.phone_number %}{{ tenant.phone_number }}<br>{% endif %}
+                    Workspace: {{ tenant.slug }}
+                </p>
+            </div>
+            <div>
+                <h3>Payment details</h3>
+                <p>
+                    Method: <strong>{{ payment.get_method_display }}</strong><br>
+                    Status: <strong>{{ payment.get_status_display }}</strong><br>
+                    {% if payment.reference %}Reference: {{ payment.reference }}<br>{% endif %}
+                    {% if payment.paid_at %}Paid: {{ payment.paid_at|date:"d M Y H:i" }}<br>{% endif %}
+                    Currency: {{ payment.currency }}
+                </p>
+            </div>
+        </div>
+
+        <table class="receipt-table">
+            <thead>
+                <tr>
+                    <th style="width:52%;">Description</th>
+                    <th>Cycle</th>
+                    <th>Period</th>
+                    <th style="text-align:right;">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <strong>{{ platform.platform_name|default:"SORA ERP" }} — {{ payment.plan.name|default:"Workspace subscription" }}</strong>
+                        <div style="color:#64748b;font-size:11px;margin-top:3px;">
+                            {% if payment.plan %}{{ payment.plan.tagline }}{% else %}Subscription payment{% endif %}
+                        </div>
+                    </td>
+                    <td>{{ payment.get_billing_cycle_display }}</td>
+                    <td>
+                        {% if payment.period_start %}{{ payment.period_start|date:"d M Y" }}{% else %}—{% endif %}
+                        {% if payment.period_end %} – {{ payment.period_end|date:"d M Y" }}{% endif %}
+                    </td>
+                    <td style="text-align:right;">{{ payment.currency }} {{ payment.amount|floatformat:2|intcomma }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="receipt-total">
+            <div>
+                <span>Total {% if payment.status == 'completed' %}paid{% else %}due{% endif %}</span>
+                <div><strong>{{ payment.currency }} {{ payment.amount|floatformat:2|intcomma }}</strong></div>
+            </div>
+        </div>
+
+        {% if payment.notes %}
+        <p style="font-size:11.5px;color:#64748b;line-height:1.7;margin-top:16px;">
+            <strong>Notes:</strong> {{ payment.notes|linebreaksbr }}
+        </p>
+        {% endif %}
+
+        {% if payment.status != 'completed' %}
+        <p style="font-size:11.5px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:11px 13px;line-height:1.7;margin-top:18px;">
+            This document is a payment request. It becomes a receipt once the SORA billing team confirms
+            your payment. Reference <strong>#{{ payment.id|stringformat:"05d" }}</strong>.
+        </p>
+        {% endif %}
+
+        <div class="receipt-foot">
+            <p>{{ platform.invoice_footer_text|default:"Thank you for your business." }}</p>
+            <p>{{ platform.legal_footer|default:"SORA ERP is operated by Overdott. All rights reserved." }}</p>
+            <p>
+                Support: {{ platform.support_email|default:"support@soraerp.com" }}
+                {% if platform.billing_email %} · Billing: {{ platform.billing_email }}{% endif %}
+            </p>
+        </div>
+    </div>
+</body>
+</html>

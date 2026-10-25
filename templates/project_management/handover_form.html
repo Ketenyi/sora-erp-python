@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-people-arrows"></i> Hand Over {{ project.project_code }}</h1>
+        <p>Capture the full state of play, reassign every active task and keep the client promise intact when a team member leaves.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/{{ project.id }}/team" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Team</a>
+        <a href="/projects/handovers" class="btn btn-secondary"><i class="fas fa-clock-rotate-left"></i> History</a>
+    </div>
+</div>
+
+{% include "project_management/partials/project_tabs.html" with active="team" %}
+
+<div class="detail-layout">
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-right-left"></i> Handover details</span></div>
+        <div style="padding:20px;">
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="{{ form.departing_employee.id_for_label }}">{{ form.departing_employee.label }} *</label>
+                        {{ form.departing_employee }}{{ form.departing_employee.errors }}
+                        <div class="text-muted" style="font-size:11px;margin-top:4px;">Team members currently allocated:</div>
+                        <div class="text-muted" style="font-size:11px;">
+                            {% for member in team %}{{ member.employee_name }}{% if not forloop.last %} &middot; {% endif %}{% empty %}No active team members.{% endfor %}
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.incoming_employee.id_for_label }}">{{ form.incoming_employee.label }} *</label>
+                        {{ form.incoming_employee }}{{ form.incoming_employee.errors }}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>{{ form.task_ids.label }}</label>
+                    <div class="handover-tasks">{{ form.task_ids }}</div>
+                    {{ form.task_ids.errors }}
+                    <div class="text-muted" style="font-size:11px;margin-top:6px;">Tasks in progress, blocked or in QA are mandatory and automatically locked. Completed tasks are excluded.</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.state_of_play.id_for_label }}">{{ form.state_of_play.label }} *</label>
+                    {{ form.state_of_play }}{{ form.state_of_play.errors }}
+                    <div class="text-muted" style="font-size:11px;margin-top:4px;">{{ form.state_of_play.help_text }}</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.asset_notes.id_for_label }}">{{ form.asset_notes.label }}</label>
+                    {{ form.asset_notes }}{{ form.asset_notes.errors }}
+                </div>
+
+                {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+                <button class="btn btn-primary"><i class="fas fa-check"></i> Complete handover</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="sticky-summary">
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-list-check"></i> Open tasks ({{ open_tasks|length }})</span></div>
+            <div style="padding:14px 20px;">
+                <ul class="timeline">
+                    {% for task in open_tasks %}
+                    <li>
+                        <div class="what">
+                            {{ task.task_name }}
+                            {% if task.status == 'in_progress' or task.status == 'blocked' or task.status == 'in_qa' %}<span class="badge badge-warning" title="Must be reassigned">Required</span>{% endif %}
+                        </div>
+                        <small class="text-muted">{{ task.get_status_display }} &middot; {{ task.get_priority_display }} priority{% if task.deadline_date %} &middot; due {{ task.deadline_date|date:"M d, Y" }}{% endif %}</small>
+                    </li>
+                    {% empty %}
+                    <li><div class="what">No open tasks. Handover will record the memo and notes only.</div></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-shield-halved"></i> What happens next</span></div>
+            <div style="padding:14px 20px; font-size:12px; line-height:1.7;">
+                <p>The departing member is removed from the active team and given a leaving date.</p>
+                <p>The incoming member joins the team at 100% allocation and receives every selected task.</p>
+                <p>A state-of-play memo and asset notes are stored with the handover record and mirrored into the audit trail.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const requiredIds = [{% for task in open_tasks %}{% if task.status == 'in_progress' or task.status == 'blocked' or task.status == 'in_qa' %}"{{ task.id }}"{% if not forloop.last %},{% endif %}{% endif %}{% endfor %}];
+    document.querySelectorAll('input[name="task_ids"]').forEach(function (box) {
+        if (requiredIds.indexOf(box.value) !== -1) {
+            box.checked = true;
+            box.dataset.required = "1";
+        }
+        box.addEventListener("change", function () {
+            if (box.dataset.required === "1" && !box.checked) {
+                box.checked = true;
+                alert("In-progress, blocked and QA tasks must be reassigned before the handover can complete.");
+            }
+        });
+    });
+})();
+</script>
+{% endblock %}

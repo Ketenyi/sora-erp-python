@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-money-check-alt"></i> Record Supplier Payment</h1>
+        <p>Pay a supplier bill or record a standalone supplier payment.</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% if bill %}/purchasing/supplier-bills/view/{{ bill.id }}{% else %}/purchasing/supplier-payments{% endif %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+
+{% if bill %}
+<div class="alert alert-info" style="background:#e0f2fe; color:#075985; border-radius:8px; padding:12px 16px; font-size:13px; margin-bottom:16px;">
+    <i class="fas fa-file-invoice"></i> Paying bill <a href="/purchasing/supplier-bills/view/{{ bill.id }}" style="font-weight:600;">{{ bill.bill_number }}</a> &middot; balance {{ currency_symbol }} {{ bill.total_amount|floatformat:2|intcomma }} less paid {{ currency_symbol }} {{ bill.paid_amount|floatformat:2|intcomma }}.
+</div>
+{% endif %}
+
+<form method="post" action="/purchasing/supplier-payments/store">
+    {% csrf_token %}
+    {% if bill %}<input type="hidden" name="bill_initial" value="{{ bill.id }}">{% endif %}
+
+    {% if form.errors %}
+    <div class="alert alert-error">
+        <strong>Please fix the following:</strong>
+        {{ form.non_field_errors }}
+    </div>
+    {% endif %}
+
+    <div class="detail-layout">
+        <div>
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-info-circle"></i> Payment Details</span></div>
+                <div style="padding: 20px;">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="{{ form.vendor.id_for_label }}">Supplier *</label>
+                            {{ form.vendor }}
+                            {{ form.vendor.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.supplier_bill.id_for_label }}">Bill</label>
+                            {{ form.supplier_bill }}
+                            {{ form.supplier_bill.errors }}
+                            <div class="info" style="margin-top:4px;">Leave blank for a payment not linked to a bill.</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.payment_date.id_for_label }}">Payment date *</label>
+                            {{ form.payment_date }}
+                            {{ form.payment_date.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.amount.id_for_label }}">Amount *</label>
+                            {{ form.amount }}
+                            {{ form.amount.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.payment_method.id_for_label }}">Payment method *</label>
+                            {{ form.payment_method }}
+                            {{ form.payment_method.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.bank_account.id_for_label }}">Bank account</label>
+                            {{ form.bank_account }}
+                            {{ form.bank_account.errors }}
+                        </div>
+                        <div class="form-group span-2">
+                            <label for="{{ form.reference.id_for_label }}">Reference</label>
+                            {{ form.reference }}
+                            {{ form.reference.errors }}
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.notes.id_for_label }}">Notes</label>
+                        {{ form.notes }}
+                        {{ form.notes.errors }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card sticky-summary">
+            <div class="card-header"><span><i class="fas fa-calculator"></i> Payment</span></div>
+            <div style="padding: 20px;">
+                {% if bill %}
+                <div class="summary-box">
+                    <div class="summary-line"><span>Bill</span><span class="mono">{{ bill.bill_number }}</span></div>
+                    <div class="summary-line"><span>Bill total</span><span>{{ currency_symbol }} {{ bill.total_amount|floatformat:2|intcomma }}</span></div>
+                    <div class="summary-line"><span>Paid to date</span><span>{{ currency_symbol }} {{ bill.paid_amount|floatformat:2|intcomma }}</span></div>
+                    <div class="summary-line total"><span>Balance</span><span>{{ currency_symbol }} {{ balance|floatformat:2|intcomma }}</span></div>
+                </div>
+                {% else %}
+                <p class="info">Select a supplier and bill on the left, or record a standalone supplier payment.</p>
+                {% endif %}
+                <p class="info" style="margin-top:12px;">Recording a payment posts a debit to accounts payable and a credit to the bank account in the ledger.</p>
+                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; margin-top:18px;">
+                    <i class="fas fa-save"></i> Record Payment
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}

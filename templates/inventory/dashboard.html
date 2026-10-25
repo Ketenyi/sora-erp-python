@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-boxes"></i> Inventory</h1>
+        <p>Stock levels, movements and valuation at a glance.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/inventory/products/create" class="btn btn-primary"><i class="fas fa-plus"></i> Add Product</a>
+        <a href="/inventory/stock-adjustments/create" class="btn btn-secondary"><i class="fas fa-sliders-h"></i> Adjust Stock</a>
+        <a href="/inventory/stock-transfers/create" class="btn btn-secondary"><i class="fas fa-exchange-alt"></i> Transfer</a>
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-box"></i></div>
+        <div><div class="stat-number">{{ stats.products }}</div><div class="stat-label">Active products</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+        <div><div class="stat-number">{{ stats.low_stock }}</div><div class="stat-label">Low stock &middot; {{ stats.out_of_stock }} out of stock</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-coins"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ stats.stock_value|floatformat:0|intcomma }}</div><div class="stat-label">Stock value at cost</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-truck-moving"></i></div>
+        <div><div class="stat-number">{{ pending_transfers }}</div><div class="stat-label">Pending transfers &middot; {{ draft_adjustments }} draft adjustments</div></div>
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-history"></i> Recent Stock Movements</span>
+                <a href="/inventory/stock-movements" class="btn btn-sm btn-secondary">View all</a>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Date</th><th>Product</th><th>Type</th><th class="text-right">Qty</th><th class="text-right">Balance</th><th>Reference</th></tr></thead>
+                    <tbody>
+                        {% for movement in recent_movements %}
+                        <tr>
+                            <td>{{ movement.created_at|date:"M d, Y H:i" }}</td>
+                            <td>{{ movement.product_label }}</td>
+                            <td><span class="badge badge-{{ movement.movement_type|status_class }}">{{ movement.get_movement_type_display }}</span></td>
+                            <td class="text-right">{{ movement.quantity|floatformat:2 }}</td>
+                            <td class="text-right money">{{ movement.quantity_after|floatformat:2 }}</td>
+                            <td>{{ movement.reference_number|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6"><div class="empty-state"><i class="fas fa-history"></i><p>No stock movements recorded yet.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-chart-pie"></i> Stock by Category</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Category</th><th class="text-right">Products</th><th class="text-right">Quantity</th><th class="text-right">Value</th></tr></thead>
+                    <tbody>
+                        {% for row in category_rows %}
+                        <tr>
+                            <td>{{ row.name }}</td>
+                            <td class="text-right">{{ row.products }}</td>
+                            <td class="text-right">{{ row.quantity|floatformat:2 }}</td>
+                            <td class="text-right money">{{ currency_symbol }} {{ row.value|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4"><div class="empty-state"><i class="fas fa-tags"></i><p>No stock on hand.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-crown"></i> Top Products by Value</span>
+                <a href="/inventory/reports/stock-value" class="btn btn-sm btn-secondary">Report</a>
+            </div>
+            <div style="padding: 8px 18px 18px;">
+                {% for product in top_products %}
+                <div style="padding: 12px 0; border-bottom: 1px solid #eef2f6;">
+                    <div style="display:flex; justify-content:space-between; gap:12px;">
+                        <a href="/inventory/products/view/{{ product.id }}" style="font-weight:600; color:inherit;">{{ product.name }}</a>
+                        <span class="money">{{ currency_symbol }} {{ product.stock_value|floatformat:2|intcomma }}</span>
+                    </div>
+                    <div class="info">{{ product.product_code }} &middot; {{ product.current_stock|floatformat:2 }} {{ product.unit }} on hand</div>
+                </div>
+                {% empty %}
+                <p class="info">No stock value recorded yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-bolt"></i> Quick Links</span></div>
+            <div style="padding: 16px 18px; display:flex; flex-direction:column; gap:10px;">
+                <a href="/inventory/reports/low-stock" class="btn btn-secondary" style="justify-content:flex-start;"><i class="fas fa-exclamation-triangle"></i> Low stock alerts</a>
+                <a href="/inventory/reports/stock-levels" class="btn btn-secondary" style="justify-content:flex-start;"><i class="fas fa-list"></i> Stock levels</a>
+                <a href="/inventory/stock-adjustments" class="btn btn-secondary" style="justify-content:flex-start;"><i class="fas fa-sliders-h"></i> Stock adjustments</a>
+                <a href="/inventory/stock-transfers" class="btn btn-secondary" style="justify-content:flex-start;"><i class="fas fa-exchange-alt"></i> Stock transfers</a>
+                <a href="/inventory/categories" class="btn btn-secondary" style="justify-content:flex-start;"><i class="fas fa-tags"></i> Categories</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

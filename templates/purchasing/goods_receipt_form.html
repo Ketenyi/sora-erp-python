@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-check-double"></i> Receive Goods</h1>
+        <p>Record an against-order receipt, including accepted and rejected quantities.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/purchasing/goods-receipts" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-shopping-cart"></i> Purchase Order</span></div>
+    <div style="padding: 20px;">
+        <form method="get" action="/purchasing/goods-receipts/create" class="filter-bar" style="align-items:flex-end;">
+            <div class="form-group" style="min-width:420px;">
+                <label for="poSelect">Confirmed purchase order</label>
+                <select name="po_id" id="poSelect" class="form-control" onchange="this.form.submit()">
+                    <option value="">Select a confirmed or partially received order</option>
+                    {% for row in pos %}
+                    <option value="{{ row.id }}" {% if selected_po_id == row.id|stringformat:"s" %}selected{% endif %}>{{ row.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group"><button class="btn btn-primary"><i class="fas fa-search"></i> Load Items</button></div>
+        </form>
+        {% if not pos %}
+        <div class="alert alert-info" style="background:#e0f2fe; color:#075985; border-radius:8px; padding:12px 16px; font-size:13px; margin-top:12px;">
+            <i class="fas fa-info-circle"></i> There are no confirmed purchase orders awaiting delivery. Send and confirm a purchase order first.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if selected_po %}
+<form method="post" action="/purchasing/goods-receipts/store" id="receiptForm">
+    {% csrf_token %}
+    <input type="hidden" name="purchase_order_id" value="{{ selected_po.id }}">
+
+    {% if form.errors %}
+    <div class="alert alert-error">
+        <strong>Please fix the following:</strong>
+        {{ form.non_field_errors }}
+    </div>
+    {% endif %}
+
+    <div class="detail-layout">
+        <div>
+            <div class="card">
+                <div class="card-header">
+                    <span><i class="fas fa-info-circle"></i> Receipt Details</span>
+                </div>
+                <div style="padding: 20px;">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="{{ form.receipt_date.id_for_label }}">Receipt date *</label>
+                            {{ form.receipt_date }}
+                            {{ form.receipt_date.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.invoice_number.id_for_label }}">Supplier invoice #</label>
+                            {{ form.invoice_number }}
+                            {{ form.invoice_number.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.delivery_note.id_for_label }}">Delivery note #</label>
+                            {{ form.delivery_note }}
+                            {{ form.delivery_note.errors }}
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.notes.id_for_label }}">Notes</label>
+                        {{ form.notes }}
+                        {{ form.notes.errors }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span><i class="fas fa-boxes"></i> Items to Receive</span>
+                    <button type="button" class="btn btn-sm btn-secondary" id="receiveAllBtn"><i class="fas fa-check"></i> Receive all remaining</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead><tr><th>Item</th><th class="text-right">Ordered</th><th class="text-right">Already received</th><th class="text-right">Remaining</th><th style="width:100px;">Received</th><th style="width:100px;">Accepted</th><th style="width:100px;">Rejected</th><th style="min-width:140px;">Rejection reason</th></tr></thead>
+                        <tbody id="receiptRows">
+                            {% for item in po_items %}
+                            <tr class="receipt-row" data-remaining="{{ item.remaining }}">
+                                <td>
+                                    <strong>{{ item.product_name }}</strong>
+                                    {% if item.description %}<div class="info">{{ item.description }}</div>{% endif %}
+                                    <input type="hidden" name="po_item_id" value="{{ item.id }}">
+                                </td>
+                                <td class="text-right">{{ item.quantity|floatformat:2 }}</td>
+                                <td class="text-right">{{ item.received_quantity|floatformat:2 }}</td>
+                                <td class="text-right remaining-cell">{{ item.remaining|floatformat:2 }}</td>
+                                <td><input type="number" name="quantity_received" class="form-control receipt-value" step="0.01" min="0" value="{{ item.remaining|floatformat:2 }}"></td>
+                                <td><input type="number" name="quantity_accepted" class="form-control accepted-value" step="0.01" min="0" value="{{ item.remaining|floatformat:2 }}"></td>
+                                <td><input type="number" name="quantity_rejected" class="form-control rejected-value" step="0.01" min="0" value="0"></td>
+                                <td><input type="text" name="rejection_reason" class="form-control" placeholder="If rejected"></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="8"><div class="empty-state"><i class="fas fa-box-open"></i><p>This order has no items.</p></div></td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div style="padding: 10px 20px 18px; color:#64748b; font-size:12px;">
+                    Accepted + rejected must equal received. Only accepted quantities increase stock. Received quantities cannot exceed the remaining balance.
+                </div>
+            </div>
+        </div>
+
+        <div class="card sticky-summary">
+            <div class="card-header"><span><i class="fas fa-clipboard-list"></i> Order Summary</span></div>
+            <div style="padding: 20px;">
+                <div class="summary-box">
+                    <div class="summary-line"><span>PO number</span><span class="mono">{{ selected_po.po_number }}</span></div>
+                    <div class="summary-line"><span>Supplier</span><span>{{ selected_po.vendor_name|default:"-" }}</span></div>
+                    <div class="summary-line"><span>Order date</span><span>{{ selected_po.order_date|date:"M d, Y" }}</span></div>
+                    <div class="summary-line"><span>Expected</span><span>{{ selected_po.expected_delivery|date:"M d, Y"|default:"-" }}</span></div>
+                    <div class="summary-line total"><span>Order total</span><span>{{ currency_symbol }} {{ selected_po.total_amount|floatformat:2|intcomma }}</span></div>
+                </div>
+                <p class="info" style="margin-top:12px;">The receipt is posted as confirmed immediately and purchase stock movements are created.</p>
+                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; margin-top:18px;">
+                    <i class="fas fa-check-double"></i> Record Receipt
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if selected_po %}
+<script>
+const rows = document.querySelectorAll('.receipt-row');
+rows.forEach(row => {
+    const received = row.querySelector('.receipt-value');
+    const accepted = row.querySelector('.accepted-value');
+    const rejected = row.querySelector('.rejected-value');
+    received.addEventListener('input', () => {
+        const total = parseFloat(received.value || 0) || 0;
+        const rejectedValue = parseFloat(rejected.value || 0) || 0;
+        accepted.value = Math.max(total - rejectedValue, 0).toFixed(2);
+    });
+    rejected.addEventListener('input', () => {
+        const total = parseFloat(received.value || 0) || 0;
+        const rejectedValue = parseFloat(rejected.value || 0) || 0;
+        accepted.value = Math.max(total - rejectedValue, 0).toFixed(2);
+    });
+});
+
+document.getElementById('receiveAllBtn').addEventListener('click', () => {
+    rows.forEach(row => {
+        const remaining = row.dataset.remaining || '0';
+        row.querySelector('.receipt-value').value = remaining;
+        row.querySelector('.accepted-value').value = remaining;
+        row.querySelector('.rejected-value').value = '0';
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

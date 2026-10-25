@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-money-check-alt"></i> {{ payment.payment_number }}</h1>
+        <p>{{ vendor.company_name|default:"Unknown supplier" }} &middot; {{ payment.payment_date|date:"F d, Y" }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/purchasing/supplier-payments" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+        {% if bill %}<a href="/purchasing/supplier-bills/view/{{ bill.id }}" class="btn btn-secondary"><i class="fas fa-file-invoice"></i> View Bill</a>{% endif %}
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-receipt"></i> Payment Information</span></div>
+            <div style="padding: 20px;">
+                <div class="summary-box">
+                    <div class="summary-line"><span>Payment number</span><span class="mono">{{ payment.payment_number }}</span></div>
+                    <div class="summary-line"><span>Payment date</span><span>{{ payment.payment_date|date:"M d, Y" }}</span></div>
+                    <div class="summary-line"><span>Method</span><span>{{ payment.get_payment_method_display }}</span></div>
+                    <div class="summary-line"><span>Reference</span><span>{{ payment.reference|default:"-" }}</span></div>
+                    <div class="summary-line total"><span>Amount paid</span><span>{{ currency_symbol }} {{ payment.amount|floatformat:2|intcomma }}</span></div>
+                </div>
+                {% if payment.notes %}
+                <div style="margin-top:18px;">
+                    <div class="detail-label">Notes</div>
+                    <p style="font-size:13px; color:#475569;">{{ payment.notes|linebreaksbr }}</p>
+                </div>
+                {% endif %}
+                <div style="margin-top:18px; font-size:13px;">
+                    <div class="summary-line" style="padding:4px 0;"><span>Recorded</span><span>{{ payment.created_at|date:"M d, Y H:i" }}</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-university"></i> Bank Account</span></div>
+            <div style="padding: 20px;">
+                {% if bank %}
+                <div class="summary-box">
+                    <div class="summary-line"><span>Bank</span><span>{{ bank.bank_name }}</span></div>
+                    <div class="summary-line"><span>Account name</span><span>{{ bank.account_name }}</span></div>
+                    <div class="summary-line"><span>Account number</span><span class="mono">{{ bank.account_number }}</span></div>
+                    <div class="summary-line"><span>Branch</span><span>{{ bank.branch|default:"-" }}</span></div>
+                </div>
+                {% else %}
+                <p class="info">No bank account was recorded with this payment.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-info-circle"></i> Supplier</span></div>
+            <div style="padding: 20px;">
+                <p style="font-size:14px; margin:0 0 6px;"><strong>{{ vendor.company_name|default:"-" }}</strong></p>
+                {% if vendor.contact_person %}<p class="info" style="margin:2px 0;">{{ vendor.contact_person }}</p>{% endif %}
+                {% if vendor.email %}<p class="info" style="margin:2px 0;">{{ vendor.email }}</p>{% endif %}
+                {% if vendor.phone %}<p class="info" style="margin:2px 0;">{{ vendor.phone }}</p>{% endif %}
+                {% if bill %}
+                <div style="margin-top:18px;">
+                    <div class="detail-label">Settled against</div>
+                    <p style="font-size:13px; margin:4px 0;"><a href="/purchasing/supplier-bills/view/{{ bill.id }}">{{ bill.bill_number }}</a></p>
+                    <p class="info" style="margin:2px 0;">Bill total {{ currency_symbol }} {{ bill.total_amount|floatformat:2|intcomma }}</p>
+                    <p class="info" style="margin:2px 0;">Paid to date {{ currency_symbol }} {{ bill.paid_amount|floatformat:2|intcomma }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

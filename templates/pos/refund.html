@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<style>
+    .refund-line { display: grid; grid-template-columns: 1fr 110px 90px; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid #eef2f6; }
+    .refund-line:last-child { border-bottom: 0; }
+    .refund-name { font-weight: 700; font-size: 13px; color: #0f172a; }
+    .refund-meta { font-size: 11px; color: #64748b; margin-top: 3px; }
+    .refund-restock { font-size: 11px; color: #475569; display: inline-flex; gap: 5px; align-items: center; margin-top: 4px; }
+    @media (max-width: 720px) { .refund-line { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-rotate-left"></i> Refund {{ sale.sale_number }}</h1>
+        <p>{{ sale.created_at|date:"F d, Y H:i" }} &middot; {{ sale.client.company_name|default:sale.customer_name|default:"Walk-in customer" }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/pos/sales/{{ sale.id }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to receipt</a>
+    </div>
+</div>
+
+{% if not session %}
+<div class="alert alert-warning" style="margin-bottom:16px;">
+    <i class="fas fa-triangle-exclamation"></i> You need an open till session to process a refund. <a href="/pos/">Open the terminal</a> first.
+</div>
+{% endif %}
+
+<div class="detail-layout">
+    <div>
+        <form method="post" action="/pos/sales/{{ sale.id }}/refund">
+            {% csrf_token %}
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-boxes"></i> Items to refund</span><span class="info">{{ sale.sale_number }}</span></div>
+                <div style="padding: 8px 18px 18px;">
+                    {% for row in rows %}
+                    <div class="refund-line">
+                        <div>
+                            <div class="refund-name">{{ row.item.description }}</div>
+                            <div class="refund-meta">
+                                Sold {{ row.item.quantity|floatformat:2 }} &middot; already refunded {{ row.refunded|floatformat:2 }} &middot; refundable {{ row.remaining|floatformat:2 }}
+                                &middot; {{ currency_symbol }} {{ row.item.unit_price|floatformat:2|intcomma }} each
+                                {% if row.item.tax_rate %}&middot; VAT {{ row.item.tax_rate|floatformat:2 }}%{% endif %}
+                            </div>
+                            {% if row.tracked %}
+                            <label class="refund-restock">
+                                <input type="checkbox" name="restock_{{ row.item.id }}" value="1" checked> Return to stock
+                            </label>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label class="info" for="qty_{{ row.item.id }}">Quantity</label>
+                            <input type="number" class="form-control" id="qty_{{ row.item.id }}" name="qty_{{ row.item.id }}"
+                                   min="0" max="{{ row.remaining|floatformat:2 }}" step="0.01" value="0">
+                        </div>
+                        <div style="text-align:right;">
+                            <div class="info">Max refund</div>
+                            <div class="money">{{ currency_symbol }} {{ row.remaining|floatformat:2|intcomma }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-wallet"></i> Refund payment</span></div>
+                <div style="padding: 18px;">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="{{ form.method.id_for_label }}">Method</label>
+                            {{ form.method }}
+                            {{ form.method.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.reference.id_for_label }}">Reference</label>
+                            {{ form.reference }}
+                            {{ form.reference.errors }}
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.reason.id_for_label }}">Reason</label>
+                        {{ form.reason }}
+                        {{ form.reason.errors }}
+                    </div>
+                    <div class="alert alert-info" style="margin-bottom:0;">
+                        Refunds are recorded against the open till session{% if session %} <strong>{{ session.session_number }} &middot; {{ session.terminal_name }}</strong>{% endif %}.
+                        Cash refunds reduce expected drawer cash. The original KRA receipt is credited automatically.
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:16px;">
+                <button type="submit" class="btn btn-primary" {% if not session %}disabled{% endif %} onclick="return confirm('Post this refund? Stock and the till will be updated.');">
+                    <i class="fas fa-rotate-left"></i> Post Refund
+                </button>
+                <a href="/pos/sales/{{ sale.id }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-receipt"></i> Sale summary</span></div>
+            <div style="padding: 18px;">
+                <div class="summary-line"><span>Subtotal</span><span>{{ currency_symbol }} {{ sale.subtotal|floatformat:2|intcomma }}</span></div>
+                {% if sale.discount_amount %}<div class="summary-line"><span>Discount</span><span>- {{ currency_symbol }} {{ sale.discount_amount|floatformat:2|intcomma }}</span></div>{% endif %}
+                <div class="summary-line"><span>Tax</span><span>{{ currency_symbol }} {{ sale.tax_amount|floatformat:2|intcomma }}</span></div>
+                <div class="summary-line total"><span>Total</span><span>{{ currency_symbol }} {{ sale.total_amount|floatformat:2|intcomma }}</span></div>
+                {% if sale.refunded_amount %}
+                <div class="summary-line"><span>Already refunded</span><span>- {{ currency_symbol }} {{ sale.refunded_amount|floatformat:2|intcomma }}</span></div>
+                <div class="summary-line total"><span>Refundable</span><span>{{ currency_symbol }} {{ sale.refundable_amount|floatformat:2|intcomma }}</span></div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-circle-info"></i> Refund policy</span></div>
+            <div style="padding: 18px;">
+                <div class="detail-item"><div class="detail-label">Refund window</div><div class="detail-value">{% if policy.refund_window_days %}{{ policy.refund_window_days }} day{{ policy.refund_window_days|pluralize }} after the sale{% else %}No time limit{% endif %}</div></div>
+                <div class="detail-item"><div class="detail-label">Till session</div><div class="detail-value">{{ session.session_number|default:"No open session" }}</div></div>
+                <div class="detail-item"><div class="detail-label">KRA credit note</div><div class="detail-value">Queued automatically when eTIMS is enabled</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-plus-circle"></i> New Ticket</h1>
+        <p>Log a client issue against an active SLA policy. Priority sets the resolution clock.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/helpdesk/tickets" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Ticket queue</a>
+    </div>
+</div>
+
+<div class="card">
+    <div style="padding: 22px 24px;">
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-grid">
+                {% for field in form %}
+                <div class="form-group {% if field.name == 'description' %}span-2{% endif %}">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+                    {{ field }}
+                    {% if field.help_text %}<div class="text-muted" style="font-size:11px;margin-top:4px;">{{ field.help_text }}</div>{% endif %}
+                    {{ field.errors }}
+                </div>
+                {% endfor %}
+            </div>
+            {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <button class="btn btn-primary"><i class="fas fa-check"></i> Create ticket</button>
+                <a href="/helpdesk/tickets" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

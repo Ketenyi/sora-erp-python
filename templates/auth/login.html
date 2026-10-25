@@ -1,0 +1,49 @@
+{% extends "auth/base_auth.html" %}
+
+{% block title %}{{ login_title }} — {{ platform_name }}{% endblock %}
+
+{% block brand_title %}{{ login_brand_title|safe }}{% endblock %}
+{% block brand_lead %}{{ platform_tagline }} {{ login_brand_lead }}{% endblock %}
+
+{% block card %}
+<span class="auth-card-kicker"><i class="fas fa-lock"></i> {{ login_kicker }}</span>
+<h2>{{ login_title }}</h2>
+<p class="auth-lead">{{ login_lead }}</p>
+
+<form method="post" action="/login" class="auth-form" data-guard>
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next_url }}">
+    <div class="auth-field">
+        <label for="email">{{ login_email_label }}</label>
+        <div class="auth-input">
+            <i class="fas fa-envelope"></i>
+            <input type="email" id="email" name="email" value="{{ email|default:'' }}"
+                   placeholder="{{ login_email_placeholder }}" required autofocus autocomplete="username"
+                   inputmode="email" spellcheck="false">
+        </div>
+    </div>
+    <div class="auth-field">
+        <label for="password">{{ login_password_label }}</label>
+        <div class="auth-input">
+            <i class="fas fa-key"></i>
+            <input type="password" id="password" name="password" placeholder="{{ login_password_placeholder }}"
+                   required autocomplete="current-password">
+            <button type="button" class="auth-reveal" data-reveal="password"
+                    aria-label="{{ login_show_password }}">
+                <i class="fas fa-eye"></i>
+            </button>
+        </div>
+    </div>
+    <div class="auth-row">
+        <span class="auth-meta" style="text-align:left;max-width:none;">{{ login_trust_note }}</span>
+        <a class="auth-link" href="/password-reset">{{ login_forgot }}</a>
+    </div>
+    <button type="submit" class="auth-submit">
+        <i class="fas fa-arrow-right-to-bracket"></i> {{ login_submit }}
+    </button>
+</form>
+{% endblock %}
+
+{% block footnote %}
+{% if tenant_branded %}{{ login_support_note }}{% else %}{{ login_new_here }} <a href="/signup">{{ login_trial_cta }}</a>{% endif %}
+{% endblock %}

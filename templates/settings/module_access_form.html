@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-key"></i> {% if grant %}Edit Module Access{% else %}New Module Access{% endif %}</h1>
+        <p>{% if grant %}{{ grant.user.get_full_name|default:grant.user.email }}{% else %}Pick a person, a module area and how far their reach goes.{% endif %}</p>
+    </div>
+    <div class="page-actions"><a href="/settings/access" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Access</a></div>
+</div>
+{% include "settings/_nav.html" %}
+
+{% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+    <div class="detail-layout">
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-user-shield"></i> Grant</span></div>
+            <div style="padding:18px;">
+                <div class="form-grid">
+                    <div class="form-group span-2"><label>{{ form.user.label }}</label>{{ form.user }}{{ form.user.errors }}<small class="info">Active users only. The person keeps their normal role everywhere else.</small></div>
+                    <div class="form-group"><label>{{ form.module.label }}</label>{{ form.module }}{{ form.module.errors }}</div>
+                    <div class="form-group"><label>{{ form.submodule.label }}</label>{{ form.submodule }}{{ form.submodule.errors }}<small class="info">{{ form.submodule.help_text }}</small></div>
+                    <div class="form-group"><label>{{ form.role.label }}</label>{{ form.role }}{{ form.role.errors }}</div>
+                    <div class="form-group"><label>{{ form.scope.label }}</label>{{ form.scope }}{{ form.scope.errors }}<small class="info">{{ form.scope.help_text }}</small></div>
+                    <div class="form-group span-2" id="project-group"><label>{{ form.project.label }}</label>{{ form.project }}{{ form.project.errors }}<small class="info">Required when the scope is a specific project.</small></div>
+                </div>
+            </div>
+        </div>
+        <div>
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-toggle-on"></i> Status</span></div>
+                <div style="padding:18px;">
+                    <div class="form-group" style="display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid #e2e8f0; border-radius:10px;">
+                        {{ form.is_active }}
+                        <label style="margin:0;">{{ form.is_active.label }}</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width:100%; margin-top:14px;"><i class="fas fa-save"></i> Save grant</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-circle-info"></i> Access levels</span></div>
+                <div style="padding:16px 18px; font-size:12px; color:#64748b; line-height:1.8;">
+                    <div><strong>Administrator</strong> — everything in the module, including manage.</div>
+                    <div><strong>Manager</strong> — create, edit, delete and approve.</div>
+                    <div><strong>Create and edit</strong> — no delete or approve.</div>
+                    <div><strong>Approve</strong> — view and approve only.</div>
+                    <div><strong>Read only</strong> — view and export only.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+{{ submodule_map|json_script:"submodule-map" }}
+<script>
+(function () {
+    var map = JSON.parse(document.getElementById('submodule-map').textContent);
+    var moduleSelect = document.getElementById('{{ form.module.id_for_label }}');
+    var submoduleSelect = document.getElementById('{{ form.submodule.id_for_label }}');
+    var scopeSelect = document.getElementById('{{ form.scope.id_for_label }}');
+    var projectGroup = document.getElementById('project-group');
+
+    function refreshSubmodules() {
+        var current = submoduleSelect.value;
+        var rows = map[moduleSelect.value] || [];
+        submoduleSelect.innerHTML = '';
+        var whole = document.createElement('option');
+        whole.value = '';
+        whole.textContent = 'Entire module';
+        submoduleSelect.appendChild(whole);
+        rows.forEach(function (row) {
+            var option = document.createElement('option');
+            option.value = row.value;
+            option.textContent = row.label;
+            submoduleSelect.appendChild(option);
+        });
+        if (current && rows.some(function (row) { return row.value === current; })) {
+            submoduleSelect.value = current;
+        }
+    }
+
+    function refreshScope() {
+        if (!projectGroup) return;
+        projectGroup.style.display = scopeSelect.value === 'project' ? '' : 'none';
+    }
+
+    moduleSelect.addEventListener('change', refreshSubmodules);
+    if (scopeSelect) scopeSelect.addEventListener('change', refreshScope);
+    refreshScope();
+})();
+</script>
+{% endblock %}

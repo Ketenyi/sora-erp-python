@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>{{ period.period_name }} <span class="badge badge-{{ period.status|status_class }}">{{ period.get_status_display }}</span></h1>
+        <p>{{ period.start_date|date:"M d, Y" }} – {{ period.end_date|date:"M d, Y" }} &middot; payment {{ period.payment_date|date:"M d, Y" }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/hr/payroll" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Payroll</a>
+        {% if existing_items %}<a href="/hr/payroll/view/{{ period.id }}" class="btn btn-secondary"><i class="fas fa-eye"></i> View results</a>{% endif %}
+    </div>
+</div>
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-users"></i></div><div><div class="stat-number">{{ employee_count }}</div><div class="stat-label">Employees eligible</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-calendar-days"></i></div><div><div class="stat-number">{{ working_days }}</div><div class="stat-label">Working days</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-sack-dollar"></i></div><div><div class="stat-number">{{ currency_symbol }} {{ estimated_salary|floatformat:0|intcomma }}</div><div class="stat-label">Estimated basic payroll</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-receipt"></i></div><div><div class="stat-number">{{ existing_items }}</div><div class="stat-label">Payslips generated</div></div></div>
+</div>
+<div class="detail-layout">
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-users"></i> Eligible employees</span></div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead><tr><th>Employee</th><th>Job title</th><th class="text-right">Basic salary</th></tr></thead>
+                <tbody>
+                {% for employee in employees %}
+                    <tr><td><strong>{{ employee.first_name }} {{ employee.last_name }}</strong><div class="info" style="font-size:12px;">{{ employee.employee_code }}</div></td><td>{{ employee.job_title|default:"—" }}</td><td class="text-right">{{ currency_symbol }} {{ employee.salary|floatformat:2|intcomma }}</td></tr>
+                {% empty %}<tr><td colspan="3"><div class="empty-state"><i class="fas fa-user-slash"></i><p>No active employees with a salary were found.</p></div></td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-gears"></i> Processing steps</span></div>
+            <div style="padding:18px; display:flex; flex-direction:column; gap:12px;">
+                <div class="summary-box">
+                    <strong>1. Calculate payroll</strong>
+                    <p class="info">Generates payslips using attendance, overtime, allowances and statutory rates. This can be re-run while the period is a draft or processing.</p>
+                    {% if can_calculate %}
+                    <form method="post" action="/hr/payroll/calculate/{{ period.id }}">{% csrf_token %}<button type="submit" class="btn btn-primary" style="width:100%;"><i class="fas fa-calculator"></i> {% if existing_items %}Recalculate payroll{% else %}Calculate payroll{% endif %}</button></form>
+                    {% else %}<p class="info"><i class="fas fa-lock"></i> Calculation locked.</p>{% endif %}
+                </div>
+                <div class="summary-box">
+                    <strong>2. Review and approve</strong>
+                    <p class="info">Check the payslips, then approve the payroll to lock the figures.</p>
+                    {% if can_approve %}<a href="/hr/payroll/view/{{ period.id }}" class="btn btn-secondary" style="width:100%;"><i class="fas fa-check"></i> Review and approve</a>{% else %}<p class="info">Available after calculation.</p>{% endif %}
+                </div>
+                <div class="summary-box">
+                    <strong>3. Mark as paid</strong>
+                    <p class="info">Marks every payslip as paid with a payment reference.</p>
+                    {% if can_pay %}<a href="/hr/payroll/view/{{ period.id }}" class="btn btn-secondary" style="width:100%;"><i class="fas fa-money-bill-transfer"></i> Mark paid</a>{% else %}<p class="info">Available after approval.</p>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

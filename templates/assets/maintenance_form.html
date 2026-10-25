@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-screwdriver-wrench"></i> {% if is_edit %}Edit Maintenance{% else %}Schedule Maintenance{% endif %}</h1>
+        <p>{% if is_edit %}{{ item.asset.asset_code }} &middot; {{ item.title }}{% else %}Plan a preventive visit, inspection or repair for an asset.{% endif %}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/assets/maintenance" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div class="alert alert-error"><strong>Please fix the following:</strong> {{ form.non_field_errors }}</div>
+    {% endif %}
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-clipboard-list"></i> Job details</span></div>
+        <div style="padding: 20px;">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="{{ form.asset.id_for_label }}">Asset *</label>
+                    {{ form.asset }}
+                    {{ form.asset.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.maintenance_type.id_for_label }}">Maintenance type</label>
+                    {{ form.maintenance_type }}
+                    {{ form.maintenance_type.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.title.id_for_label }}">Job title *</label>
+                    {{ form.title }}
+                    {{ form.title.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.scheduled_date.id_for_label }}">Scheduled date *</label>
+                    {{ form.scheduled_date }}
+                    {{ form.scheduled_date.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.vendor.id_for_label }}">Vendor / workshop</label>
+                    {{ form.vendor }}
+                    {{ form.vendor.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.cost.id_for_label }}">Estimated cost</label>
+                    {{ form.cost }}
+                    {{ form.cost.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.status.id_for_label }}">Status</label>
+                    {{ form.status }}
+                    {{ form.status.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.performed_by.id_for_label }}">Assigned technician</label>
+                    {{ form.performed_by }}
+                    {{ form.performed_by.errors }}
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="{{ form.description.id_for_label }}">Description</label>
+                {{ form.description }}
+                {{ form.description.errors }}
+            </div>
+            <p class="info">Setting the status to In Progress marks the asset as under maintenance.</p>
+        </div>
+    </div>
+    <div class="page-actions" style="margin-top: 6px;">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> {% if is_edit %}Save Changes{% else %}Schedule Job{% endif %}</button>
+        <a href="/assets/maintenance" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}

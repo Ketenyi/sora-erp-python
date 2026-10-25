@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-file-alt"></i> {{ quote.quote_number }}
+            <span class="badge badge-{{ quote.status|status_class }}" style="font-size:12px; vertical-align:middle;">{{ quote.get_status_display }}</span>
+        </h1>
+        <p>{{ quote.issue_date|date:"F d, Y" }} &rarr; valid until {{ quote.valid_until|date:"F d, Y" }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/sales/quotes" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+        {% if can_manage and quote.status != "converted" %}
+        <a href="/sales/quotes/edit/{{ quote.id }}" class="btn btn-secondary"><i class="fas fa-pen"></i> Edit</a>
+        {% endif %}
+        <button type="button" class="btn btn-secondary" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
+        {% if can_approve %}
+        <form method="post" action="/sales/quotes/approve/{{ quote.id }}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Approve</button>
+        </form>
+        {% endif %}
+        {% if can_convert %}
+        <form method="post" action="/sales/quotes/convert/{{ quote.id }}" onsubmit="return confirm('Convert this quote to an invoice?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary"><i class="fas fa-file-invoice"></i> Convert to Invoice</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+{% if quote.converted_to_invoice %}
+<div class="alert alert-success">
+    <i class="fas fa-check-circle"></i> This quote was converted to invoice
+    <a href="/invoices/view/{{ quote.converted_to_invoice }}"><strong>#{{ quote.converted_to_invoice }}</strong></a>.
+</div>
+{% endif %}
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-user"></i> Client</span></div>
+            <div style="padding: 20px;">
+                {% if client %}
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <div class="detail-label">Company</div>
+                        <div class="detail-value">{{ client.company_name }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Contact</div>
+                        <div class="detail-value">{{ client.contact_person|default:"-" }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Email</div>
+                        <div class="detail-value">{{ client.email|default:"-" }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Phone</div>
+                        <div class="detail-value">{{ client.phone|default:"-" }}</div>
+                    </div>
+                </div>
+                {% else %}
+                <p class="info">Client record not found.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-list"></i> Items</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Description</th>
+                            <th class="text-right">Qty</th>
+                            <th class="text-right">Unit Price</th>
+                            <th class="text-right">Disc %</th>
+                            <th class="text-right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ item.description }}</td>
+                            <td class="text-right">{{ item.quantity|floatformat:2 }}</td>
+                            <td class="text-right">{{ currency_symbol }} {{ item.unit_price|floatformat:2|intcomma }}</td>
+                            <td class="text-right">{{ item.discount|floatformat:2 }}</td>
+                            <td class="text-right money">{{ currency_symbol }} {{ item.total|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6"><div class="empty-state"><i class="fas fa-list"></i><p>No line items.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% if quote.notes or quote.terms_conditions %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-file-signature"></i> Notes &amp; Terms</span></div>
+            <div style="padding: 20px;">
+                {% if quote.notes %}
+                <div class="detail-item" style="margin-bottom:14px;">
+                    <div class="detail-label">Notes</div>
+                    <div class="detail-value" style="white-space:pre-line;">{{ quote.notes }}</div>
+                </div>
+                {% endif %}
+                {% if quote.terms_conditions %}
+                <div class="detail-item">
+                    <div class="detail-label">Terms &amp; conditions</div>
+                    <div class="detail-value" style="white-space:pre-line;">{{ quote.terms_conditions }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="sticky-summary">
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-calculator"></i> Summary</span></div>
+            <div style="padding: 20px;">
+                <div class="summary-box">
+                    <div class="summary-line"><span>Subtotal</span><span>{{ currency_symbol }} {{ quote.subtotal|floatformat:2|intcomma }}</span></div>
+                    <div class="summary-line"><span>Discount</span><span>- {{ currency_symbol }} {{ quote.discount_amount|floatformat:2|intcomma }}</span></div>
+                    <div class="summary-line"><span>Tax</span><span>{{ currency_symbol }} {{ quote.tax_amount|floatformat:2|intcomma }}</span></div>
+                    <div class="summary-line total"><span>Total</span><span>{{ currency_symbol }} {{ quote.total_amount|floatformat:2|intcomma }}</span></div>
+                </div>
+
+                <div style="margin-top:18px; font-size:12px; color:#64748b; line-height:1.8;">
+                    <div><strong>Created:</strong> {{ quote.created_at|date:"M d, Y H:i" }}</div>
+                    {% if quote.approved_at %}<div><strong>Approved:</strong> {{ quote.approved_at|date:"M d, Y H:i" }}</div>{% endif %}
+                    {% if bank %}<div><strong>Bank:</strong> {{ bank.bank_name }} &middot; {{ bank.account_number }}</div>{% endif %}
+                </div>
+
+                {% if can_delete %}
+                <form method="post" action="/sales/quotes/delete/{{ quote.id }}" style="margin-top:20px;" onsubmit="return confirm('Delete {{ quote.quote_number }}? This cannot be undone.');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger" style="width:100%; justify-content:center;"><i class="fas fa-trash"></i> Delete Quote</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

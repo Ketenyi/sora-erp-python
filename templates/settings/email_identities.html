@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-at"></i> Sender Identities</h1>
+        <p>Give every module its own no-reply address and shared mailbox. Messages are sent from the identity assigned to the module.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/settings/email-identities/create" class="btn btn-primary"><i class="fas fa-plus"></i> New sender</a>
+        <a href="/settings/email" class="btn btn-secondary"><i class="fas fa-envelope"></i> Email settings</a>
+        <a href="/settings" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Settings</a>
+    </div>
+</div>
+{% include "settings/_nav.html" %}
+
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-at"></i></div><div><div class="stat-number">{{ stats.total }}</div><div class="stat-label">Identities</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-toggle-on"></i></div><div><div class="stat-number">{{ stats.active }}</div><div class="stat-label">Active</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-paper-plane"></i></div><div><div class="stat-number">{{ stats.outbound }}</div><div class="stat-label">Ready to send</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-inbox"></i></div><div><div class="stat-number">{{ stats.inbound }}</div><div class="stat-label">Mailboxes</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-layer-group"></i></div><div><div class="stat-number">{{ stats.modules }}/{{ module_count }}</div><div class="stat-label">Modules covered</div></div></div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-list"></i> Configured senders</span>
+        <span class="badge badge-info">{{ stats.total }}</span>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Sender</th>
+                    <th>Module</th>
+                    <th>Outbound</th>
+                    <th>Inbox</th>
+                    <th>Status</th>
+                    <th>Last verified</th>
+                    <th class="text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for identity in identities %}
+                <tr>
+                    <td>
+                        <strong>{{ identity.name }}</strong>
+                        {% if identity.is_default %}<span class="badge badge-success" style="margin-left:6px;">Primary</span>{% endif %}
+                        <div style="font-size:12px; color:#64748b;">{{ identity.from_name }} &lt;{{ identity.from_email }}&gt;</div>
+                        {% if identity.last_error %}<div style="font-size:11px; color:#dc2626; max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ identity.last_error }}">{{ identity.last_error }}</div>{% endif %}
+                    </td>
+                    <td><span class="badge badge-secondary">{{ identity.module_label }}</span></td>
+                    <td>
+                        {% if identity.can_send %}
+                        <span class="badge badge-success"><i class="fas fa-check"></i> SMTP ready</span>
+                        {% else %}
+                        <span class="badge badge-warning">Not configured</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if identity.imap_host %}
+                        <span class="badge badge-info"><i class="fas fa-inbox"></i> {{ identity.imap_folder|default:"INBOX" }}</span>
+                        {% else %}
+                        <span style="color:#94a3b8;">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge {% if identity.is_active %}badge-success{% else %}badge-secondary{% endif %}">{% if identity.is_active %}Active{% else %}Paused{% endif %}</span>
+                    </td>
+                    <td>
+                        {% if identity.last_verified_at %}
+                        <span style="font-size:12px;">{{ identity.last_verified_at|date:"M d, Y H:i" }}</span>
+                        {% else %}
+                        <span style="font-size:12px; color:#94a3b8;">Never</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-right">
+                        <div style="display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap;">
+                            <a href="/settings/email-identities/edit/{{ identity.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-pen"></i> Edit</a>
+                            <form method="post" action="/settings/email-identities/test/{{ identity.id }}" style="display:inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="/settings/email-identities">
+                                <button type="submit" class="btn btn-sm btn-secondary" title="Check SMTP and IMAP and send a test message"><i class="fas fa-vial"></i> Verify</button>
+                            </form>
+                            <form method="post" action="/settings/email-identities/delete/{{ identity.id }}" style="display:inline;" onsubmit="return confirm('Delete the sender identity {{ identity.name|escapejs }}? Messages will fall back to the workspace SMTP server.');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-secondary" style="color:#dc2626;"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <i class="fas fa-at"></i>
+                            <p>No sender identities yet.</p>
+                            <p class="info">Create one identity per module, for example hr-no-reply@ or sales-no-reply@. Without an identity, mail uses the workspace SMTP settings.</p>
+                            <a href="/settings/email-identities/create" class="btn btn-primary" style="margin-top:10px;"><i class="fas fa-plus"></i> Create the first sender</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-circle-info"></i> How routing works</span></div>
+    <div style="padding:16px 18px; display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; font-size:13px; color:#475569;">
+        <div><strong style="display:block; color:#1e293b; margin-bottom:4px;"><i class="fas fa-paper-plane" style="color:#10b981;"></i> Outbound</strong>The primary active identity for a module sends its notifications. Other modules keep using their own address.</div>
+        <div><strong style="display:block; color:#1e293b; margin-bottom:4px;"><i class="fas fa-inbox" style="color:#3b82f6;"></i> Inbound</strong>An IMAP mailbox on an identity can be polled to create helpdesk tickets and to receive client replies.</div>
+        <div><strong style="display:block; color:#1e293b; margin-bottom:4px;"><i class="fas fa-shield-halved" style="color:#8b5cf6;"></i> Protected</strong>SMTP and IMAP passwords are encrypted before they are stored. Verification never reveals a stored password.</div>
+    </div>
+</div>
+{% endblock %}

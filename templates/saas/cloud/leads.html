@@ -1,0 +1,161 @@
+{% extends "saas/cloud/base.html" %}
+{% load humanize %}
+
+{% block title %}Sales pipeline — SORA Cloud{% endblock %}
+{% block crumb %}Sales pipeline{% endblock %}
+
+{% block topbar_actions %}
+<a href="/cloud/leads/new/" class="cloud-btn primary"><i class="fas fa-plus"></i> New lead</a>
+{% endblock %}
+
+{% block content %}
+<div class="cloud-page-head">
+    <h1>Sales pipeline</h1>
+    <p>Enquiries from the public website and your team, from first contact to a live workspace.</p>
+</div>
+
+<div class="cloud-kpis">
+    <div class="cloud-kpi">
+        <div class="kpi-icon"><i class="fas fa-bullseye"></i></div>
+        <div class="kpi-label">Total leads</div>
+        <div class="kpi-value">{{ stats.total }}</div>
+        <div class="kpi-sub">{{ stats.new }} awaiting first contact</div>
+    </div>
+    <div class="cloud-kpi">
+        <div class="kpi-icon"><i class="fas fa-inbox"></i></div>
+        <div class="kpi-label">New enquiries</div>
+        <div class="kpi-value">{{ stats.new }}</div>
+        <div class="kpi-sub">From the public website</div>
+    </div>
+    <div class="cloud-kpi">
+        <div class="kpi-icon"><i class="fas fa-spinner"></i></div>
+        <div class="kpi-label">Open pipeline</div>
+        <div class="kpi-value">{{ stats.open }}</div>
+        <div class="kpi-sub">Contacted, qualified or proposed</div>
+    </div>
+    <div class="cloud-kpi">
+        <div class="kpi-icon"><i class="fas fa-trophy"></i></div>
+        <div class="kpi-label">Won</div>
+        <div class="kpi-value">{{ stats.won }}</div>
+        <div class="kpi-sub">{{ stats.conversion }}% conversion</div>
+    </div>
+</div>
+
+<div class="cloud-filter-chips" style="margin-bottom:12px;">
+    <a href="/cloud/leads/" class="{% if not status %}active{% endif %}">All</a>
+    {% for value, label in statuses %}
+    <a href="/cloud/leads/?status={{ value }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if source_filter %}&source={{ source_filter }}{% endif %}{% if owner_filter %}&owner={{ owner_filter }}{% endif %}"
+       class="{% if status == value %}active{% endif %}">{{ label }}</a>
+    {% endfor %}
+</div>
+
+<form method="get" action="/cloud/leads/" class="cloud-filter-bar">
+    <div class="cloud-search">
+        <i class="fas fa-magnifying-glass"></i>
+        <input type="text" name="q" class="form-control" value="{{ query }}" placeholder="Search name, company, email or phone">
+    </div>
+    <select name="status" class="form-control">
+        <option value="">All statuses</option>
+        {% for value, label in statuses %}
+        <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <select name="owner" class="form-control">
+        <option value="">All owners</option>
+        {% for owner in owners %}
+        <option value="{{ owner.id }}" {% if owner_filter == owner.id|stringformat:"s" %}selected{% endif %}>{{ owner.get_full_name }}</option>
+        {% endfor %}
+    </select>
+    <select name="source" class="form-control">
+        <option value="">All sources</option>
+        {% for item in sources %}
+        <option value="{{ item }}" {% if source_filter == item %}selected{% endif %}>{{ item|capfirst }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit" class="cloud-btn primary"><i class="fas fa-filter"></i> Filter</button>
+    {% if query or status or owner_filter or source_filter %}
+    <a href="/cloud/leads/" class="cloud-btn"><i class="fas fa-xmark"></i> Clear</a>
+    {% endif %}
+    <span class="cloud-bulk-note">{{ page_obj.paginator.count }} lead{{ page_obj.paginator.count|pluralize }}</span>
+</form>
+
+<div class="cloud-card">
+    {% if leads %}
+    <div class="cloud-card-body flush">
+        <table class="cloud-table">
+            <thead>
+                <tr>
+                    <th>Lead</th>
+                    <th>Interested modules</th>
+                    <th>Source</th>
+                    <th>Status</th>
+                    <th>Owner</th>
+                    <th>Follow-up</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lead in leads %}
+                <tr>
+                    <td>
+                        <a href="/cloud/leads/{{ lead.id }}/" class="cloud-tenant-name">
+                            <span class="cloud-avatar">{{ lead.name|slice:":2"|upper }}</span>
+                            <span>
+                                {{ lead.company|default:lead.name }}
+                                <small>{{ lead.name }} · {{ lead.email }}</small>
+                            </span>
+                        </a>
+                    </td>
+                    <td>
+                        <div class="cloud-mini-chips">
+                            {% for label in lead.module_labels %}
+                            <span class="cloud-mini-chip">{{ label }}</span>
+                            {% empty %}
+                            <span class="cloud-muted">Not specified</span>
+                            {% endfor %}
+                        </div>
+                    </td>
+                    <td>{{ lead.source|capfirst }}</td>
+                    <td><span class="cloud-pill {{ lead.status }}">{{ lead.get_status_display }}</span></td>
+                    <td>
+                        {% if lead.owner %}{{ lead.owner.get_full_name }}{% else %}<span class="cloud-muted">Unassigned</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if lead.next_follow_up %}
+                            <span class="{% if lead.follow_up_overdue %}cloud-overdue{% endif %}">{{ lead.next_follow_up|date:"d M Y" }}</span>
+                        {% else %}
+                            <span class="cloud-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:right;">
+                        <a href="/cloud/leads/{{ lead.id }}/" class="cloud-btn"><i class="fas fa-arrow-right"></i> Open</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="cloud-empty">
+        <i class="fas fa-bullseye"></i>
+        No leads match this filter.
+        <div style="margin-top:12px;"><a href="/cloud/leads/new/" class="cloud-btn primary"><i class="fas fa-plus"></i> Add a lead</a></div>
+    </div>
+    {% endif %}
+</div>
+
+{% if page_obj.has_other_pages %}
+<div class="cloud-pagination">
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    <div class="links">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if owner_filter %}&owner={{ owner_filter }}{% endif %}{% if source_filter %}&source={{ source_filter }}{% endif %}">Previous</a>
+        {% endif %}
+        <span class="current">{{ page_obj.number }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if owner_filter %}&owner={{ owner_filter }}{% endif %}{% if source_filter %}&source={{ source_filter }}{% endif %}">Next</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

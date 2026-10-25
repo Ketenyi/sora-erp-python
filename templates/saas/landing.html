@@ -1,0 +1,159 @@
+{% extends "saas/public_base.html" %}
+{% load humanize %}
+
+{% block title %}{{ platform.platform_name|default:"SORA ERP" }} — {{ platform.platform_tagline|default:"Run the whole business from one place" }}{% endblock %}
+
+{% block content %}
+<section class="pub-hero">
+    <div class="pub-shell">
+        <div class="pub-hero-inner">
+            <div>
+                <span class="pub-eyebrow"><i class="fas fa-bolt"></i> {{ platform.site_hero_eyebrow|default:"Modular ERP · free trial" }}</span>
+                <h1>
+                    {{ platform.site_hero_title|default:"One platform." }}
+                    {% if platform.site_hero_title_accent %}<br><em>{{ platform.site_hero_title_accent }}</em>{% endif %}
+                </h1>
+                <p class="lead">
+                    {{ platform.site_hero_lead|default:"Projects, finance, procurement, HR, inventory, sales and support — connected in one clean workspace." }}
+                </p>
+                <div class="pub-hero-cta">
+                    <a href="/signup" class="pub-btn pub-btn-gold pub-btn-lg">
+                        <i class="fas fa-rocket"></i> {{ platform.site_hero_cta|default:"Start your free trial" }}
+                    </a>
+                    <a href="/pricing" class="pub-btn pub-btn-outline-light pub-btn-lg">
+                        <i class="fas fa-calculator"></i> {{ platform.site_hero_cta_secondary|default:"Build your plan" }}
+                    </a>
+                </div>
+                <div class="pub-trust">
+                    {% for point in trust_points %}
+                    <span><i class="fas fa-check-circle"></i> {{ point }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="pub-mock" aria-hidden="true">
+                <div class="pub-mock-top">
+                    <span class="pub-mock-dot"></span><span class="pub-mock-dot"></span><span class="pub-mock-dot"></span>
+                    <span class="pub-mock-label">{{ copy.mock_label }}</span>
+                </div>
+                <div class="pub-mock-title">{{ copy.mock_greeting }}</div>
+                <div class="pub-mock-sub">{{ copy.mock_subtitle }}</div>
+                <div class="pub-mock-stats">
+                    {% for stat in mock_stats %}
+                    <div class="pub-mock-stat"><small>{{ stat.label }}</small><strong>{{ stat.value }}{% if stat.delta %}<span class="up">{{ stat.delta }}</span>{% endif %}</strong></div>
+                    {% endfor %}
+                </div>
+                <div class="pub-bars">
+                    <span class="pub-bar" style="height:38%"></span>
+                    <span class="pub-bar" style="height:52%"></span>
+                    <span class="pub-bar" style="height:46%"></span>
+                    <span class="pub-bar" style="height:68%"></span>
+                    <span class="pub-bar" style="height:60%"></span>
+                    <span class="pub-bar" style="height:82%"></span>
+                    <span class="pub-bar" style="height:74%"></span>
+                    <span class="pub-bar" style="height:96%"></span>
+                </div>
+                <div class="pub-mock-chips">
+                    {% for chip in mock_chips %}
+                    <span class="pub-mock-chip{% if forloop.first %} gold{% endif %}">{{ chip }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="pub-section" id="modules">
+    <div class="pub-shell">
+        <div class="pub-section-head">
+            <div class="pub-kicker">{{ platform.site_modules_kicker|default:"Licensed your way" }}</div>
+            <h2>{{ platform.site_modules_title|default:"Only pay for what you run" }}</h2>
+            <p>{{ platform.site_modules_lead|default:"Every module works on its own and gets better together." }}</p>
+        </div>
+        <div class="pub-module-grid">
+            {% for module in modules %}
+            <div class="pub-module-card">
+                <div class="pub-module-icon"><i class="fas fa-{{ module.icon }}"></i></div>
+                <h3>{{ module.brand_name|default:module.name }}</h3>
+                <p>{{ module.description }}</p>
+                <div class="pub-module-foot">
+                    <span>{{ copy.module_price_prefix }} <strong>{{ platform.default_currency|default:"KES" }} {{ module.monthly_price|floatformat:0|intcomma }}</strong> {{ copy.module_price_suffix }}</span>
+                    <i class="fas fa-arrow-right" style="color:#cbd5e1;"></i>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="pub-section alt" id="how">
+    <div class="pub-shell">
+        <div class="pub-section-head">
+            <div class="pub-kicker">{{ platform.site_how_kicker|default:"From signup to running" }}</div>
+            <h2>{{ platform.site_how_title|default:"Your workspace, live in minutes" }}</h2>
+            <p>{{ platform.site_how_lead|default:"No implementation project, no server setup." }}</p>
+        </div>
+        <div class="pub-steps">
+            {% for step in steps %}
+            <div class="pub-step">
+                <div class="pub-step-number">{{ step.number }}</div>
+                <h3>{{ step.title }}</h3>
+                <p>{{ step.body }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="pub-section">
+    <div class="pub-shell">
+        <div class="pub-section-head">
+            <div class="pub-kicker">{{ platform.site_pricing_kicker|default:"Straightforward pricing" }}</div>
+            <h2>{{ platform.site_pricing_title|default:"Plans that grow with you" }}</h2>
+            <p>{{ site.pricing_lead|default:"Every plan starts with a free trial." }}</p>
+        </div>
+        <div class="pub-plan-grid">
+            {% for card in plans %}
+            <div class="pub-plan-card {% if card.plan.code == 'business' %}featured{% endif %}">
+                {% if card.plan.code == 'business' %}<span class="pub-plan-flag">{{ copy.plan_flag }}</span>{% endif %}
+                <h3>{{ card.plan.name }}</h3>
+                <p class="tagline">{{ card.plan.tagline }}</p>
+                <div class="pub-plan-price">
+                    <strong>{{ platform.default_currency|default:"KES" }} {{ card.plan.monthly_price|floatformat:0|intcomma }}</strong>
+                    <span>{{ copy.price_month_suffix }}</span>
+                </div>
+                <div class="pub-plan-yearly">
+                    {% if card.plan.yearly_price %}{{ platform.default_currency|default:"KES" }} {{ card.plan.yearly_price|floatformat:0|intcomma }} {{ copy.price_yearly_suffix }}{% endif %}
+                </div>
+                <div class="pub-plan-modules">
+                    {% for name in card.module_names %}<span>{{ name }}</span>{% endfor %}
+                </div>
+                <ul class="pub-feature-list">
+                    {% for feature in card.features %}<li>{{ feature }}</li>{% endfor %}
+                </ul>
+                <a href="/signup?plan={{ card.plan.code }}" class="pub-btn {% if card.plan.code == 'business' %}pub-btn-gold{% else %}pub-btn-dark{% endif %} pub-btn-block">
+                    {{ card.cta }}
+                </a>
+            </div>
+            {% empty %}
+            <div class="pub-plan-card">
+                <h3>{{ copy.plan_empty_title }}</h3>
+                <p class="tagline">{{ copy.plan_empty_body }}</p>
+                <a href="/contact" class="pub-btn pub-btn-dark pub-btn-block">{{ copy.plan_empty_cta }}</a>
+            </div>
+            {% endfor %}
+        </div>
+        <p class="pub-note">{{ platform.site_pricing_note|default:"Prices exclude applicable taxes." }} {{ copy.pricing_custom_note }} <a href="/contact" style="color:#a16207;font-weight:700;">{{ copy.pricing_custom_link }}</a>.</p>
+    </div>
+</section>
+
+<section class="pub-section alt">
+    <div class="pub-shell">
+        <div class="pub-cta">
+            <div class="pub-eyebrow"><i class="fas fa-gift"></i> {{ platform.site_cta_eyebrow|default:"Free trial" }}</div>
+            <h2>{{ platform.site_cta_title|default:"Give your team a better operating system." }}</h2>
+            <p>{{ platform.site_cta_lead|default:"Start with every module you need. No card, no commitment." }}</p>
+            <a href="/signup" class="pub-btn pub-btn-gold pub-btn-lg"><i class="fas fa-arrow-right"></i> {{ platform.site_cta_button|default:"Start your free trial" }}</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

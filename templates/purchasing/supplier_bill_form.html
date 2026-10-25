@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-file-invoice"></i> Record Supplier Bill</h1>
+        <p>Capture a supplier invoice, link it to procurement, and post the payable journal.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/purchasing/supplier-bills" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+
+{% if po or grn %}
+<div class="alert alert-info" style="background:#e0f2fe; color:#075985; border-radius:8px; padding:12px 16px; font-size:13px; margin-bottom:16px;">
+    <i class="fas fa-link"></i>
+    Linked to
+    {% if po %}<a href="/purchasing/purchase-orders/view/{{ po.id }}" style="font-weight:600;">{{ po.po_number }}</a>{% endif %}
+    {% if grn %}{% if po %} and {% endif %}<a href="/purchasing/goods-receipts/view/{{ grn.id }}" style="font-weight:600;">{{ grn.grn_number }}</a>{% endif %}.
+</div>
+{% endif %}
+
+<form method="post" action="/purchasing/supplier-bills/store" id="billForm">
+    {% csrf_token %}
+    {{ formset.management_form }}
+    {% if po %}<input type="hidden" name="purchase_order_id" value="{{ po.id }}">{% endif %}
+    {% if grn %}<input type="hidden" name="goods_receipt_id" value="{{ grn.id }}">{% endif %}
+
+    {% if form.errors or formset.non_form_errors or formset.errors %}
+    <div class="alert alert-error">
+        <strong>Please fix the following:</strong>
+        {{ form.non_field_errors }}
+        {{ formset.non_form_errors }}
+    </div>
+    {% endif %}
+
+    <div class="detail-layout">
+        <div>
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-info-circle"></i> Bill Details</span></div>
+                <div style="padding: 20px;">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="{{ form.vendor.id_for_label }}">Supplier *</label>
+                            {{ form.vendor }}
+                            {{ form.vendor.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.bill_number.id_for_label }}">Bill number</label>
+                            {{ form.bill_number }}
+                            {{ form.bill_number.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.bill_date.id_for_label }}">Bill date *</label>
+                            {{ form.bill_date }}
+                            {{ form.bill_date.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.due_date.id_for_label }}">Due date *</label>
+                            {{ form.due_date }}
+                            {{ form.due_date.errors }}
+                        </div>
+                        <div class="form-group span-2">
+                            <label for="{{ form.reference.id_for_label }}">Supplier reference</label>
+                            {{ form.reference }}
+                            {{ form.reference.errors }}
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.notes.id_for_label }}">Notes</label>
+                        {{ form.notes }}
+                        {{ form.notes.errors }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span><i class="fas fa-list"></i> Bill Items</span>
+                    <button type="button" class="btn btn-sm btn-primary" id="addItemBtn"><i class="fas fa-plus"></i> Add item</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table item-table">
+                        <thead><tr><th style="min-width:180px;">Product</th><th style="min-width:190px;">Description *</th><th style="width:85px;">Qty</th><th style="width:115px;">Unit price</th><th style="width:100px;">Discount</th><th style="width:80px;">Tax %</th><th style="width:110px;" class="text-right">Line total</th><th style="width:36px;"></th></tr></thead>
+                        <tbody id="itemRows">
+                            {% for item_form in formset %}
+                            <tr class="item-row">
+                                <td>{{ item_form.product }}{{ item_form.product.errors }}{{ item_form.description.errors }}</td>
+                                <td>{{ item_form.description }}</td>
+                                <td>{{ item_form.quantity }}{{ item_form.quantity.errors }}</td>
+                                <td>{{ item_form.unit_price }}{{ item_form.unit_price.errors }}</td>
+                                <td>{{ item_form.discount }}{{ item_form.discount.errors }}</td>
+                                <td>{{ item_form.tax_rate }}{{ item_form.tax_rate.errors }}</td>
+                                <td class="text-right line-total">0.00</td>
+                                <td><button type="button" class="btn btn-sm btn-danger remove-row" title="Clear row"><i class="fas fa-times"></i></button></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div style="padding: 10px 20px 18px; color:#64748b; font-size:12px;">
+                    Tip: empty rows are ignored. Leave the bill number blank to auto-generate one.
+                </div>
+            </div>
+        </div>
+
+        <div class="card sticky-summary">
+            <div class="card-header"><span><i class="fas fa-calculator"></i> Bill Summary</span></div>
+            <div style="padding: 20px;">
+                <div class="summary-box">
+                    <div class="summary-line"><span>Subtotal</span><span id="summarySubtotal">0.00</span></div>
+                    <div class="summary-line"><span>Tax</span><span id="summaryTax">0.00</span></div>
+                    <div class="summary-line total"><span>Total ({{ currency_symbol }})</span><span id="summaryTotal">0.00</span></div>
+                </div>
+                <p class="info" style="margin-top:12px;">The bill is saved as received. Approve it before recording payment.</p>
+                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; margin-top:18px;">
+                    <i class="fas fa-save"></i> Record Bill
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<template id="emptyItemRow">
+    <tr class="item-row">
+        <td>{{ formset.empty_form.product }}{{ formset.empty_form.description.errors }}</td>
+        <td>{{ formset.empty_form.description }}</td>
+        <td>{{ formset.empty_form.quantity }}</td>
+        <td>{{ formset.empty_form.unit_price }}</td>
+        <td>{{ formset.empty_form.discount }}</td>
+        <td>{{ formset.empty_form.tax_rate }}</td>
+        <td class="text-right line-total">0.00</td>
+        <td><button type="button" class="btn btn-sm btn-danger remove-row" title="Clear row"><i class="fas fa-times"></i></button></td>
+    </tr>
+</template>
+
+{{ products_json|json_script:"products-data" }}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const productMap = {};
+JSON.parse(document.getElementById('products-data').textContent).forEach(product => {
+    productMap[String(product.id)] = product;
+});
+const totalFormsInput = document.getElementById('id_{{ formset.prefix }}-TOTAL_FORMS');
+const itemRows = document.getElementById('itemRows');
+
+function money(value) {
+    return (Math.round(value * 100) / 100).toFixed(2);
+}
+
+function recalc() {
+    let subtotal = 0;
+    let taxTotal = 0;
+    document.querySelectorAll('#itemRows .item-row').forEach(row => {
+        if (row.style.display === 'none') return;
+        const qty = parseFloat(row.querySelector('input[name$="-quantity"]')?.value || 0) || 0;
+        const price = parseFloat(row.querySelector('input[name$="-unit_price"]')?.value || 0) || 0;
+        const discount = parseFloat(row.querySelector('input[name$="-discount"]')?.value || 0) || 0;
+        const rate = parseFloat(row.querySelector('input[name$="-tax_rate"]')?.value || 0) || 0;
+        const gross = Math.max(qty * price - discount, 0);
+        const tax = gross * rate / 100;
+        subtotal += gross;
+        taxTotal += tax;
+        const cell = row.querySelector('.line-total');
+        if (cell) cell.textContent = money(gross + tax);
+    });
+    document.getElementById('summarySubtotal').textContent = money(subtotal);
+    document.getElementById('summaryTax').textContent = money(taxTotal);
+    document.getElementById('summaryTotal').textContent = money(subtotal + taxTotal);
+}
+
+document.addEventListener('change', event => {
+    if (event.target.matches('select[name$="-product"]')) {
+        const product = productMap[event.target.value];
+        if (product) {
+            const row = event.target.closest('tr');
+            const description = row.querySelector('input[name$="-description"]');
+            const price = row.querySelector('input[name$="-unit_price"]');
+            if (description && !description.value.trim()) description.value = product.name;
+            if (price && (!price.value || parseFloat(price.value) === 0)) price.value = product.cost || product.price || '';
+        }
+        recalc();
+    }
+});
+document.addEventListener('input', event => {
+    if (event.target.closest('#itemRows')) recalc();
+});
+
+document.getElementById('addItemBtn').addEventListener('click', () => {
+    const index = parseInt(totalFormsInput.value, 10);
+    const html = document.getElementById('emptyItemRow').innerHTML.replace(/__prefix__/g, index);
+    itemRows.insertAdjacentHTML('beforeend', html);
+    totalFormsInput.value = index + 1;
+    recalc();
+});
+
+itemRows.addEventListener('click', event => {
+    const button = event.target.closest('.remove-row');
+    if (!button) return;
+    const row = button.closest('tr');
+    row.querySelectorAll('input, select, textarea').forEach(input => { input.value = ''; });
+    row.style.display = 'none';
+    recalc();
+});
+
+recalc();
+</script>
+{% endblock %}

@@ -1,0 +1,465 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en" data-theme="{{ theme }}" style="--brand: {{ saas.brand_color|default:'#FFD700' }};">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <meta name="theme-color" content="{{ saas.brand_color|default:'#FFD700' }}">
+    <title>{% block title %}{{ company_name }}{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/layout.css' %}">
+    <link rel="stylesheet" href="{% static 'css/saas.css' %}">
+    {% block extra_css %}{% endblock %}
+    <style>
+        .message-toast {
+            position: fixed; top: 74px; right: 20px; z-index: 10000;
+            padding: 12px 18px; border-radius: 10px; font-size: 13px; font-weight: 500;
+            box-shadow: 0 10px 30px rgba(15,23,42,.12); display: flex; align-items: center; gap: 10px;
+            animation: toastIn .25s ease;
+        }
+        .message-toast.success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+        .message-toast.error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        .message-toast.warning { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+        .message-toast.info { background: #e0f2fe; color: #075985; border: 1px solid #bae6fd; }
+        @keyframes toastIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-area">
+            <button class="menu-toggle" onclick="toggleMobileSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+            <a href="/dashboard" class="logo">
+                <img src="{{ company_logo }}" alt="Logo" class="logo-img">
+                <div>
+                    <div class="logo-text">{{ company_name }}</div>
+                    <div class="logo-sub">{% if company_name|slice:"-3:" == "ERP" %}Management System{% else %}ERP System{% endif %}</div>
+                </div>
+            </a>
+        </div>
+
+        <div class="search-container">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" class="search-input" id="globalSearch" placeholder="Search... (Ctrl+K)" autocomplete="off">
+            <span class="search-shortcut">Ctrl+K</span>
+            <div class="search-results" id="searchResults"></div>
+        </div>
+
+        <div class="header-right">
+            <button class="sidebar-toggle" onclick="toggleSidebar()">
+                <i class="fas fa-chevron-left"></i>
+                <span>Collapse</span>
+            </button>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <i class="fas fa-moon"></i>
+                <span>Dark</span>
+            </button>
+
+            {% if saas.tenant %}
+            <a href="/billing/" class="plan-chip {% if saas.locked %}locked{% elif saas.status == 'active' %}active{% endif %}"
+               title="{{ saas.status_label }}{% if saas.trial %} · {{ saas.trial_days_left }} days left{% endif %}">
+                <i class="fas {% if saas.locked %}fa-lock{% elif saas.status == 'active' %}fa-circle-check{% else %}fa-hourglass-half{% endif %}"></i>
+                {% if saas.locked %}Renew plan{% elif saas.status == 'active' %}{{ saas.tenant.plan.name|default:"Active plan" }}{% else %}Trial · {{ saas.trial_days_left }}d{% endif %}
+            </a>
+            {% endif %}
+
+            <div class="presence-indicator" id="presenceIndicator">
+                <div class="presence-dot" id="presenceDot"></div>
+                <div class="presence-info">
+                    <span id="presenceText">Checking...</span>
+                    <span id="presenceHours" class="presence-hours">0h</span>
+                </div>
+                <div class="clock-actions" id="clockActions">
+                    <button class="clock-btn clock-in-btn" id="clockInBtn" style="display: none;">
+                        <i class="fas fa-fingerprint"></i> Clock In
+                    </button>
+                    <button class="clock-btn clock-out-btn" id="clockOutBtn" style="display: none;">
+                        <i class="fas fa-sign-out-alt"></i> Clock Out
+                    </button>
+                </div>
+            </div>
+
+            <div class="user-menu">
+                <div class="user-avatar">{{ user_name|slice:":1"|upper }}</div>
+                <div>
+                    <div class="user-name">{{ user_name }}</div>
+                    <div class="user-role">{{ user_role }}</div>
+                </div>
+            </div>
+            <a href="/security/" class="logout-btn" title="Security settings">
+                <i class="fas fa-shield-halved"></i>
+                <span>Security</span>
+            </a>
+            <a href="/logout" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div id="messageStack">
+        {% for message in messages %}
+        <div class="message-toast {{ message.tags }}">
+            <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% elif message.tags == 'warning' %}fa-exclamation-triangle{% else %}fa-info-circle{% endif %}"></i>
+            <span>{{ message }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="sidebar {% if sidebar_collapsed %}collapsed{% endif %}" id="sidebar">
+        <div class="sidebar-nav">
+            {% for key, item in menu_items.items %}
+                {% if item.type == 'single' %}
+                    <div class="nav-item">
+                        <a href="{{ item.route }}" class="nav-link {% if current_url == item.route|slice:'1:' %}active{% endif %}">
+                            <i class="fas fa-{{ item.icon }}"></i>
+                            <span>{{ item.name }}</span>
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="dropdown-container" id="dropdown-{{ key }}">
+                        <div class="dropdown-header" onclick="toggleDropdown('{{ key }}')">
+                            <div class="dropdown-title">
+                                <i class="fas fa-{{ item.icon }}"></i>
+                                <span>{{ item.name }}</span>
+                            </div>
+                            <i class="fas fa-chevron-right dropdown-arrow"></i>
+                        </div>
+                        <div class="submenu">
+                            {% for subitem in item.items %}
+                                <a href="{{ subitem.route }}" class="nav-link {% if request.path == subitem.route %}active{% endif %}">
+                                    <i class="fas fa-{{ subitem.icon }}"></i>
+                                    <span>{{ subitem.name }}</span>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="main-content {% if sidebar_collapsed %}expanded{% endif %}" id="mainContent">
+        {% include "saas/partials/banners.html" %}
+        {% block content %}{% endblock %}
+    </div>
+
+    {{ search_items|json_script:"search-data" }}
+    <script>
+        const searchData = JSON.parse(document.getElementById('search-data').textContent);
+        const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]').content;
+
+        function performSearch(query) {
+            const resultsDiv = document.getElementById('searchResults');
+            if (!query.trim()) {
+                resultsDiv.classList.remove('show');
+                return;
+            }
+            const lowerQuery = query.toLowerCase();
+            const results = searchData.filter(item => item.name.toLowerCase().includes(lowerQuery));
+            if (results.length === 0) {
+                resultsDiv.innerHTML = '<div class="search-result-item" style="justify-content: center;">No results found</div>';
+                resultsDiv.classList.add('show');
+                return;
+            }
+            let html = '';
+            results.forEach(item => {
+                html += `
+                    <a href="${item.route}" class="search-result-item" onclick="document.getElementById('searchResults').classList.remove('show')">
+                        <i class="fas fa-${item.icon}"></i>
+                        <div class="search-result-info">
+                            <div class="search-result-title">${item.name}</div>
+                            <div class="search-result-desc">${item.route}</div>
+                        </div>
+                        <span class="search-result-badge">Go</span>
+                    </a>
+                `;
+            });
+            resultsDiv.innerHTML = html;
+            resultsDiv.classList.add('show');
+        }
+
+        const searchInput = document.getElementById('globalSearch');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => performSearch(e.target.value));
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                if (searchInput) searchInput.focus();
+            }
+            if (e.key === 'Escape') {
+                const resultsDiv = document.getElementById('searchResults');
+                if (resultsDiv) resultsDiv.classList.remove('show');
+                if (searchInput) searchInput.blur();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            const container = document.querySelector('.search-container');
+            const resultsDiv = document.getElementById('searchResults');
+            if (container && resultsDiv && !container.contains(e.target)) {
+                resultsDiv.classList.remove('show');
+            }
+        });
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+            document.cookie = "sora_theme=" + newTheme + "; path=/; max-age=31536000";
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            document.cookie = "sora_sidebar=" + (sidebar.classList.contains('collapsed') ? 'collapsed' : 'expanded') + "; path=/; max-age=31536000";
+        }
+
+        function toggleMobileSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        function toggleDropdown(id) {
+            const container = document.getElementById('dropdown-' + id);
+            if (container) {
+                container.classList.toggle('open');
+                const openStates = JSON.parse(localStorage.getItem('sidebarOpenDropdowns') || '{}');
+                openStates[id] = container.classList.contains('open');
+                localStorage.setItem('sidebarOpenDropdowns', JSON.stringify(openStates));
+            }
+        }
+
+        const savedStates = JSON.parse(localStorage.getItem('sidebarOpenDropdowns') || '{}');
+        for (const [id, isOpen] of Object.entries(savedStates)) {
+            if (isOpen) {
+                const container = document.getElementById('dropdown-' + id);
+                if (container) container.classList.add('open');
+            }
+        }
+
+        const currentPath = window.location.pathname;
+        document.querySelectorAll('.nav-link').forEach(link => {
+            if (link.getAttribute('href') === currentPath) {
+                link.classList.add('active');
+                const dropdown = link.closest('.dropdown-container');
+                if (dropdown) dropdown.classList.add('open');
+            }
+        });
+
+        setTimeout(() => {
+            document.querySelectorAll('.message-toast').forEach(el => {
+                el.style.transition = 'opacity .4s, transform .4s';
+                el.style.opacity = '0';
+                el.style.transform = 'translateX(100%)';
+                setTimeout(() => el.remove(), 450);
+            });
+        }, 4500);
+
+        let presenceInterval;
+        let heartbeatInterval;
+
+        function csrfFetch(url, options = {}) {
+            const opts = Object.assign({ method: 'POST' }, options);
+            opts.headers = Object.assign({
+                'X-CSRFToken': CSRF_TOKEN,
+                'X-Requested-With': 'XMLHttpRequest'
+            }, opts.headers || {});
+            return fetch(url, opts);
+        }
+
+        function updatePresence() {
+            fetch('/api/presence/status')
+                .then(response => response.json())
+                .then(data => {
+                    const dot = document.getElementById('presenceDot');
+                    const text = document.getElementById('presenceText');
+                    const hoursSpan = document.getElementById('presenceHours');
+                    const clockInBtn = document.getElementById('clockInBtn');
+                    const clockOutBtn = document.getElementById('clockOutBtn');
+                    if (!dot || !text || !hoursSpan) return;
+
+                    let statusText = '';
+                    let statusClass = '';
+                    switch (data.clock_status) {
+                        case 'active': statusText = 'Active Now'; statusClass = 'active'; break;
+                        case 'online': statusText = 'Online'; statusClass = 'online'; break;
+                        case 'idle': statusText = 'Away'; statusClass = 'idle'; break;
+                        default: statusText = 'Offline'; statusClass = 'offline';
+                    }
+                    dot.className = 'presence-dot ' + statusClass;
+                    text.textContent = statusText;
+
+                    let hours = data.hours_today || 0;
+                    hoursSpan.textContent = hours.toFixed(1) + 'h';
+                    if (hours >= 8) {
+                        hoursSpan.style.color = '#f59e0b';
+                        hoursSpan.style.fontWeight = 'bold';
+                    } else if (hours >= 4) {
+                        hoursSpan.style.color = '#22c55e';
+                    } else {
+                        hoursSpan.style.color = '#64748b';
+                    }
+
+                    if (clockInBtn && clockOutBtn) {
+                        if (data.clocked_in) {
+                            clockInBtn.style.display = 'none';
+                            clockOutBtn.style.display = 'inline-flex';
+                            clockOutBtn.disabled = false;
+                        } else {
+                            clockInBtn.style.display = 'inline-flex';
+                            clockOutBtn.style.display = 'none';
+                            clockInBtn.disabled = false;
+                        }
+                    }
+                })
+                .catch(error => console.error('Presence error:', error));
+        }
+
+        function clockIn() {
+            const btn = document.getElementById('clockInBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Clocking...';
+            csrfFetch('/api/attendance/clock-in')
+                .then(response => response.json())
+                .then(data => {
+                    showNotification((data.success ? '✅ ' : '❌ ') + data.message, data.success ? 'success' : 'error');
+                    updatePresence();
+                    if (data.success) setTimeout(() => location.reload(), 1200);
+                    else {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-fingerprint"></i> Clock In';
+                    }
+                })
+                .catch(() => {
+                    showNotification('❌ Error clocking in', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-fingerprint"></i> Clock In';
+                });
+        }
+
+        function clockOut() {
+            const btn = document.getElementById('clockOutBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Clocking...';
+            csrfFetch('/api/attendance/clock-out')
+                .then(response => response.json())
+                .then(data => {
+                    showNotification((data.success ? '✅ ' : '❌ ') + data.message, data.success ? 'success' : 'error');
+                    updatePresence();
+                    if (data.success) setTimeout(() => location.reload(), 1200);
+                    else {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-sign-out-alt"></i> Clock Out';
+                    }
+                })
+                .catch(() => {
+                    showNotification('❌ Error clocking out', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-sign-out-alt"></i> Clock Out';
+                });
+        }
+
+        function showNotification(message, type) {
+            let notification = document.getElementById('attendanceNotification');
+            if (!notification) {
+                notification = document.createElement('div');
+                notification.id = 'attendanceNotification';
+                notification.style.cssText = 'position:fixed;top:70px;right:20px;padding:12px 20px;border-radius:8px;z-index:9999;font-size:13px;font-weight:500;';
+                document.body.appendChild(notification);
+            }
+            notification.style.background = type === 'success' ? '#d1fae5' : '#fee2e2';
+            notification.style.color = type === 'success' ? '#065f46' : '#991b1b';
+            notification.style.border = type === 'success' ? '1px solid #a7f3d0' : '1px solid #fecaca';
+            notification.innerHTML = message;
+            notification.style.display = 'block';
+            setTimeout(() => { notification.style.display = 'none'; }, 3000);
+        }
+
+        function sendHeartbeat() {
+            csrfFetch('/api/presence/update').catch(error => console.error('Heartbeat error:', error));
+        }
+
+        function startPresenceTracking() {
+            updatePresence();
+            presenceInterval = setInterval(updatePresence, 30000);
+            heartbeatInterval = setInterval(sendHeartbeat, 60000);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            startPresenceTracking();
+            const clockInBtn = document.getElementById('clockInBtn');
+            const clockOutBtn = document.getElementById('clockOutBtn');
+            if (clockInBtn) clockInBtn.addEventListener('click', clockIn);
+            if (clockOutBtn) clockOutBtn.addEventListener('click', clockOut);
+        });
+
+        window.addEventListener('beforeunload', function() {
+            if (presenceInterval) clearInterval(presenceInterval);
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
+        });
+
+        const presenceIndicator = document.getElementById('presenceIndicator');
+        if (presenceIndicator) {
+            if (!document.getElementById('presenceModal')) {
+                const modal = document.createElement('div');
+                modal.id = 'presenceModal';
+                modal.className = 'presence-modal';
+                modal.innerHTML = `
+                    <div class="presence-modal-header">
+                        <i class="fas fa-user-clock"></i> Your Activity
+                    </div>
+                    <div class="presence-modal-body">
+                        <div class="presence-stat">
+                            <span class="presence-stat-label">Today's Hours</span>
+                            <span class="presence-stat-value" id="modalHours">0h</span>
+                        </div>
+                        <div class="presence-stat">
+                            <span class="presence-stat-label">Status</span>
+                            <span class="presence-stat-value" id="modalStatus">-</span>
+                        </div>
+                        <div class="presence-stat">
+                            <span class="presence-stat-label">Last Activity</span>
+                            <span class="presence-stat-value" id="modalLastActivity">-</span>
+                        </div>
+                        <div class="presence-stat">
+                            <span class="presence-stat-label">Target</span>
+                            <span class="presence-stat-value">8 hours/day</span>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+
+            presenceIndicator.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const modal = document.getElementById('presenceModal');
+                modal.classList.toggle('show');
+                fetch('/api/presence/status')
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('modalHours').textContent = (data.hours_today || 0).toFixed(1) + ' hours';
+                        document.getElementById('modalStatus').textContent = data.clock_status || data.status;
+                        document.getElementById('modalLastActivity').textContent = data.last_activity ? new Date(data.last_activity).toLocaleTimeString() : 'No activity';
+                    });
+            });
+
+            document.addEventListener('click', function(e) {
+                const modal = document.getElementById('presenceModal');
+                if (modal && !presenceIndicator.contains(e.target) && !modal.contains(e.target)) {
+                    modal.classList.remove('show');
+                }
+            });
+        }
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

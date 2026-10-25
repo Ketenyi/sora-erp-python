@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-medal"></i> Recognition Badges</h1><p>The badges available to celebrate your colleagues.</p></div>
+    <div class="page-actions">
+        <a href="/hr/recognition" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Recognition</a>
+        {% if can_give %}<a href="/hr/recognition/give" class="btn btn-primary"><i class="fas fa-hand-holding-heart"></i> Give recognition</a>{% endif %}
+    </div>
+</div>
+<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:16px;">
+    {% for badge in badges %}
+    <div class="card" style="margin:0;">
+        <div style="padding:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div style="width:52px; height:52px; border-radius:14px; background:#FFF8DC; display:flex; align-items:center; justify-content:center;"><i class="fas {{ badge.badge_icon|default:'fa-award' }}" style="color:#b8860b; font-size:22px;"></i></div>
+                <span class="badge badge-primary">+{{ badge.points }} pts</span>
+            </div>
+            <h3 style="margin:14px 0 4px;">{{ badge.badge_name }}</h3>
+            <p class="info" style="font-size:13px; min-height:38px;">{{ badge.description|default:"No description." }}</p>
+            <div style="display:flex; justify-content:space-between; border-top:1px solid #f1f5f9; padding-top:10px; margin-top:10px;">
+                <span class="info" style="font-size:12px;"><i class="fas fa-level-up-alt"></i> {{ badge.get_level_display|default:badge.level|default:"—" }}</span>
+                <span class="badge badge-info">{{ badge.award_count }} awarded</span>
+            </div>
+            {% if badge.criteria %}<p class="info" style="font-size:12px; margin-top:8px;"><i class="fas fa-list-check"></i> {{ badge.criteria }}</p>{% endif %}
+        </div>
+    </div>
+    {% empty %}<div class="card"><div class="empty-state"><i class="fas fa-medal"></i><p>No badges have been configured.</p></div></div>{% endfor %}
+</div>
+{% endblock %}

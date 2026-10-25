@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-table"></i> General Ledger</h1>
+        <p>Posted movements per account from {{ date_from }} to {{ date_to }}.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/accounts/reports/general-ledger?from={{ date_from }}&to={{ date_to }}" class="btn btn-secondary"><i class="fas fa-chart-bar"></i> GL Report</a>
+        <a href="/accounts/trial-balance" class="btn btn-secondary"><i class="fas fa-balance-scale"></i> Trial Balance</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="filter-bar">
+            <div class="form-group">
+                <label>From</label>
+                <input type="date" name="from" class="form-control" value="{{ date_from }}">
+            </div>
+            <div class="form-group">
+                <label>To</label>
+                <input type="date" name="to" class="form-control" value="{{ date_to }}">
+            </div>
+            <div class="form-group">
+                <button class="btn btn-primary"><i class="fas fa-filter"></i> Apply</button>
+            </div>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Account</th>
+                    <th>Type</th>
+                    <th class="text-right">Debits</th>
+                    <th class="text-right">Credits</th>
+                    <th class="text-right">Net movement</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for account in accounts %}
+                <tr>
+                    <td class="mono">{{ account.account_code }}</td>
+                    <td><a href="/accounts/ledger/account/{{ account.id }}"><strong>{{ account.account_name }}</strong></a></td>
+                    <td>{{ account.get_account_type_display }}</td>
+                    <td class="text-right">{{ currency_symbol }} {{ account.debit_total|floatformat:2|intcomma }}</td>
+                    <td class="text-right">{{ currency_symbol }} {{ account.credit_total|floatformat:2|intcomma }}</td>
+                    <td class="text-right money">{{ currency_symbol }} {{ account.balance|floatformat:2|intcomma }}</td>
+                    <td><a href="/accounts/ledger/account/{{ account.id }}" class="btn btn-sm btn-secondary" title="Open ledger"><i class="fas fa-arrow-right"></i></a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7"><div class="empty-state"><i class="fas fa-table"></i><p>No active accounts found.</p><a href="/accounts/chart-of-accounts/create">Create an account</a></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

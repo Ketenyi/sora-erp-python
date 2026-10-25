@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-award"></i> Recognition</h1><p>Celebrate great work across the team.</p></div>
+    <div class="page-actions">
+        <a href="/hr/recognition/badges" class="btn btn-secondary"><i class="fas fa-medal"></i> Badges</a>
+        <a href="/hr/recognition/leaderboard" class="btn btn-secondary"><i class="fas fa-ranking-star"></i> Leaderboard</a>
+        {% if can_give %}<a href="/hr/recognition/give" class="btn btn-primary"><i class="fas fa-hand-holding-heart"></i> Give recognition</a>{% endif %}
+    </div>
+</div>
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-award"></i></div><div><div class="stat-number">{{ stats.awards }}</div><div class="stat-label">Total awards</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-calendar"></i></div><div><div class="stat-number">{{ stats.month }}</div><div class="stat-label">Awards this month</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-star"></i></div><div><div class="stat-number">{{ stats.points }}</div><div class="stat-label">Points this year</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-users"></i></div><div><div class="stat-number">{{ stats.people }}</div><div class="stat-label">People recognised</div></div></div>
+</div>
+<div class="detail-layout">
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-stream"></i> Recognition feed</span></div>
+        <div style="padding:18px; display:flex; flex-direction:column; gap:14px;">
+            {% for award in awards %}
+            <div style="display:flex; gap:14px; padding-bottom:14px; border-bottom:1px solid #f1f5f9;">
+                <div style="width:44px; height:44px; border-radius:50%; background:#FFF8DC; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i class="fas {{ award.badge_icon }}" style="color:#b8860b; font-size:18px;"></i></div>
+                <div style="flex:1;">
+                    <div><strong>{{ award.employee_name }}</strong> received <span class="badge badge-primary">{{ award.badge_name }}</span> <span class="badge badge-info">+{{ award.points_earned }} pts</span></div>
+                    <p style="margin:6px 0;">{{ award.message|default:award.reason }}</p>
+                    <div class="info" style="font-size:12px;">Given by {{ award.giver_name }} &middot; {{ award.created_at|date:"M d, Y" }}</div>
+                </div>
+            </div>
+            {% empty %}<div class="empty-state"><i class="fas fa-award"></i><p>No recognition has been given yet.</p>{% if can_give %}<a href="/hr/recognition/give" class="btn btn-primary btn-sm">Give the first award</a>{% endif %}</div>{% endfor %}
+        </div>
+    </div>
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-bolt"></i> Quick links</span></div>
+            <div style="padding:16px 18px; display:flex; flex-direction:column; gap:8px;">
+                <a class="btn btn-secondary btn-sm" href="/hr/recognition/leaderboard"><i class="fas fa-ranking-star"></i> Recognition leaderboard</a>
+                <a class="btn btn-secondary btn-sm" href="/hr/recognition/badges"><i class="fas fa-medal"></i> Browse badges</a>
+                <a class="btn btn-secondary btn-sm" href="/hr/wellness"><i class="fas fa-heart-pulse"></i> My wellness</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

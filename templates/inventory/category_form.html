@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-tags"></i> {% if is_edit %}Edit Category{% else %}Add Category{% endif %}</h1>
+        <p>{% if is_edit %}{{ category.category_code }} &middot; {{ category.category_name }}{% else %}Group products for reporting and stock analysis.{% endif %}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/inventory/categories" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+
+<div class="card" style="max-width: 720px;">
+    <div style="padding: 24px;">
+        {% if form.errors or form.non_field_errors %}
+        <div class="alert alert-error"><strong>Please fix the following:</strong>{{ form.non_field_errors }}</div>
+        {% endif %}
+        <form method="post" action="{% if is_edit %}/inventory/categories/update/{{ category.id }}{% else %}/inventory/categories/store{% endif %}">
+            {% csrf_token %}
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="{{ form.category_name.id_for_label }}">Category name *</label>
+                    {{ form.category_name }}
+                    {{ form.category_name.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.parent.id_for_label }}">Parent category</label>
+                    {{ form.parent }}
+                    {{ form.parent.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.status.id_for_label }}">Status</label>
+                    {{ form.status }}
+                    {{ form.status.errors }}
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="{{ form.description.id_for_label }}">Description</label>
+                {{ form.description }}
+                {{ form.description.errors }}
+            </div>
+            <div style="display:flex; gap:10px; margin-top: 8px;">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> {% if is_edit %}Save Changes{% else %}Create Category{% endif %}</button>
+                <a href="/inventory/categories" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

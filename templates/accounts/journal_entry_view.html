@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-book"></i> {{ entry.entry_number }}</h1>
+        <p>{{ entry.entry_date|date:"F d, Y" }} &middot; <span class="badge badge-{{ entry.status|status_class }}">{{ entry.get_status_display }}</span></p>
+    </div>
+    <div class="page-actions">
+        <a href="/accounts/journal-entries" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+        {% if can_post %}
+        <form method="post" action="/accounts/journal-entries/post/{{ entry.id }}" onsubmit="return confirm('Post this entry to the general ledger?');">
+            {% csrf_token %}
+            <button class="btn btn-primary"><i class="fas fa-check"></i> Post Entry</button>
+        </form>
+        {% endif %}
+        <button onclick="window.print()" class="btn btn-secondary"><i class="fas fa-print"></i> Print</button>
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-info-circle"></i> Entry Details</span></div>
+            <div style="padding: 20px;">
+                <div class="detail-grid">
+                    <div class="detail-item"><div class="detail-label">Entry number</div><div class="detail-value mono">{{ entry.entry_number }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Entry date</div><div class="detail-value">{{ entry.entry_date|date:"M d, Y" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Reference</div><div class="detail-value">{{ entry.reference|default:"-" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Status</div><div class="detail-value"><span class="badge badge-{{ entry.status|status_class }}">{{ entry.get_status_display }}</span></div></div>
+                    <div class="detail-item"><div class="detail-label">Created by</div><div class="detail-value">{{ created_by_name }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Created at</div><div class="detail-value">{{ entry.created_at|date:"M d, Y H:i" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Posted by</div><div class="detail-value">{{ posted_by_name|default:"-" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Posted at</div><div class="detail-value">{{ entry.posted_at|date:"M d, Y H:i"|default:"-" }}</div></div>
+                </div>
+                {% if entry.description %}
+                <div class="summary-box" style="margin-top: 16px;">
+                    <div class="detail-label">Description</div>
+                    <div>{{ entry.description|linebreaksbr }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-list"></i> Lines</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Account</th><th>Description</th><th class="text-right">Debit</th><th class="text-right">Credit</th></tr></thead>
+                    <tbody>
+                        {% for line in lines %}
+                        <tr>
+                            <td>
+                                {% if line.account %}
+                                <a href="/accounts/ledger/account/{{ line.account.id }}"><strong>{{ line.account.account_code }} &middot; {{ line.account.account_name }}</strong></a>
+                                {% else %}
+                                <span class="info">Account #{{ line.account_id }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ line.description|default:"-" }}</td>
+                            <td class="text-right money">{% if line.entry_type == "debit" %}{{ currency_symbol }} {{ line.amount|floatformat:2|intcomma }}{% else %}&mdash;{% endif %}</td>
+                            <td class="text-right money">{% if line.entry_type == "credit" %}{{ currency_symbol }} {{ line.amount|floatformat:2|intcomma }}{% else %}&mdash;{% endif %}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4"><div class="empty-state"><i class="fas fa-list"></i><p>This entry has no lines.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card sticky-summary">
+            <div class="card-header"><span><i class="fas fa-calculator"></i> Totals</span></div>
+            <div style="padding: 20px;">
+                <div class="summary-box">
+                    <div class="summary-line"><span>Total debits</span><span class="money">{{ currency_symbol }} {{ total_debit|floatformat:2|intcomma }}</span></div>
+                    <div class="summary-line"><span>Total credits</span><span class="money">{{ currency_symbol }} {{ total_credit|floatformat:2|intcomma }}</span></div>
+                    <div class="summary-line total"><span>Difference</span><span>{{ currency_symbol }} {{ difference|floatformat:2|intcomma }}</span></div>
+                </div>
+                <p class="info" style="margin-top: 12px; font-size: 12px;">
+                    {% if total_debit == total_credit %}This entry is balanced.{% else %}This entry is not balanced; it cannot be posted.{% endif %}
+                </p>
+                {% if entry.status == "draft" and not can_post %}
+                <p class="info" style="font-size: 12px;">You do not have permission to post journal entries.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

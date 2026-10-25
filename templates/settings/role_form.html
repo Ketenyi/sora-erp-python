@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-user-shield"></i> {% if role %}Edit Role{% else %}Create Role{% endif %}</h1><p>{% if role %}Update the display name, description and module permissions.{% else %}Create a role and choose the actions it may perform.{% endif %}</p></div>
+    <div class="page-actions"><a href="/settings/roles" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Roles</a></div>
+</div>
+{% include "settings/_nav.html" %}
+{% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+<form method="post">
+    {% csrf_token %}
+    <div class="detail-layout">
+        <div>
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-tag"></i> Role details</span></div>
+                <div style="padding:18px;">
+                    <div class="form-grid">
+                        <div class="form-group"><label>Identifier *</label>{{ form.name }}{{ form.name.errors }}<small class="info">Lowercase, e.g. sales_manager. Cannot be changed after creation.</small></div>
+                        <div class="form-group"><label>Display name *</label>{{ form.display_name }}{{ form.display_name.errors }}</div>
+                        <div class="form-group span-2"><label>Description</label>{{ form.description }}{{ form.description.errors }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-key"></i> Permissions</span><span class="info" style="font-size:12px;">Checked actions are granted to this role</span></div>
+                <div style="padding:14px 18px; display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:12px;">
+                    {% for group in permission_groups %}
+                    <div class="summary-box" style="padding:12px 14px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <strong style="font-size:12px; text-transform:uppercase; letter-spacing:.4px; color:#64748b;">{{ group.module }}</strong>
+                            <label class="info" style="font-size:11px; cursor:pointer;"><input type="checkbox" onclick="toggleModule(this, '{{ group.key }}')"> all</label>
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                            {% for permission in group.permissions %}
+                            <label style="display:flex; align-items:center; gap:7px; font-size:13px;">
+                                <input type="checkbox" name="permissions" value="{{ permission.id }}" class="perm-{{ group.key }}" {% if permission.id in selected_permissions %}checked{% endif %}>
+                                <span>{{ permission.action|title }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div>
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-circle-check"></i> Save</span></div>
+                <div style="padding:18px;">
+                    <button type="submit" class="btn btn-primary" style="width:100%;"><i class="fas fa-save"></i> Save role</button>
+                    <a href="/settings/roles" class="btn btn-secondary" style="width:100%; margin-top:8px;">Cancel</a>
+                    <p class="info" style="font-size:12px; color:#64748b; margin-top:12px;">Users inherit these permissions through their assigned roles.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+<script>
+function toggleModule(source, moduleKey) {
+    document.querySelectorAll('.perm-' + moduleKey).forEach(function (box) {
+        box.checked = source.checked;
+    });
+}
+</script>
+{% endblock %}

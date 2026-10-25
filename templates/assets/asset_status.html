@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-triangle-exclamation"></i> Asset Lifecycle</h1>
+        <p>{{ asset.asset_code }} &middot; {{ asset.name }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/assets/{{ asset.id }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+
+<div class="card" style="max-width: 620px;">
+    <div class="card-header"><span><i class="fas fa-box-archive"></i> Retire or dispose</span></div>
+    <div style="padding: 22px;">
+        <p class="info" style="line-height:1.7;">
+            Retired assets stay in the register for history but stop depreciating.
+            Disposed assets are removed from active operations. Both actions require the asset to be checked in first.
+        </p>
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="status">New status</label>
+                <select name="status" id="status" class="form-control">
+                    <option value="retired" {% if target == "retired" %}selected{% endif %}>Retired &mdash; kept for history</option>
+                    <option value="disposed" {% if target == "disposed" %}selected{% endif %}>Disposed &mdash; written off</option>
+                </select>
+            </div>
+            <div class="alert alert-error" style="margin-bottom: 16px;">
+                <i class="fas fa-triangle-exclamation"></i>
+                This changes the asset's lifecycle status. It will no longer be depreciated or available for check-out.
+            </div>
+            <div class="page-actions">
+                <button type="submit" class="btn btn-danger"><i class="fas fa-check"></i> Confirm</button>
+                <a href="/assets/{{ asset.id }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

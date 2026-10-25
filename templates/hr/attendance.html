@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load static sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-clock"></i> Attendance</h1><p>Daily register for {{ selected_date|date:"l, F j, Y" }}.</p></div>
+    <div class="page-actions"><a href="/hr/attendance/summary" class="btn btn-secondary"><i class="fas fa-chart-bar"></i> Monthly summary</a><a href="/hr/attendance/my-time" class="btn btn-primary"><i class="fas fa-user-clock"></i> My time</a></div>
+</div>
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-user-check"></i></div><div><div class="stat-number">{{ stats.present }}</div><div class="stat-label">Present</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-hourglass-half"></i></div><div><div class="stat-number">{{ stats.late }}</div><div class="stat-label">Late</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-user-slash"></i></div><div><div class="stat-number">{{ stats.absent }}</div><div class="stat-label">Absent</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-question-circle"></i></div><div><div class="stat-number">{{ stats.unrecorded }}</div><div class="stat-label">Not recorded</div></div></div>
+</div>
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="filter-bar">
+            <div class="form-group"><label>Date</label><input type="date" name="date" class="form-control" value="{{ selected_date|date:'Y-m-d' }}"></div>
+            <div class="form-group"><label>Department</label><select name="department" class="form-control"><option value="">All departments</option>{% for department in departments %}<option value="{{ department.id }}" {% if department_filter == department.id|stringformat:"s" %}selected{% endif %}>{{ department.department_name }}</option>{% endfor %}</select></div>
+            <div class="form-group"><button class="btn btn-primary"><i class="fas fa-filter"></i> Show</button></div>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Employee</th><th>Department</th><th>Clock in</th><th>Clock out</th><th>Hours</th><th>Overtime</th><th>Late (min)</th><th>Status</th></tr></thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td><a href="/hr/employees/view/{{ row.employee.id }}"><strong>{{ row.employee.first_name }} {{ row.employee.last_name }}</strong></a></td>
+                    <td>{{ row.department.department_name|default:"—" }}</td>
+                    {% with record=row.record %}
+                    <td>{% if record and record.clock_in %}{{ record.clock_in|time:"H:i" }}{% else %}—{% endif %}</td>
+                    <td>{% if record and record.clock_out %}{{ record.clock_out|time:"H:i" }}{% else %}—{% endif %}</td>
+                    <td>{% if record %}{{ record.total_hours|default:"—" }}{% else %}—{% endif %}</td>
+                    <td>{% if record %}{{ record.overtime_hours|default:"—" }}{% else %}—{% endif %}</td>
+                    <td>{% if record %}{{ record.late_minutes|default:0 }}{% else %}—{% endif %}</td>
+                    <td>{% if record %}<span class="badge badge-{{ record.status|status_class }}">{{ record.get_status_display }}</span>{% else %}<span class="badge badge-secondary">Not recorded</span>{% endif %}</td>
+                    {% endwith %}
+                </tr>
+                {% empty %}<tr><td colspan="8"><div class="empty-state"><i class="fas fa-clock"></i><p>No active employees in this view.</p></div></td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

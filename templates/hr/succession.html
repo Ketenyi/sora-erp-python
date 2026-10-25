@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-sitemap"></i> Succession Planning</h1><p>Identify critical roles and prepare successors.</p></div>
+    <div class="page-actions">{% if can_manage %}<a href="/hr/succession/create" class="btn btn-primary"><i class="fas fa-plus"></i> New plan</a>{% endif %}</div>
+</div>
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-diagram-project"></i></div><div><div class="stat-number">{{ stats.plans }}</div><div class="stat-label">Succession plans</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-triangle-exclamation"></i></div><div><div class="stat-number">{{ stats.critical }}</div><div class="stat-label">Critical roles</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-arrow-up"></i></div><div><div class="stat-number">{{ stats.high }}</div><div class="stat-label">High risk</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-circle-check"></i></div><div><div class="stat-number">{{ stats.ready_now }}</div><div class="stat-label">Ready now</div></div></div>
+</div>
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-list"></i> Plans</span></div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Position</th><th>Current holder</th><th>Potential successors</th><th>Readiness</th><th>Risk</th><th></th></tr></thead>
+            <tbody>
+            {% for plan in plans %}
+                <tr>
+                    <td><strong>{% if plan.position %}{{ plan.position.position_name }}{% else %}Position #{{ plan.position_id }}{% endif %}</strong></td>
+                    <td>{{ plan.holder_name }}</td>
+                    <td>{% for successor in plan.successors %}<span class="badge badge-secondary" style="margin:1px;">{{ successor.first_name }} {{ successor.last_name }}</span>{% empty %}<span class="info">No successors identified</span>{% endfor %}</td>
+                    <td><span class="badge badge-{{ plan.readiness_level|status_class }}">{{ plan.get_readiness_level_display|default:plan.readiness_level }}</span></td>
+                    <td><span class="badge badge-{{ plan.risk_level|status_class }}">{{ plan.get_risk_level_display|default:plan.risk_level }}</span></td>
+                    <td><a href="/hr/succession/view/{{ plan.id }}" class="btn btn-sm btn-secondary">View</a></td>
+                </tr>
+            {% empty %}<tr><td colspan="6"><div class="empty-state"><i class="fas fa-sitemap"></i><p>No succession plans yet.</p>{% if can_manage %}<a href="/hr/succession/create" class="btn btn-primary btn-sm">Create a plan</a>{% endif %}</div></td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

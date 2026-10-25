@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-chart-line"></i> POS Dashboard</h1>
+        <p>Today's takings, payment mix and the products moving fastest at the till.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/pos/" class="btn btn-primary"><i class="fas fa-cash-register"></i> Open Terminal</a>
+        <a href="/pos/sales" class="btn btn-secondary"><i class="fas fa-receipt"></i> Sales History</a>
+        <a href="/pos/sessions" class="btn btn-secondary"><i class="fas fa-cash-register"></i> Sessions</a>
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-receipt"></i></div>
+        <div><div class="stat-number">{{ today.sales }}</div><div class="stat-label">Sales today &middot; {{ today.items|floatformat:0 }} items</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-coins"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ today.net_revenue|floatformat:0|intcomma }}</div><div class="stat-label">Net revenue today{% if today.refunds %} &middot; {{ today.refunds|floatformat:0|intcomma }} refunded{% endif %}</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-basket-shopping"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ today.average|floatformat:0|intcomma }}</div><div class="stat-label">Average basket</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-cash-register"></i></div>
+        <div><div class="stat-number">{{ today.open_sessions }}</div><div class="stat-label">Open tills &middot; {{ currency_symbol }} {{ today.expected_cash|floatformat:0|intcomma }} expected</div></div>
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-chart-column"></i> Last 7 days</span><span class="info">Completed sales only</span></div>
+            <div style="padding: 18px 20px 22px;">
+                <div style="display:flex; align-items:flex-end; gap:12px; height:170px;">
+                    {% for day in trend %}
+                    <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; gap:8px;">
+                        <div class="info" style="font-size:10px;">{{ currency_symbol }} {{ day.revenue|floatformat:0|intcomma }}</div>
+                        <div style="width:100%; max-width:52px; height:{{ day.percent }}%; min-height:3px; background:linear-gradient(180deg,#6366f1,#a5b4fc); border-radius:6px 6px 0 0;"></div>
+                        <div style="font-size:11px; color:#64748b;">{{ day.label }}</div>
+                        <div style="font-size:10px; color:#94a3b8;">{{ day.count }} sale{{ day.count|pluralize }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-clock-rotate-left"></i> Recent sales</span><a href="/pos/sales" class="btn btn-sm btn-secondary">View all</a></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Sale</th><th>Cashier</th><th>Time</th><th>Payment</th><th class="text-right">Total</th><th></th></tr></thead>
+                    <tbody>
+                        {% for sale in recent_sales %}
+                        <tr>
+                            <td class="mono"><strong>{{ sale.sale_number }}</strong>{% if sale.status == "voided" %} <span class="badge badge-danger">Voided</span>{% endif %}</td>
+                            <td>{{ sale.cashier_name }}</td>
+                            <td>{{ sale.created_at|date:"M d, H:i" }}</td>
+                            <td>{{ sale.payment_label }}</td>
+                            <td class="text-right money">{{ currency_symbol }} {{ sale.total_amount|floatformat:2|intcomma }}</td>
+                            <td><a href="/pos/sales/{{ sale.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-receipt"></i></a></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6"><div class="empty-state"><i class="fas fa-receipt"></i><p>No POS sales recorded yet.</p><a href="/pos/">Open the terminal</a></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-fire"></i> Top products this month</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Product</th><th class="text-right">Quantity sold</th><th class="text-right">Revenue</th></tr></thead>
+                    <tbody>
+                        {% for row in top_products %}
+                        <tr>
+                            <td>{{ row.description }}</td>
+                            <td class="text-right">{{ row.quantity|floatformat:2 }}</td>
+                            <td class="text-right money">{{ currency_symbol }} {{ row.revenue|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3"><div class="empty-state"><i class="fas fa-chart-simple"></i><p>No sales this month yet.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-wallet"></i> Payment mix today</span></div>
+            <div style="padding: 12px 18px 18px;">
+                {% for row in method_rows %}
+                <div style="padding: 7px 0;">
+                    <div style="display:flex; justify-content:space-between; font-size:12px;">
+                        <span>{{ row.label }}</span><strong>{{ currency_symbol }} {{ row.amount|floatformat:2|intcomma }}</strong>
+                    </div>
+                    <div style="height:5px; background:#eef2f6; border-radius:999px; margin-top:5px; overflow:hidden;">
+                        <div style="height:100%; width:{{ row.amount|percentage:today.revenue }}%; background:#0ea5e9;"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-cash-register"></i> Open tills</span><a href="/pos/sessions" class="btn btn-sm btn-secondary">Manage</a></div>
+            <div style="padding: 10px 18px 18px;">
+                {% for session in open_sessions %}
+                <div style="padding: 10px 0; border-bottom: 1px solid #eef2f6;">
+                    <div style="display:flex; justify-content:space-between; gap:10px;">
+                        <a href="/pos/sessions/{{ session.id }}" style="font-weight:600; color:inherit;">{{ session.terminal_name }}</a>
+                        <span class="badge badge-info">Open</span>
+                    </div>
+                    <div class="info">{{ session.session_number }} &middot; {{ session.opener_name }} &middot; {{ session.summary.count }} sale{{ session.summary.count|pluralize }}</div>
+                    <div class="info">Expected cash <strong>{{ currency_symbol }} {{ session.summary.expected_cash|floatformat:2|intcomma }}</strong></div>
+                </div>
+                {% empty %}
+                <p class="info">No tills are open.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-triangle-exclamation"></i> Low stock</span><a href="/inventory/products" class="btn btn-sm btn-secondary">Inventory</a></div>
+            <div style="padding: 10px 18px 18px;">
+                {% for product in low_stock %}
+                <div style="padding: 9px 0; border-bottom: 1px solid #eef2f6; display:flex; justify-content:space-between; gap:10px;">
+                    <div>
+                        <div style="font-weight:600; font-size:13px;">{{ product.name }}</div>
+                        <div class="info">{{ product.product_code }}</div>
+                    </div>
+                    <span class="badge badge-{% if product.current_stock <= 0 %}danger{% else %}warning{% endif %}">{{ product.current_stock|floatformat:2 }} {{ product.unit }}</span>
+                </div>
+                {% empty %}
+                <p class="info">All tracked products are above their reorder levels.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-bolt"></i> Shortcuts</span></div>
+            <div style="padding: 16px 18px; display:flex; flex-direction:column; gap:10px;">
+                <a href="/pos/" class="btn btn-primary" style="justify-content:flex-start;"><i class="fas fa-cash-register"></i> Start selling</a>
+                <a href="/pos/sales?status=voided" class="btn btn-secondary" style="justify-content:flex-start;"><i class="fas fa-ban"></i> Voided sales</a>
+                <a href="/pos/sessions" class="btn btn-secondary" style="justify-content:flex-start;"><i class="fas fa-calculator"></i> Cash-up</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

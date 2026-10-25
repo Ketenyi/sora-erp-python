@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-truck"></i> {{ vendor.company_name }}
+            <span class="badge badge-{{ vendor.status|status_class }}" style="font-size:12px; vertical-align:middle;">{{ vendor.get_status_display }}</span>
+        </h1>
+        <p>{{ vendor.vendor_code }}{% if vendor.city %} &middot; {{ vendor.city }}{% endif %}{% if vendor.country %}, {{ vendor.country }}{% endif %}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/crm/vendors" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Vendors</a>
+        <a href="/crm/vendors/edit/{{ vendor.id }}" class="btn btn-secondary"><i class="fas fa-pen"></i> Edit</a>
+        {% if can_delete %}
+        <form method="post" action="/crm/vendors/delete/{{ vendor.id }}" onsubmit="return confirm('Archive this vendor? Related records are kept.');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger"><i class="fas fa-archive"></i> Archive</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-shopping-cart"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ totals.ordered|floatformat:0|intcomma }}</div><div class="stat-label">Ordered</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ totals.billed|floatformat:0|intcomma }}</div><div class="stat-label">Billed</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ totals.paid|floatformat:0|intcomma }}</div><div class="stat-label">Paid</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-hourglass-half"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ totals.outstanding|floatformat:0|intcomma }}</div><div class="stat-label">Outstanding</div></div>
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-address-card"></i> Vendor Details</span></div>
+            <div style="padding: 20px;">
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <div class="detail-label">Contact person</div>
+                        <div class="detail-value">{{ vendor.contact_person|default:"-" }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Email</div>
+                        <div class="detail-value">{{ vendor.email|default:"-" }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Phone</div>
+                        <div class="detail-value">{{ vendor.phone|default:"-" }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Tax ID</div>
+                        <div class="detail-value">{{ vendor.tax_id|default:"-" }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Payment terms</div>
+                        <div class="detail-value">{{ vendor.payment_terms|default:"-" }}{% if vendor.payment_terms %} days{% endif %}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">City / Country</div>
+                        <div class="detail-value">{{ vendor.city|default:"-" }}{% if vendor.country %}, {{ vendor.country }}{% endif %}</div>
+                    </div>
+                    <div class="detail-item span-2">
+                        <div class="detail-label">Address</div>
+                        <div class="detail-value">{{ vendor.address|default:"-"|linebreaksbr }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-shopping-cart"></i> Recent Purchase Orders</span>
+                <a href="/purchasing/purchase-orders" class="btn btn-sm btn-secondary">View all</a>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>PO</th><th>Ordered</th><th>Expected</th><th>Status</th><th class="text-right">Total</th></tr></thead>
+                    <tbody>
+                        {% for po in purchase_orders %}
+                        <tr>
+                            <td><a href="/purchasing/purchase-orders/view/{{ po.id }}"><strong>{{ po.po_number }}</strong></a></td>
+                            <td>{{ po.order_date|date:"M d, Y" }}</td>
+                            <td>{{ po.expected_delivery|date:"M d, Y"|default:"-" }}</td>
+                            <td><span class="badge badge-{{ po.status|status_class }}">{{ po.get_status_display }}</span></td>
+                            <td class="text-right money">{{ currency_symbol }} {{ po.total_amount|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5"><div class="empty-state"><i class="fas fa-shopping-cart"></i><p>No purchase orders for this vendor yet.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-file-invoice-dollar"></i> Recent Bills</span>
+                <a href="/purchasing/supplier-bills" class="btn btn-sm btn-secondary">View all</a>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Bill</th><th>Date</th><th>Due</th><th>Status</th><th class="text-right">Total</th><th class="text-right">Paid</th></tr></thead>
+                    <tbody>
+                        {% for bill in bills %}
+                        <tr>
+                            <td><a href="/purchasing/supplier-bills/view/{{ bill.id }}"><strong>{{ bill.bill_number }}</strong></a></td>
+                            <td>{{ bill.bill_date|date:"M d, Y" }}</td>
+                            <td>{{ bill.due_date|date:"M d, Y" }}</td>
+                            <td><span class="badge badge-{{ bill.status|status_class }}">{{ bill.get_status_display }}</span></td>
+                            <td class="text-right money">{{ currency_symbol }} {{ bill.total_amount|floatformat:2|intcomma }}</td>
+                            <td class="text-right money">{{ currency_symbol }} {{ bill.paid_amount|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6"><div class="empty-state"><i class="fas fa-file-invoice-dollar"></i><p>No supplier bills for this vendor yet.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="sticky-summary">
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-chart-pie"></i> Spend Summary</span></div>
+            <div style="padding: 16px 20px;">
+                <div class="summary-box">
+                    <div class="summary-line"><span>Total ordered</span><span class="money">{{ currency_symbol }} {{ totals.ordered|floatformat:2|intcomma }}</span></div>
+                    <div class="summary-line"><span>Total billed</span><span class="money">{{ currency_symbol }} {{ totals.billed|floatformat:2|intcomma }}</span></div>
+                    <div class="summary-line"><span>Total paid</span><span class="money">{{ currency_symbol }} {{ totals.paid|floatformat:2|intcomma }}</span></div>
+                    <div class="summary-line total"><span>Outstanding</span><span>{{ currency_symbol }} {{ totals.outstanding|floatformat:2|intcomma }}</span></div>
+                </div>
+                <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 8px;">
+                    <a href="/crm/vendors/edit/{{ vendor.id }}" class="btn btn-secondary btn-block"><i class="fas fa-pen"></i> Edit Vendor</a>
+                    <a href="/purchasing/purchase-orders" class="btn btn-primary btn-block"><i class="fas fa-shopping-cart"></i> Purchase Orders</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

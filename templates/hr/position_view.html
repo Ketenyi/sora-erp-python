@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1>{{ position.position_name }}</h1><p>{{ position.position_code }} · {{ position.job_family|default:"No job family" }} · <span class="badge badge-{{ position.status|status_class }}">{{ position.get_status_display }}</span></p></div>
+    <div class="page-actions"><a href="/hr/positions" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Positions</a>{% if can_manage %}<a href="/hr/positions/edit/{{ position.id }}" class="btn btn-primary"><i class="fas fa-pen"></i> Edit</a>{% endif %}</div>
+</div>
+<div class="detail-layout">
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-align-left"></i> Role details</span></div>
+        <div style="padding:20px;">
+            <div><div class="info">Job description</div><p>{{ position.job_description|default:"—"|linebreaksbr }}</p></div>
+            <div style="margin-top:16px;"><div class="info">Responsibilities</div><p>{{ position.responsibilities|default:"—"|linebreaksbr }}</p></div>
+            <div style="margin-top:16px;"><div class="info">Qualifications</div><p>{{ position.qualifications|default:"—"|linebreaksbr }}</p></div>
+            <div style="margin-top:16px;"><div class="info">Required skills</div><p>{{ position.required_skills|default:"—"|linebreaksbr }}</p></div>
+        </div>
+    </div>
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-coins"></i> Compensation</span></div>
+            <div style="padding:18px;">
+                <div><div class="info">Minimum</div><strong>{{ currency_symbol }} {{ position.minimum_salary|floatformat:2|intcomma|default:"—" }}</strong></div>
+                <div style="margin-top:10px;"><div class="info">Maximum</div><strong>{{ currency_symbol }} {{ position.maximum_salary|floatformat:2|intcomma|default:"—" }}</strong></div>
+                <div style="margin-top:10px;"><div class="info">Salary grade</div><strong>{{ position.salary_grade|default:"—" }}</strong></div>
+                <div style="margin-top:10px;"><div class="info">Job grade</div><strong>{{ position.job_grade|default:"—" }}</strong></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-users"></i> Employees in role</span></div>
+            <div style="padding:16px 18px;">
+                {% for employee in employees %}<div style="padding:7px 0; border-bottom:1px solid #f1f5f9;"><a href="/hr/employees/view/{{ employee.id }}"><strong>{{ employee.first_name }} {{ employee.last_name }}</strong></a><div class="info" style="font-size:12px;">{{ employee.employee_code }}</div></div>{% empty %}<p class="info">No employees currently assigned.</p>{% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

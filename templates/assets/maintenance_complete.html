@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-circle-check"></i> Complete Maintenance</h1>
+        <p>{{ item.asset.asset_code }} &middot; {{ item.title }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/assets/maintenance" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <form method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="alert alert-error"><strong>Please fix the following:</strong> {{ form.non_field_errors }}</div>
+            {% endif %}
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-clipboard-check"></i> Completion details</span></div>
+                <div style="padding: 20px;">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="{{ form.completed_date.id_for_label }}">Completed date *</label>
+                            {{ form.completed_date }}
+                            {{ form.completed_date.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.vendor.id_for_label }}">Vendor / workshop</label>
+                            {{ form.vendor }}
+                            {{ form.vendor.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.cost.id_for_label }}">Actual cost</label>
+                            {{ form.cost }}
+                            {{ form.cost.errors }}
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.notes.id_for_label }}">Completion notes</label>
+                        {{ form.notes }}
+                        {{ form.notes.errors }}
+                    </div>
+                </div>
+            </div>
+            <div class="page-actions" style="margin-top: 6px;">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Mark Completed</button>
+                <a href="/assets/maintenance" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-circle-info"></i> Job summary</span></div>
+            <div style="padding: 20px;">
+                <div class="summary-line"><span>Asset</span><span>{{ item.asset.asset_code }}</span></div>
+                <div class="summary-line"><span>Type</span><span>{{ item.get_maintenance_type_display }}</span></div>
+                <div class="summary-line"><span>Scheduled</span><span>{{ item.scheduled_date|date:"M d, Y" }}</span></div>
+                <div class="summary-line"><span>Estimated cost</span><span>{{ currency_symbol }} {{ item.cost|floatformat:2|intcomma }}</span></div>
+                <div class="summary-line"><span>Vendor</span><span>{{ item.vendor|default:"—" }}</span></div>
+                {% if item.description %}<p class="info" style="margin-top: 12px;">{{ item.description|linebreaksbr }}</p>{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load static sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-user-check"></i> Approvers</h1><p>Configure who can approve leave and overtime.</p></div>
+    <div class="page-actions"><a href="/hr/leave/approvers/create" class="btn btn-primary"><i class="fas fa-plus"></i> Add approver</a><a href="/hr/leave" class="btn btn-secondary">Leave home</a></div>
+</div>
+<div class="card">
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Approver</th><th>Scope</th><th>Department</th><th>Approval level</th><th>Priority</th><th>Required</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                {% for approver in approvers %}
+                <tr>
+                    <td><strong>{{ approver.employee_name }}</strong></td>
+                    <td>{{ approver.get_approver_type_display }}</td>
+                    <td>{{ approver.department_name }}</td>
+                    <td>{{ approver.approval_level }}</td>
+                    <td>{{ approver.priority }}</td>
+                    <td>{% if approver.is_required %}Yes{% else %}No{% endif %}</td>
+                    <td><span class="badge badge-{{ approver.status|status_class }}">{{ approver.get_status_display }}</span></td>
+                    <td><div class="table-actions"><a href="/hr/leave/approvers/edit/{{ approver.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-pen"></i></a><form method="post" action="/hr/leave/approvers/delete/{{ approver.id }}" onsubmit="return confirm('Remove this approver?');">{% csrf_token %}<button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button></form></div></td>
+                </tr>
+                {% empty %}<tr><td colspan="8"><div class="empty-state"><i class="fas fa-user-check"></i><p>No approvers configured. Managers with direct reports can still approve.</p><a href="/hr/leave/approvers/create">Add the first approver</a></div></td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

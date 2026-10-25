@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-ranking-star"></i> Resource Scorecards</h1>
+        <p>Delivery 40% &middot; punctuality 30% &middot; blocker response 20% &middot; audit discipline 10%. Computed from live task data.</p>
+    </div>
+    <div class="page-actions">
+        <a href="?export=csv" class="btn btn-secondary"><i class="fas fa-file-csv"></i> Export CSV</a>
+        <a href="/projects/portfolio" class="btn btn-secondary"><i class="fas fa-folder-open"></i> Portfolio</a>
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-users"></i></div><div><div class="stat-number">{{ rows|length }}</div><div class="stat-label">Scored team members</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-gauge-high"></i></div><div><div class="stat-number">{{ average_score }}</div><div class="stat-label">Portfolio average</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-crown"></i></div><div><div class="stat-number" style="font-size:18px;">{% if top_performer %}{{ top_performer.name }}{% else %}—{% endif %}</div><div class="stat-label">{% if top_performer %}Top performer &middot; {{ top_performer.score }}{% else %}Top performer{% endif %}</div></div></div>
+    <div class="stat-box {% if at_risk %}alert-card{% endif %}"><div class="stat-icon"><i class="fas fa-triangle-exclamation"></i></div><div><div class="stat-number">{{ at_risk|length }}</div><div class="stat-label">Below 50 &middot; needs attention</div></div></div>
+</div>
+
+{% if at_risk %}
+<div class="alert alert-warning"><i class="fas fa-triangle-exclamation"></i> {{ at_risk|length }} team member{{ at_risk|length|pluralize }} below the 50-point threshold: {% for row in at_risk %}{{ row.name }} ({{ row.score }}){% if not forloop.last %}, {% endif %}{% endfor %}.</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-table-list"></i> Score breakdown</span></div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr><th>Team member</th><th class="text-center">Score</th><th class="text-right">Tasks</th><th class="text-right">Completion</th><th class="text-right">On time</th><th class="text-right">Overdue</th><th class="text-right">Blocked</th><th class="text-right">Avg blocker hrs</th><th class="text-right">Delivery</th><th class="text-right">Punctuality</th><th class="text-right">Blockers</th><th class="text-right">Audit</th></tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td><strong>{{ row.name }}</strong><div class="text-muted" style="font-size:11px;">{{ row.job_title }}</div></td>
+                    <td class="text-center">
+                        <span class="score-ring" style="--score: {{ row.score }};{% if row.score < 50 %} background: conic-gradient(#ef4444 calc(var(--score) * 1%), #e2e8f0 0);{% elif row.score < 75 %} background: conic-gradient(#f59e0b calc(var(--score) * 1%), #e2e8f0 0);{% endif %} margin:0 auto;"><span>{{ row.score }}</span></span>
+                    </td>
+                    <td class="text-right">{{ row.completed }}/{{ row.total }}</td>
+                    <td class="text-right">{{ row.completion_rate }}%</td>
+                    <td class="text-right">{{ row.on_time_rate }}%</td>
+                    <td class="text-right {% if row.overdue %}text-danger{% endif %}">{{ row.overdue }}</td>
+                    <td class="text-right {% if row.blocked %}text-danger{% endif %}">{{ row.blocked }}</td>
+                    <td class="text-right">{{ row.average_blocker_hours }}</td>
+                    <td class="text-right">{{ row.delivery_score }}</td>
+                    <td class="text-right">{{ row.punctuality_score }}</td>
+                    <td class="text-right">{{ row.blocker_score }}</td>
+                    <td class="text-right">{{ row.audit_score }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="12"><div class="empty-state"><i class="fas fa-ranking-star"></i><p>No assigned tasks yet. Scorecards populate once work is allocated.</p></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

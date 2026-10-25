@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-file-contract"></i> {{ contract.contract_number }} <span class="badge badge-{{ contract.status|status_class }}" style="font-size:12px; vertical-align:middle;">{{ contract.get_status_display }}</span></h1>
+        <p>{{ contract.title }} &middot; {{ contract.get_support_tier_display }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/helpdesk/contracts" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Policies</a>
+        {% if can_edit %}<a href="/helpdesk/contracts/{{ contract.id }}/edit" class="btn btn-secondary"><i class="fas fa-pen"></i> Edit</a>{% endif %}
+        <a href="/helpdesk/tickets/new?contract={{ contract.id }}" class="btn btn-primary"><i class="fas fa-plus"></i> Log Ticket</a>
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-circle-info"></i> Policy details</span></div>
+            <div style="padding:20px;">
+                <div class="detail-grid">
+                    <div class="detail-item"><div class="detail-label">Client</div><div class="detail-value">{{ contract.client_name|default:"&mdash;" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Support tier</div><div class="detail-value">{{ contract.get_support_tier_display }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Term</div><div class="detail-value">{{ contract.start_date|date:"M d, Y" }} &ndash; {{ contract.end_date|date:"M d, Y"|default:"Open" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Monthly retainer</div><div class="detail-value money">{{ currency_symbol }} {{ contract.monthly_value|floatformat:2|intcomma }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Response target</div><div class="detail-value">{{ contract.response_target_hours }} hours</div></div>
+                    <div class="detail-item"><div class="detail-label">Resolution target</div><div class="detail-value">{{ contract.resolution_target_hours }} hours</div></div>
+                    <div class="detail-item"><div class="detail-label">Project</div><div class="detail-value">{% if project %}<a href="/projects/{{ project.id }}">{{ project.project_code }}</a>{% else %}&mdash;{% endif %}</div></div>
+                    <div class="detail-item"><div class="detail-label">Open tickets</div><div class="detail-value">{{ open_count }}{% if breached_count %} &middot; <span class="text-danger">{{ breached_count }} breached</span>{% endif %}</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-ticket"></i> Tickets on this policy</span><a href="/helpdesk/tickets?contract={{ contract.id }}" class="btn btn-sm btn-secondary">Open queue</a></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Ticket</th><th>Requester</th><th>Priority</th><th>Status</th><th>Agent</th><th>SLA due</th></tr></thead>
+                    <tbody>
+                        {% for ticket in tickets %}
+                        <tr>
+                            <td><a href="/helpdesk/tickets/{{ ticket.id }}"><strong>{{ ticket.ticket_number }}</strong></a><div class="text-muted" style="font-size:11px;">{{ ticket.title|truncatechars:50 }}</div></td>
+                            <td>{{ ticket.requester_name|default:"&mdash;" }}</td>
+                            <td><span class="badge badge-{{ ticket.priority|status_class }}">{{ ticket.get_priority_display }}</span></td>
+                            <td><span class="badge badge-{{ ticket.status|status_class }}">{{ ticket.get_status_display }}</span></td>
+                            <td>{{ ticket.assignee_name }}</td>
+                            <td>{% if ticket.is_overdue %}<span class="text-danger">{{ ticket.sla_due_at|date:"M d, H:i" }}</span>{% else %}{{ ticket.sla_due_at|date:"M d, H:i"|default:"&mdash;" }}{% endif %}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6"><div class="empty-state"><i class="fas fa-ticket"></i><p>No tickets have been logged on this policy.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="sticky-summary">
+        {% if can_edit %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-calendar-plus"></i> Schedule health check</span></div>
+            <div style="padding:18px 20px;">
+                <form method="post" action="/helpdesk/contracts/{{ contract.id }}/schedule-health">
+                    {% csrf_token %}
+                    {% for field in health_form %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {{ field.errors }}
+                    </div>
+                    {% endfor %}
+                    <button class="btn btn-primary" style="width:100%; justify-content:center;"><i class="fas fa-calendar-check"></i> Schedule visit</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-screwdriver-wrench"></i> Preventive visits</span><a href="/helpdesk/health-checks" class="btn btn-sm btn-secondary">All</a></div>
+            <div style="padding: 8px 20px 16px;">
+                {% for check in checks %}
+                <div style="padding: 10px 0; border-bottom:1px solid #eef2f6;">
+                    <div style="display:flex; justify-content:space-between; gap:10px;">
+                        <strong>{{ check.scheduled_date|date:"M d, Y" }}</strong>
+                        <span class="badge badge-{{ check.status|status_class }}">{{ check.get_status_display }}</span>
+                    </div>
+                    <div class="info">{{ check.get_check_type_display }}{% if check.performed_name %} &middot; {{ check.performed_name }}{% endif %}</div>
+                </div>
+                {% empty %}
+                <p class="info">No visits scheduled.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

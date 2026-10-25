@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-file-contract"></i> {{ contract.contract_number }} <span class="badge badge-{{ contract.status|status_class }}" style="font-size:12px; vertical-align:middle;">{{ contract.get_status_display }}</span></h1>
+        <p>{{ contract.title }}{% if contract.client_name %} &middot; {{ contract.client_name }}{% endif %}</p>
+    </div>
+    <div class="page-actions">
+        {% if can_edit %}<a href="/projects/sla/contracts/{{ contract.id }}/edit" class="btn btn-secondary"><i class="fas fa-pen"></i> Edit</a>{% endif %}
+        <a href="/projects/sla/tickets/create?contract={{ contract.id }}" class="btn btn-primary"><i class="fas fa-plus"></i> New Ticket</a>
+        {% if health_enabled %}<a href="/projects/sla/contracts/{{ contract.id }}/schedule-health" class="btn btn-secondary"><i class="fas fa-calendar-plus"></i> Schedule visit</a>{% endif %}
+        <a href="/projects/sla" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Hub</a>
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-ticket"></i></div><div><div class="stat-number">{{ open_count }}</div><div class="stat-label">Open tickets</div></div></div>
+    <div class="stat-box {% if breached_count %}alert-card{% endif %}"><div class="stat-icon"><i class="fas fa-stopwatch"></i></div><div><div class="stat-number">{{ breached_count }}</div><div class="stat-label">Breached</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-clock"></i></div><div><div class="stat-number">{{ contract.response_target_hours }}h / {{ contract.resolution_target_hours }}h</div><div class="stat-label">Response / resolution target</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-sack-dollar"></i></div><div><div class="stat-number">{{ currency_symbol }} {{ contract.monthly_value|default:0|floatformat:0|intcomma }}</div><div class="stat-label">Monthly retainer</div></div></div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-circle-info"></i> Contract terms</span></div>
+            <div style="padding:20px;">
+                <div class="detail-grid">
+                    <div class="detail-item"><div class="detail-label">Client</div><div class="detail-value">{{ contract.client_name|default:"—" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Support tier</div><div class="detail-value">{{ contract.get_support_tier_display }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Start date</div><div class="detail-value">{{ contract.start_date|date:"M d, Y" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">End / renewal</div><div class="detail-value">{{ contract.end_date|date:"M d, Y"|default:"Open-ended" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Originating project</div><div class="detail-value">{% if project %}<a href="/projects/{{ project.id }}">{{ project.project_code }}</a>{% else %}<span class="text-muted">Not linked</span>{% endif %}</div></div>
+                    <div class="detail-item"><div class="detail-label">Auto-created</div><div class="detail-value">{% if contract.auto_created_from_project %}Yes, from project handover{% else %}No{% endif %}</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-ticket"></i> Tickets under this contract</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Ticket</th><th>Priority</th><th>Status</th><th>Assigned</th><th>Due</th><th></th></tr></thead>
+                    <tbody>
+                        {% for ticket in tickets %}
+                        <tr>
+                            <td><a href="/projects/sla/tickets/{{ ticket.id }}"><strong>{{ ticket.ticket_number }}</strong></a><div class="text-muted" style="font-size:11px;">{{ ticket.title|truncatechars:50 }}</div></td>
+                            <td>{{ ticket.get_priority_display }}</td>
+                            <td><span class="badge badge-{{ ticket.status|status_class }}">{{ ticket.get_status_display }}</span>{% if ticket.breached %} <span class="badge badge-danger">Breached</span>{% endif %}</td>
+                            <td>{{ ticket.assignee_name }}</td>
+                            <td>{{ ticket.sla_due_at|date:"M d, H:i"|default:"—" }}</td>
+                            <td><a href="/projects/sla/tickets/{{ ticket.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></a></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6"><div class="empty-state"><i class="fas fa-ticket"></i><p>No tickets logged against this contract.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% if health_enabled %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-heart-pulse"></i> Preventive visits</span><a href="/projects/sla/contracts/{{ contract.id }}/schedule-health" class="btn btn-sm btn-secondary">Schedule</a></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Date</th><th>Type</th><th>Status</th><th>Performed by</th><th>Findings</th><th></th></tr></thead>
+                    <tbody>
+                        {% for check in checks %}
+                        <tr>
+                            <td>{{ check.scheduled_date|date:"M d, Y" }}</td>
+                            <td>{{ check.get_check_type_display }}</td>
+                            <td><span class="badge badge-{{ check.status|status_class }}">{{ check.get_status_display }}</span></td>
+                            <td>{{ check.performed_name }}</td>
+                            <td>{{ check.findings|default:"—"|truncatechars:60 }}</td>
+                            <td>{% if check.status == 'scheduled' %}<a href="/projects/sla/health-checks/{{ check.id }}/complete" class="btn btn-sm btn-primary"><i class="fas fa-check"></i></a>{% endif %}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6"><div class="empty-state"><i class="fas fa-heart-pulse"></i><p>No health checks scheduled.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="sticky-summary">
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-bolt"></i> Quick actions</span></div>
+            <div style="padding:14px 20px; display:grid; gap:8px;">
+                <a href="/projects/sla/tickets/create?contract={{ contract.id }}" class="btn btn-primary" style="justify-content:center;"><i class="fas fa-plus"></i> Log ticket</a>
+                <a href="/projects/sla/tickets?contract={{ contract.id }}" class="btn btn-secondary" style="justify-content:center;"><i class="fas fa-ticket"></i> Filter ticket list</a>
+                {% if can_edit %}<a href="/projects/sla/contracts/{{ contract.id }}/edit" class="btn btn-secondary" style="justify-content:center;"><i class="fas fa-pen"></i> Edit contract</a>{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

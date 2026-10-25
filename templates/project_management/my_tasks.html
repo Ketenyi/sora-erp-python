@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-tasks"></i> My Work</h1>
+        <p>{% if employee %}Open tasks assigned to {{ employee.first_name }} {{ employee.last_name }}.{% else %}Your login is not linked to an employee record yet. Ask HR to match your email.{% endif %}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/dashboard" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> PM Dashboard</a>
+    </div>
+</div>
+
+{% if employee %}
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="filter-bar">
+            <div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="">All open statuses</option>{% for value, label in status_choices %}{% if value != 'complete' %}<option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>{% endif %}{% endfor %}</select></div>
+            <div class="form-group"><button class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button></div>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Task</th><th>Project</th><th>Due</th><th>Priority</th><th>Status</th><th style="width:110px;">Progress</th></tr></thead>
+            <tbody>
+                {% for task in tasks %}
+                <tr>
+                    <td><strong>{{ task.task_name }}</strong>{% if task.is_overdue %} <span class="badge badge-danger">Overdue</span>{% endif %}{% if task.is_scope_change %}<div class="text-muted" style="font-size:11px;">Out of scope</div>{% endif %}</td>
+                    <td>{% if task.project %}<a href="/projects/{{ task.project.id }}">{{ task.project.project_code }}</a><div class="text-muted" style="font-size:11px;">{{ task.project.project_name }}</div>{% endif %}</td>
+                    <td>{{ task.deadline_date|date:"M d, Y"|default:"—" }}</td>
+                    <td><span class="badge badge-{{ task.priority|status_class }}">{{ task.get_priority_display }}</span></td>
+                    <td><span class="badge badge-{{ task.status|status_class }}">{{ task.get_status_display }}</span></td>
+                    <td><div class="progress-track"><span style="width: {{ task.completion_percent|floatformat:0 }}%;"></span></div><small class="text-muted">{{ task.completion_percent|floatformat:0 }}%</small></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6"><div class="empty-state"><i class="fas fa-mug-hot"></i><p>No open tasks assigned to you.</p></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="card"><div class="empty-state"><i class="fas fa-user-slash"></i><p>No employee record linked to {{ request.user.email }}.</p></div></div>
+{% endif %}
+{% endblock %}

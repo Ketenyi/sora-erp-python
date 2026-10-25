@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-file-invoice"></i> {{ bill.bill_number }}
+            <span class="badge badge-{{ bill.status|status_class }}" style="font-size:12px; vertical-align:middle;">{{ bill.get_status_display }}</span>
+        </h1>
+        <p>{{ vendor.company_name|default:"Unknown supplier" }} &middot; billed {{ bill.bill_date|date:"F d, Y" }} &middot; due {{ bill.due_date|date:"M d, Y" }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/purchasing/supplier-bills" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+        {% if can_approve %}
+        <form method="post" action="/purchasing/supplier-bills/approve/{{ bill.id }}" onsubmit="return confirm('Approve this supplier bill?');">
+            {% csrf_token %}
+            <button class="btn btn-primary"><i class="fas fa-check"></i> Approve Bill</button>
+        </form>
+        {% endif %}
+        {% if can_pay %}<a href="/purchasing/supplier-payments/create?bill_id={{ bill.id }}" class="btn btn-primary"><i class="fas fa-money-check-alt"></i> Record Payment</a>{% endif %}
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-list"></i> Bill Items</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>#</th><th>Description</th><th class="text-right">Qty</th><th class="text-right">Unit Price</th><th class="text-right">Discount</th><th class="text-right">Tax</th><th class="text-right">Total</th></tr></thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ item.description|default:"-" }}</td>
+                            <td class="text-right">{{ item.quantity|floatformat:2 }}</td>
+                            <td class="text-right">{{ currency_symbol }} {{ item.unit_price|floatformat:2|intcomma }}</td>
+                            <td class="text-right">{{ currency_symbol }} {{ item.discount|floatformat:2|intcomma }}</td>
+                            <td class="text-right">{{ currency_symbol }} {{ item.tax_amount|floatformat:2|intcomma }}</td>
+                            <td class="text-right money">{{ currency_symbol }} {{ item.total|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7"><div class="empty-state"><i class="fas fa-list"></i><p>No items on this bill.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr><th colspan="6" class="text-right">Subtotal</th><th class="text-right">{{ currency_symbol }} {{ bill.subtotal|floatformat:2|intcomma }}</th></tr>
+                        <tr><th colspan="6" class="text-right">Tax</th><th class="text-right">{{ currency_symbol }} {{ bill.tax_amount|floatformat:2|intcomma }}</th></tr>
+                        <tr><th colspan="6" class="text-right">Total</th><th class="text-right money">{{ currency_symbol }} {{ bill.total_amount|floatformat:2|intcomma }}</th></tr>
+                        <tr><th colspan="6" class="text-right">Paid</th><th class="text-right">{{ currency_symbol }} {{ bill.paid_amount|floatformat:2|intcomma }}</th></tr>
+                        <tr><th colspan="6" class="text-right">Balance</th><th class="text-right money">{{ currency_symbol }} {{ balance|floatformat:2|intcomma }}</th></tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-money-check-alt"></i> Payments</span>
+                {% if can_pay %}<a href="/purchasing/supplier-payments/create?bill_id={{ bill.id }}" class="btn btn-sm btn-primary">Record payment</a>{% endif %}
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Payment #</th><th>Date</th><th>Method</th><th>Reference</th><th class="text-right">Amount</th><th></th></tr></thead>
+                    <tbody>
+                        {% for payment in payments %}
+                        <tr>
+                            <td><a href="/purchasing/supplier-payments/view/{{ payment.id }}"><strong>{{ payment.payment_number }}</strong></a></td>
+                            <td>{{ payment.payment_date|date:"M d, Y" }}</td>
+                            <td>{{ payment.get_payment_method_display }}</td>
+                            <td>{{ payment.reference|default:"-" }}</td>
+                            <td class="text-right money">{{ currency_symbol }} {{ payment.amount|floatformat:2|intcomma }}</td>
+                            <td><a href="/purchasing/supplier-payments/view/{{ payment.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></a></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6"><div class="empty-state"><i class="fas fa-money-check-alt"></i><p>No payments recorded on this bill.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-info-circle"></i> Bill Details</span></div>
+            <div style="padding: 20px;">
+                <div class="summary-box">
+                    <div class="summary-line"><span>Bill number</span><span class="mono">{{ bill.bill_number }}</span></div>
+                    <div class="summary-line"><span>Supplier reference</span><span>{{ bill.reference|default:"-" }}</span></div>
+                    <div class="summary-line"><span>Bill date</span><span>{{ bill.bill_date|date:"M d, Y" }}</span></div>
+                    <div class="summary-line"><span>Due date</span><span>{{ bill.due_date|date:"M d, Y" }}</span></div>
+                    <div class="summary-line"><span>Status</span><span class="badge badge-{{ bill.status|status_class }}">{{ bill.get_status_display }}</span></div>
+                    <div class="summary-line total"><span>Balance</span><span>{{ currency_symbol }} {{ balance|floatformat:2|intcomma }}</span></div>
+                </div>
+
+                <div style="margin-top:18px;">
+                    <div class="detail-label">Supplier</div>
+                    <p style="font-size:13px; margin:4px 0;"><strong>{{ vendor.company_name|default:"-" }}</strong></p>
+                    {% if vendor.email %}<p class="info" style="margin:2px 0;">{{ vendor.email }}</p>{% endif %}
+                    {% if vendor.phone %}<p class="info" style="margin:2px 0;">{{ vendor.phone }}</p>{% endif %}
+                </div>
+
+                {% if order or receipt %}
+                <div style="margin-top:16px;">
+                    <div class="detail-label">Linked procurement</div>
+                    {% if order %}<p style="font-size:13px; margin:4px 0;"><a href="/purchasing/purchase-orders/view/{{ order.id }}">{{ order.po_number }}</a></p>{% endif %}
+                    {% if receipt %}<p style="font-size:13px; margin:4px 0;"><a href="/purchasing/goods-receipts/view/{{ receipt.id }}">{{ receipt.grn_number }}</a></p>{% endif %}
+                </div>
+                {% endif %}
+
+                {% if bill.notes %}
+                <div style="margin-top:16px;">
+                    <div class="detail-label">Notes</div>
+                    <p style="font-size:13px; color:#475569;">{{ bill.notes|linebreaksbr }}</p>
+                </div>
+                {% endif %}
+
+                <div style="margin-top:18px; font-size:13px;">
+                    <div class="summary-line" style="padding:4px 0;"><span>Recorded</span><span>{{ bill.created_at|date:"M d, Y H:i" }}</span></div>
+                    {% if bill.approved_at %}<div class="summary-line" style="padding:4px 0;"><span>Approved</span><span>{{ bill.approved_at|date:"M d, Y H:i" }}</span></div>{% endif %}
+                    {% if bill.paid_at %}<div class="summary-line" style="padding:4px 0;"><span>Paid</span><span>{{ bill.paid_at|date:"M d, Y H:i" }}</span></div>{% endif %}
+                </div>
+
+                {% if not can_approve and bill.status == "received" %}
+                <p class="info" style="margin-top:14px;">You do not have permission to approve this bill.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

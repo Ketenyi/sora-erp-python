@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load static sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1>Leave Request #{{ leave.id }}</h1><p>{{ leave.employee_name }} &middot; {{ leave.type_name }} &middot; <span class="badge badge-{{ leave.status|status_class }}">{{ leave.get_status_display }}</span></p></div>
+    <div class="page-actions"><a href="/hr/leave{% if can_approve %}/pending{% else %}/my-requests{% endif %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a></div>
+</div>
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-calendar-alt"></i> Request details</span></div>
+            <div class="detail-grid" style="padding:20px;">
+                <div><div class="info">Employee</div><strong>{{ leave.employee_name }}</strong></div>
+                <div><div class="info">Leave type</div><strong>{{ leave.type_name }}</strong></div>
+                <div><div class="info">Start date</div><strong>{{ leave.start_date|date:"l, M d, Y" }}</strong></div>
+                <div><div class="info">End date</div><strong>{{ leave.end_date|date:"l, M d, Y" }}</strong></div>
+                <div><div class="info">Working days</div><strong>{{ leave.duration_days|floatformat:1 }}</strong></div>
+                <div><div class="info">Requested</div><strong>{{ leave.created_at|date:"M d, Y H:i" }}</strong></div>
+                <div><div class="info">Balance at start of year</div><strong>{% if balance %}{{ balance.remaining_days|floatformat:1 }} / {{ balance.total_days|floatformat:1 }} days{% else %}—{% endif %}</strong></div>
+                <div><div class="info">Attachment</div><strong>{% if leave.attachment %}<a href="/uploads/{{ leave.attachment }}" target="_blank">Download</a>{% else %}None{% endif %}</strong></div>
+            </div>
+            <div style="padding:0 20px 20px;"><div class="info">Reason</div><p>{{ leave.reason|default:"—"|linebreaksbr }}</p></div>
+        </div>
+        {% if leave.status == "rejected" and leave.rejection_reason %}
+        <div class="card"><div class="card-header"><span><i class="fas fa-times-circle"></i> Rejection reason</span></div><div style="padding:18px;"><p>{{ leave.rejection_reason|linebreaksbr }}</p>{% if approver %}<div class="info">Decision by {{ approver.first_name }} {{ approver.last_name }} on {{ leave.approved_at|date:"M d, Y H:i" }}</div>{% endif %}</div></div>
+        {% elif leave.status == "approved" %}
+        <div class="card"><div class="card-header"><span><i class="fas fa-check-circle"></i> Approval</span></div><div style="padding:18px;"><p>Approved by {% if approver %}{{ approver.first_name }} {{ approver.last_name }}{% else %}HR{% endif %} on {{ leave.approved_at|date:"M d, Y H:i" }}.</p></div></div>
+        {% endif %}
+    </div>
+    <div>
+        {% if can_approve %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-gavel"></i> Decision</span></div>
+            <div style="padding:18px;">
+                <form method="post" action="/hr/leave/approve/{{ leave.id }}" onsubmit="return confirm('Approve this leave request?');" style="margin-bottom:14px;">
+                    {% csrf_token %}<button class="btn btn-primary" style="width:100%;"><i class="fas fa-check"></i> Approve request</button>
+                </form>
+                <form method="post" action="/hr/leave/reject/{{ leave.id }}">
+                    {% csrf_token %}
+                    <div class="form-group"><label>Rejection reason</label><textarea name="rejection_reason" rows="3" class="form-control" required placeholder="Explain the decision"></textarea></div>
+                    <button class="btn btn-danger" style="width:100%;"><i class="fas fa-times"></i> Reject request</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+        {% if can_cancel %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-ban"></i> Cancel</span></div>
+            <div style="padding:18px;"><form method="post" action="/hr/leave/cancel/{{ leave.id }}" onsubmit="return confirm('Cancel this pending request?');">{% csrf_token %}<button class="btn btn-secondary" style="width:100%;"><i class="fas fa-ban"></i> Cancel request</button></form></div>
+        </div>
+        {% endif %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-info-circle"></i> Approval chain</span></div>
+            <div style="padding:18px;">
+                <div style="padding:8px 0; border-bottom:1px solid #f1f5f9;"><strong>1. Submitted</strong><div class="info" style="font-size:12px;">{{ leave.created_at|date:"M d, Y H:i" }} by {{ leave.employee_name }}</div></div>
+                <div style="padding:8px 0;"><strong>2. Decision</strong><div class="info" style="font-size:12px;">{% if leave.status == "pending" %}Awaiting approval{% else %}{{ leave.get_status_display }}{% if leave.approved_at %} on {{ leave.approved_at|date:"M d, Y H:i" }}{% endif %}{% endif %}</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

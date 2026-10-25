@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-headset"></i> SLA &amp; Support Hub</h1>
+        <p>Support-mode contracts, response targets and preventive health checks for delivered work.</p>
+    </div>
+    <div class="page-actions">
+        {% if can_create %}<a href="/projects/sla/contracts/create" class="btn btn-primary"><i class="fas fa-plus"></i> New Contract</a>{% endif %}
+        <a href="/projects/sla/tickets" class="btn btn-secondary"><i class="fas fa-ticket"></i> Tickets</a>
+        {% if health_enabled %}<a href="/projects/sla/health-checks" class="btn btn-secondary"><i class="fas fa-heart-pulse"></i> Health checks</a>{% endif %}
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-file-contract"></i></div><div><div class="stat-number">{{ active_count }}</div><div class="stat-label">Active contracts</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-sack-dollar"></i></div><div><div class="stat-number">{{ currency_symbol }} {{ monthly_value|floatformat:0|intcomma }}</div><div class="stat-label">Monthly recurring value</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-ticket"></i></div><div><div class="stat-number">{{ ticket_stats.open }}</div><div class="stat-label">Open tickets &middot; {{ ticket_stats.critical }} critical</div></div></div>
+    <div class="stat-box {% if ticket_stats.breached %}alert-card{% endif %}"><div class="stat-icon"><i class="fas fa-stopwatch"></i></div><div><div class="stat-number">{{ ticket_stats.breached }}</div><div class="stat-label">SLA breaches &middot; {{ ticket_stats.resolved_month }} resolved this month</div></div></div>
+</div>
+
+<div class="detail-layout">
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-file-contract"></i> Support contracts</span><a href="/projects/sla/tickets" class="btn btn-sm btn-secondary">All tickets</a></div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead><tr><th>Contract</th><th>Client</th><th>Tier</th><th>Term</th><th class="text-right">Monthly</th><th class="text-center">Open</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                    {% for contract in contracts %}
+                    <tr>
+                        <td><a href="/projects/sla/contracts/{{ contract.id }}"><strong>{{ contract.contract_number }}</strong></a><div class="text-muted" style="font-size:11px;">{{ contract.title }}</div></td>
+                        <td>{{ contract.client_name|default:"—" }}</td>
+                        <td>{{ contract.get_support_tier_display }}</td>
+                        <td>{{ contract.start_date|date:"M d, Y" }}{% if contract.end_date %}<div class="text-muted" style="font-size:11px;">to {{ contract.end_date|date:"M d, Y" }}</div>{% endif %}</td>
+                        <td class="text-right money">{{ currency_symbol }} {{ contract.monthly_value|default:0|floatformat:0|intcomma }}</td>
+                        <td class="text-center">{{ contract.open_tickets }}</td>
+                        <td><span class="badge badge-{{ contract.status|status_class }}">{{ contract.get_status_display }}</span></td>
+                        <td><a href="/projects/sla/contracts/{{ contract.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></a></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="8"><div class="empty-state"><i class="fas fa-file-contract"></i><p>No SLA contracts yet. Convert a delivered project into support mode to create one.</p></div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="sticky-summary">
+        {% if health_enabled %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-heart-pulse"></i> Upcoming health checks</span><a href="/projects/sla/health-checks" class="btn btn-sm btn-secondary">View all</a></div>
+            <div style="padding:10px 20px 16px;">
+                <ul class="timeline">
+                    {% for check in upcoming_checks %}
+                    <li>
+                        <div class="time">{{ check.scheduled_date|date:"M d, Y" }}</div>
+                        <div class="what"><a href="/projects/sla/contracts/{{ check.contract_id }}">{{ check.contract_number }}</a></div>
+                        <small class="text-muted">{{ check.get_check_type_display }}</small>
+                    </li>
+                    {% empty %}
+                    <li><div class="what">No preventive visits scheduled.</div></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-ticket"></i> Recent tickets</span></div>
+            <div style="padding:10px 20px 16px;">
+                <ul class="timeline">
+                    {% for ticket in recent_tickets %}
+                    <li>
+                        <div class="time">{{ ticket.created_at|date:"M d, H:i" }} &middot; {{ ticket.contract_number }}</div>
+                        <div class="what"><a href="/projects/sla/tickets/{{ ticket.id }}">{{ ticket.ticket_number }}</a> &middot; {{ ticket.title|truncatechars:40 }}</div>
+                        <div><span class="badge badge-{{ ticket.status|status_class }}">{{ ticket.get_status_display }}</span>{% if ticket.breached %} <span class="badge badge-danger">Breached</span>{% endif %}</div>
+                    </li>
+                    {% empty %}
+                    <li><div class="what">No tickets logged yet.</div></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

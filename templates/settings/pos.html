@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<style>
+    .tender-row { display: grid; grid-template-columns: 120px 1.2fr 1fr repeat(4, auto) 70px auto; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid #eef2f6; }
+    .tender-row:last-child { border-bottom: 0; }
+    .tender-row .form-control { padding: 6px 8px; font-size: 12px; }
+    .tender-check { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #475569; white-space: nowrap; }
+    .tender-code { font-family: ui-monospace, monospace; font-size: 12px; color: #475569; padding: 6px 8px; background: #f1f5f9; border-radius: 6px; }
+    @media (max-width: 1100px) { .tender-row { grid-template-columns: 1fr 1fr; } }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-cash-register"></i> POS & Tills</h1><p>Control payment tenders, discount limits, refund rules and receipt content.</p></div>
+    <div class="page-actions"><a href="/settings" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Settings</a><a href="/pos/" class="btn btn-primary"><i class="fas fa-cash-register"></i> Open Terminal</a></div>
+</div>
+{% include "settings/_nav.html" %}
+
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-sliders-h"></i> Sales policy</span></div>
+    <form method="post" style="padding: 18px;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="policy">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="{{ policy_form.pos_max_discount_percent.id_for_label }}">{{ policy_form.pos_max_discount_percent.label }}</label>
+                {{ policy_form.pos_max_discount_percent }}
+                {{ policy_form.pos_max_discount_percent.errors }}
+                <div class="info">{{ policy_form.pos_max_discount_percent.help_text }}</div>
+            </div>
+            <div class="form-group">
+                <label for="{{ policy_form.pos_refund_window_days.id_for_label }}">{{ policy_form.pos_refund_window_days.label }}</label>
+                {{ policy_form.pos_refund_window_days }}
+                {{ policy_form.pos_refund_window_days.errors }}
+                <div class="info">{{ policy_form.pos_refund_window_days.help_text }}</div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="{{ policy_form.pos_receipt_footer.id_for_label }}">{{ policy_form.pos_receipt_footer.label }}</label>
+            {{ policy_form.pos_receipt_footer }}
+            {{ policy_form.pos_receipt_footer.errors }}
+            <div class="info">{{ policy_form.pos_receipt_footer.help_text }}</div>
+        </div>
+        <button type="submit" class="btn btn-primary"><i class="fas fa-floppy-disk"></i> Save Policy</button>
+    </form>
+</div>
+
+<div class="card" style="margin-top: 18px;">
+    <div class="card-header">
+        <span><i class="fas fa-wallet"></i> Tender types</span>
+        <form method="post" style="margin:0;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="seed">
+            <button type="submit" class="btn btn-sm btn-secondary"><i class="fas fa-rotate"></i> Restore defaults</button>
+        </form>
+    </div>
+    <div style="padding: 8px 18px 18px;">
+        <p class="info" style="margin: 6px 0 12px;">Tenders are stored per workspace. The KRA code is sent to eTIMS as the payment type; cash tenders drive the drawer cash-up. Historical receipts keep the tender code even after a rename.</p>
+        <div class="tender-row" style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#94a3b8;">
+            <div>Code</div><div>Label</div><div>KRA code</div><div>Cash</div><div>On account</div><div>Reference</div><div>Enabled</div><div>Order</div><div></div>
+        </div>
+        {% for method in methods %}
+        <form method="post" class="tender-row">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="method">
+            <input type="hidden" name="method_id" value="{{ method.id }}">
+            <div class="tender-code">{{ method.code }}</div>
+            <input type="text" class="form-control" name="label" value="{{ method.label }}" maxlength="64" required>
+            <input type="text" class="form-control" name="etims_code" value="{{ method.etims_code }}" maxlength="4" placeholder="e.g. 01">
+            <label class="tender-check"><input type="checkbox" name="is_cash" value="1" {% if method.is_cash %}checked{% endif %}> Cash</label>
+            <label class="tender-check"><input type="checkbox" name="is_credit" value="1" {% if method.is_credit %}checked{% endif %}> Credit</label>
+            <label class="tender-check"><input type="checkbox" name="requires_reference" value="1" {% if method.requires_reference %}checked{% endif %}> Required</label>
+            <label class="tender-check"><input type="checkbox" name="enabled" value="1" {% if method.enabled %}checked{% endif %}> Enabled</label>
+            <input type="number" class="form-control" name="sort_order" value="{{ method.sort_order }}" step="1">
+            <button type="submit" class="btn btn-sm btn-secondary"><i class="fas fa-floppy-disk"></i></button>
+        </form>
+        {% empty %}
+        <div class="empty-state"><i class="fas fa-wallet"></i><p>No tenders configured. Restore the defaults or add one below.</p></div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="card" style="margin-top: 18px;">
+    <div class="card-header"><span><i class="fas fa-plus"></i> Add a tender</span></div>
+    <form method="post" style="padding: 18px;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="method">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="{{ method_form.code.id_for_label }}">Code</label>
+                {{ method_form.code }}
+                {{ method_form.code.errors }}
+                <div class="info">Lowercase, no spaces. This is stored on every payment.</div>
+            </div>
+            <div class="form-group">
+                <label for="{{ method_form.label.id_for_label }}">Label</label>
+                {{ method_form.label }}
+                {{ method_form.label.errors }}
+            </div>
+            <div class="form-group">
+                <label for="{{ method_form.etims_code.id_for_label }}">KRA payment code</label>
+                {{ method_form.etims_code }}
+                {{ method_form.etims_code.errors }}
+            </div>
+            <div class="form-group">
+                <label for="{{ method_form.sort_order.id_for_label }}">Sort order</label>
+                {{ method_form.sort_order }}
+                {{ method_form.sort_order.errors }}
+            </div>
+        </div>
+        <div class="form-group" style="display:flex; gap:18px; flex-wrap:wrap;">
+            <label class="tender-check">{{ method_form.is_cash }} Cash tender</label>
+            <label class="tender-check">{{ method_form.is_credit }} On-account tender</label>
+            <label class="tender-check">{{ method_form.requires_reference }} Transaction reference required</label>
+            <label class="tender-check">{{ method_form.enabled }} Enabled</label>
+        </div>
+        {{ method_form.is_credit.errors }}
+        <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add Tender</button>
+    </form>
+</div>
+{% endblock %}

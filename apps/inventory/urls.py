@@ -1,0 +1,37 @@
+from django.urls import path
+
+from apps.inventory import views
+
+urlpatterns = [
+    path("dashboard", views.dashboard),
+    path("products", views.products),
+    path("products/create", views.product_create),
+    path("products/store", views.product_create),
+    path("products/view/<int:pk>", views.product_view),
+    path("products/edit/<int:pk>", views.product_edit),
+    path("products/update/<int:pk>", views.product_edit),
+    path("products/delete/<int:pk>", views.product_delete),
+    path("categories", views.categories),
+    path("categories/create", views.category_create),
+    path("categories/store", views.category_create),
+    path("categories/edit/<int:pk>", views.category_edit),
+    path("categories/update/<int:pk>", views.category_edit),
+    path("categories/delete/<int:pk>", views.category_delete),
+    path("stock-movements", views.stock_movements),
+    path("stock-movements/product/<int:pk>", views.stock_movements_by_product),
+    path("stock-transfers", views.stock_transfers),
+    path("stock-transfers/create", views.stock_transfer_create),
+    path("stock-transfers/store", views.stock_transfer_create),
+    path("stock-transfers/view/<int:pk>", views.stock_transfer_view),
+    path("stock-transfers/complete/<int:pk>", views.stock_transfer_complete),
+    path("stock-adjustments", views.stock_adjustments),
+    path("stock-adjustments/create", views.stock_adjustment_create),
+    path("stock-adjustments/store", views.stock_adjustment_create),
+    path("stock-adjustments/view/<int:pk>", views.stock_adjustment_view),
+    path("stock-adjustments/approve/<int:pk>", views.stock_adjustment_approve),
+    path("reports", views.reports),
+    path("reports/stock-levels", views.report_stock_levels),
+    path("reports/stock-value", views.report_stock_value),
+    path("reports/low-stock", views.report_low_stock),
+    path("reports/export", views.report_export),
+]

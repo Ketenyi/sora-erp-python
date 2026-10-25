@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-file-signature"></i> MOM &amp; Approvals</h1>
+        <p>Zero-login client decisions secured by single-use HMAC magic links that expire after 72 hours.</p>
+    </div>
+    <div class="page-actions"><a href="/projects/dashboard" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> PM Dashboard</a></div>
+</div>
+
+<div class="detail-layout" style="grid-template-columns: 1fr 1fr;">
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-file-lines"></i> Pending MOMs</span></div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead><tr><th>MOM</th><th>Project</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                    {% for mom in moms %}
+                    <tr>
+                        <td><strong>{{ mom.title }}</strong><div class="text-muted" style="font-size:11px;">{{ mom.meeting_date|date:"M d, Y" }}</div></td>
+                        <td><a href="/projects/{{ mom.project.id }}">{{ mom.project.project_code }}</a></td>
+                        <td><span class="badge badge-{{ mom.status|status_class }}">{{ mom.get_status_display }}</span></td>
+                        <td><a href="/projects/{{ mom.project.id }}/moms/view/{{ mom.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-arrow-right"></i></a></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4"><div class="empty-state" style="padding:20px;"><p class="text-muted">No MOMs awaiting approval.</p></div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-code-pull-request"></i> Pending change requests</span></div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead><tr><th>CR</th><th>Project</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                    {% for cr in change_requests %}
+                    <tr>
+                        <td><strong>{{ cr.cr_number }}</strong><div class="text-muted" style="font-size:11px;">{{ cr.title|truncatechars:40 }}</div></td>
+                        <td><a href="/projects/{{ cr.project.id }}">{{ cr.project.project_code }}</a></td>
+                        <td><span class="badge badge-{{ cr.status|status_class }}">{{ cr.get_status_display }}</span></td>
+                        <td><a href="/projects/{{ cr.project.id }}/change-requests/view/{{ cr.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-arrow-right"></i></a></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4"><div class="empty-state" style="padding:20px;"><p class="text-muted">No change requests awaiting approval.</p></div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-link"></i> Recent magic links</span></div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Project</th><th>Action</th><th>Item</th><th>Recipient</th><th>Created</th><th>Expires</th><th>State</th></tr></thead>
+            <tbody>
+                {% for link in recent_links %}
+                <tr>
+                    <td>{% if link.project %}<a href="/projects/{{ link.project.id }}">{{ link.project.project_code }}</a>{% endif %}</td>
+                    <td>{{ link.get_action_type_display }}</td>
+                    <td>{{ link.entity_label }}</td>
+                    <td>{{ link.recipient_email|default:"—" }}</td>
+                    <td>{{ link.created_at|date:"M d, H:i" }}</td>
+                    <td>{{ link.expires_at|date:"M d, H:i" }}</td>
+                    <td>
+                        {% if link.is_active %}<span class="badge badge-info">Active</span>
+                        {% elif link.used_at %}<span class="badge badge-{{ link.decision|status_class }}">{{ link.decision|title }}</span>
+                        {% else %}<span class="badge badge-secondary">Expired</span>{% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7"><div class="empty-state"><i class="fas fa-link"></i><p>No magic links issued yet.</p></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

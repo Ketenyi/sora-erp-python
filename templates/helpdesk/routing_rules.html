@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% load static sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-route"></i> Routing Rules</h1>
+        <p>Classify inbound requests, set priority and send them to the right technician.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/helpdesk/settings/routing/new" class="btn btn-primary"><i class="fas fa-plus"></i> New rule</a>
+        <a href="/helpdesk/settings" class="btn btn-secondary"><i class="fas fa-gears"></i> Automation settings</a>
+    </div>
+</div>
+
+<div class="alert alert-info" style="font-size:12.5px;"><i class="fas fa-circle-info"></i> Rules run in ascending order. The first matching rule can stop processing; otherwise later rules may refine the ticket. A fixed assignee wins over round robin.</div>
+
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-list-check"></i> {{ rules|length }} rule{{ rules|length|pluralize }}</span></div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr><th>Order</th><th>Rule</th><th>Matches</th><th>Sets</th><th>Assignment</th><th>Client email</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for rule in rules %}
+                <tr>
+                    <td class="mono">{{ rule.order }}</td>
+                    <td><strong>{{ rule.name }}</strong></td>
+                    <td>
+                        <div style="font-size:12px;">
+                            {% if rule.match_channel %}<span class="badge badge-secondary">{{ rule.get_match_channel_display }}</span> {% endif %}
+                            {% if rule.keywords %}<span class="text-muted">{{ rule.keywords|truncatechars:48 }}</span>{% endif %}
+                            {% if rule.from_contains %}<div class="text-muted">From: {{ rule.from_contains|truncatechars:44 }}</div>{% endif %}
+                            {% if not rule.match_channel and not rule.keywords and not rule.from_contains %}<span class="text-muted">Any message</span>{% endif %}
+                        </div>
+                    </td>
+                    <td style="font-size:12px;">
+                        {% if rule.set_priority %}<span class="badge badge-{{ rule.set_priority|status_class }}">{{ rule.get_set_priority_display }}</span>{% endif %}
+                        {% if rule.set_category %}<div class="text-muted">{{ rule.get_set_category_display }}</div>{% endif %}
+                        {% if not rule.set_priority and not rule.set_category %}&mdash;{% endif %}
+                    </td>
+                    <td style="font-size:12px;">
+                        {% if rule.assignee_name %}{{ rule.assignee_name }}
+                        {% elif rule.round_robin %}Round robin
+                        {% else %}<span class="text-muted">No change</span>{% endif %}
+                    </td>
+                    <td>{% if rule.notify_client %}<i class="fas fa-envelope" style="color:#10b981;"></i> Yes{% else %}<span class="text-muted">No</span>{% endif %}</td>
+                    <td>{% if rule.is_active %}<span class="badge badge-success">Active</span>{% else %}<span class="badge badge-secondary">Paused</span>{% endif %}</td>
+                    <td>
+                        <div class="table-actions">
+                            <a href="/helpdesk/settings/routing/{{ rule.id }}/edit" class="btn btn-sm btn-secondary"><i class="fas fa-pen"></i></a>
+                            <form method="post" action="/helpdesk/settings/routing/{{ rule.id }}/delete" onsubmit="return confirm('Delete the rule “{{ rule.name|escapejs }}”?');">
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8"><div class="empty-state"><i class="fas fa-route"></i><p>No routing rules yet. All requests follow the default contract and agent pool.</p><a href="/helpdesk/settings/routing/new" class="btn btn-primary">Create the first rule</a></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

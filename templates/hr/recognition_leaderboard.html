@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-ranking-star"></i> Recognition Leaderboard</h1><p>Top recognised colleagues for {{ year }}.</p></div>
+    <div class="page-actions">
+        <a href="/hr/recognition" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Recognition</a>
+        {% if can_give %}<a href="/hr/recognition/give" class="btn btn-primary"><i class="fas fa-hand-holding-heart"></i> Give recognition</a>{% endif %}
+    </div>
+</div>
+<div class="card">
+    <form method="get" class="filter-bar">
+        <div class="form-group"><label>Year</label><select name="year" class="form-control">{% for option in years %}<option value="{{ option }}" {% if year == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+        <div class="form-group" style="align-self:flex-end;"><button type="submit" class="btn btn-primary">Apply</button></div>
+    </form>
+</div>
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-trophy"></i> Rankings</span><span class="badge badge-info">{{ rows|length }} people</span></div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Rank</th><th>Employee</th><th>Department</th><th class="text-right">Awards</th><th class="text-right">Points</th></tr></thead>
+            <tbody>
+            {% for row in rows %}
+                <tr>
+                    <td>{% if forloop.counter == 1 %}<span class="badge badge-primary">1st</span>{% elif forloop.counter == 2 %}<span class="badge badge-info">2nd</span>{% elif forloop.counter == 3 %}<span class="badge badge-warning">3rd</span>{% else %}{{ forloop.counter }}{% endif %}</td>
+                    <td><strong>{{ row.name }}</strong>{% if row.employee %}<div class="info" style="font-size:12px;">{{ row.employee.job_title|default:"" }}</div>{% endif %}</td>
+                    <td>{{ row.department }}</td>
+                    <td class="text-right">{{ row.awards }}</td>
+                    <td class="text-right"><strong>{{ row.points|default:0 }}</strong></td>
+                </tr>
+            {% empty %}<tr><td colspan="5"><div class="empty-state"><i class="fas fa-trophy"></i><p>No recognition recorded for {{ year }}.</p></div></td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

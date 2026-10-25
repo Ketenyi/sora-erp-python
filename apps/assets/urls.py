@@ -1,0 +1,38 @@
+from django.urls import path
+
+from apps.assets import views
+
+urlpatterns = [
+    path("", views.dashboard),
+    path("dashboard", views.dashboard),
+    path("register", views.register),
+    path("register/export", views.register_export),
+    path("new", views.asset_create),
+    path("categories", views.categories),
+    path("categories/new", views.category_create),
+    path("categories/<int:category_id>/edit", views.category_edit),
+    path("maintenance", views.maintenance),
+    path("maintenance/new", views.maintenance_create),
+    path("maintenance/<int:maintenance_id>/edit", views.maintenance_edit),
+    path("maintenance/<int:maintenance_id>/complete", views.maintenance_complete),
+    path("maintenance/<int:maintenance_id>/cancel", views.maintenance_cancel),
+    path("depreciation", views.depreciation),
+    path("depreciation/export", views.depreciation_export),
+    path("agents", views.agents),
+    path("agents/enrollment", views.agent_enrollment),
+    path("agents/enrollment/<int:token_id>/revoke", views.agent_token_revoke),
+    path("agents/download", views.agent_download),
+    path("agents/<int:agent_id>", views.agent_detail),
+    path("agents/<int:agent_id>/software/export", views.agent_software_export),
+    path("agents/<int:agent_id>/snapshots/<int:snapshot_id>", views.agent_snapshot_payload),
+    path("agents/<int:agent_id>/link", views.agent_link),
+    path("agents/<int:agent_id>/unlink", views.agent_unlink),
+    path("agents/<int:agent_id>/toggle", views.agent_toggle),
+    path("agents/<int:agent_id>/delete", views.agent_delete),
+    path("<int:asset_id>", views.asset_detail),
+    path("<int:asset_id>/edit", views.asset_edit),
+    path("<int:asset_id>/check-out", views.asset_check_out),
+    path("<int:asset_id>/check-in", views.asset_check_in),
+    path("<int:asset_id>/status", views.asset_status),
+    path("<int:asset_id>/label", views.asset_label),
+]

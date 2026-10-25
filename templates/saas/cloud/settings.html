@@ -1,0 +1,78 @@
+{% extends "saas/cloud/base.html" %}
+
+{% block title %}Platform settings — SORA Cloud{% endblock %}
+{% block crumb %}Settings / {{ active_group|title }}{% endblock %}
+
+{% block content %}
+<div class="cloud-page-head">
+    <h1>Platform settings</h1>
+    <p>
+        Every configurable value lives in the database and is edited here — branding, SMTP, currency, gateways,
+        document headers and notification rules. No code changes required.
+    </p>
+</div>
+
+<div class="cloud-settings-layout">
+    <nav class="cloud-settings-nav">
+        {% for key, label, icon in groups %}
+        <a href="/cloud/settings/{{ key }}/" class="{% if active_group == key %}active{% endif %}">
+            <i class="fas fa-{{ icon }}"></i> {{ label }}
+        </a>
+        {% endfor %}
+    </nav>
+
+    <div class="cloud-card">
+        <div class="cloud-card-head">
+            <h2><i class="fas fa-sliders"></i> {{ active_group|title }} settings</h2>
+            <span class="cloud-muted">{{ rows|length }} field{{ rows|length|pluralize }}</span>
+        </div>
+        <div class="cloud-card-body">
+            {% if form.non_field_errors %}
+            <div class="cloud-flash error" style="margin-bottom:12px;">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            {% if active_group == 'payments' or active_group == 'email' %}
+            <div class="cloud-secret-note">
+                <i class="fas fa-key"></i> Secret values are masked. Leave a secret field blank to keep the stored value.
+                Gateway credentials are stored for future automated charging; manual verification remains active.
+            </div>
+            {% endif %}
+
+            {% if active_group == 'brand' %}
+            <div class="cloud-login-note">
+                <strong>Zero-hardcoding branding.</strong> The platform name, tagline, accent colour and legal footer
+                appear on the public portal, login, billing pages and receipts. Tenant logos remain individually managed.
+            </div>
+            {% endif %}
+
+            <form method="post" action="/cloud/settings/{{ active_group }}/">
+                {% csrf_token %}
+                <div class="cloud-form-grid">
+                    {% for field in form %}
+                    <div class="cloud-form-field {% if field.field.widget.template_name == 'django/forms/widgets/textarea.html' %}span-2{% endif %}">
+                        {% if field.field.widget.input_type == 'checkbox' %}
+                        <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:#334155;font-weight:600;margin-top:6px;">
+                            {{ field }} {{ field.label }}
+                        </label>
+                        {% else %}
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% endif %}
+                        {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+                        {{ field.errors }}
+                    </div>
+                    {% empty %}
+                    <div class="cloud-empty" style="grid-column:span 2;">
+                        <i class="fas fa-sliders"></i>
+                        No settings exist in this group yet.
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="cloud-save-bar">
+                    <button type="submit" class="cloud-btn gold"><i class="fas fa-save"></i> Save settings</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

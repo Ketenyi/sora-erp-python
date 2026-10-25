@@ -1,0 +1,115 @@
+{% extends "saas/cloud/base.html" %}
+
+{% block title %}Broadcasts — SORA Cloud{% endblock %}
+{% block crumb %}Broadcasts{% endblock %}
+
+{% block content %}
+<div class="cloud-page-head">
+    <h1>Broadcast announcements</h1>
+    <p>Publish maintenance notices, feature news or policy updates to tenant dashboards.</p>
+</div>
+
+<div class="cloud-grid" style="grid-template-columns:1.05fr 1.45fr;">
+    <div class="cloud-card">
+        <div class="cloud-card-head"><h2><i class="fas fa-bullhorn"></i> New broadcast</h2></div>
+        <div class="cloud-card-body">
+            {% if form.non_field_errors %}
+            <div class="cloud-flash error" style="margin-bottom:12px;">{{ form.non_field_errors }}</div>
+            {% endif %}
+            <form method="post" action="/cloud/announcements/">
+                {% csrf_token %}
+                <div class="cloud-form-field" style="margin-bottom:12px;">
+                    <label for="{{ form.title.id_for_label }}">Title</label>
+                    {{ form.title }}
+                    {{ form.title.errors }}
+                </div>
+                <div class="cloud-form-field" style="margin-bottom:12px;">
+                    <label for="{{ form.body.id_for_label }}">Message</label>
+                    {{ form.body }}
+                    {{ form.body.errors }}
+                </div>
+                <div class="cloud-form-grid" style="margin-bottom:12px;">
+                    <div class="cloud-form-field">
+                        <label for="{{ form.level.id_for_label }}">Level</label>
+                        {{ form.level }}
+                        {{ form.level.errors }}
+                    </div>
+                    <div class="cloud-form-field">
+                        <label for="{{ form.audience.id_for_label }}">Audience</label>
+                        {{ form.audience }}
+                        {{ form.audience.errors }}
+                    </div>
+                    <div class="cloud-form-field">
+                        <label for="{{ form.starts_at.id_for_label }}">Starts</label>
+                        {{ form.starts_at }}
+                        <span class="helptext">Leave blank to publish immediately.</span>
+                        {{ form.starts_at.errors }}
+                    </div>
+                    <div class="cloud-form-field">
+                        <label for="{{ form.ends_at.id_for_label }}">Ends</label>
+                        {{ form.ends_at }}
+                        <span class="helptext">Leave blank to keep until paused.</span>
+                        {{ form.ends_at.errors }}
+                    </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:7px;padding:10px 0;border-top:1px solid #f1f5f9;">
+                    <label class="cloud-muted" style="display:flex;align-items:center;gap:8px;color:#475569;">
+                        {{ form.is_active }} Publish immediately
+                    </label>
+                    <label class="cloud-muted" style="display:flex;align-items:center;gap:8px;color:#475569;">
+                        {{ form.is_dismissible }} Let users dismiss this banner
+                    </label>
+                    <label class="cloud-muted" style="display:flex;align-items:center;gap:8px;color:#475569;">
+                        {{ form.send_email }} Also email tenant owners and administrators
+                    </label>
+                </div>
+                <button type="submit" class="cloud-btn gold" style="width:100%;justify-content:center;margin-top:8px;">
+                    <i class="fas fa-paper-plane"></i> Publish broadcast
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="cloud-card">
+        <div class="cloud-card-head">
+            <h2><i class="fas fa-signal"></i> Broadcast history</h2>
+            <span class="cloud-muted">{{ announcements|length }} recent</span>
+        </div>
+        {% if announcements %}
+        {% for announcement in announcements %}
+        <div class="cloud-announcement-row">
+            <div class="title">
+                <span class="cloud-level {{ announcement.level }}"></span>
+                {{ announcement.title }}
+                <span class="cloud-pill {% if announcement.is_active %}active{% else %}cancelled{% endif %}" style="margin-left:auto;">
+                    {% if announcement.is_active %}Live{% else %}Paused{% endif %}
+                </span>
+            </div>
+            <div class="body">{{ announcement.body|linebreaksbr }}</div>
+            <div class="meta">
+                <span><i class="fas fa-users"></i> {{ announcement.get_audience_display }}</span>
+                <span><i class="fas fa-flag"></i> {{ announcement.get_level_display }}</span>
+                <span><i class="fas fa-clock"></i> {{ announcement.starts_at|date:"d M Y H:i" }}{% if announcement.ends_at %} – {{ announcement.ends_at|date:"d M Y H:i" }}{% endif %}</span>
+                {% if announcement.send_email %}<span><i class="fas fa-envelope"></i> Emailed</span>{% endif %}
+                {% if announcement.created_by %}<span><i class="fas fa-user"></i> {{ announcement.created_by.get_full_name|default:announcement.created_by.email }}</span>{% endif %}
+            </div>
+            <div style="margin-top:8px;">
+                <form method="post" action="/cloud/announcements/{{ announcement.id }}/toggle/">
+                    {% csrf_token %}
+                    <button type="submit" class="cloud-btn">
+                        <i class="fas {% if announcement.is_active %}fa-pause{% else %}fa-play{% endif %}"></i>
+                        {% if announcement.is_active %}Pause{% else %}Reactivate{% endif %}
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="cloud-empty">
+            <i class="fas fa-bullhorn"></i>
+            No broadcasts yet. Your first announcement will appear on tenant dashboards.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

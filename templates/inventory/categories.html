@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load static sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-tags"></i> Product Categories</h1>
+        <p>{{ categories|length }} categor{{ categories|length|pluralize:"y,ies" }}.</p>
+    </div>
+    <div class="page-actions">
+        {% if can_create %}<a href="/inventory/categories/create" class="btn btn-primary"><i class="fas fa-plus"></i> Add Category</a>{% endif %}
+        <a href="/inventory/products" class="btn btn-secondary"><i class="fas fa-boxes"></i> Products</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Code</th><th>Category</th><th>Parent</th><th class="text-right">Products</th><th>Status</th><th>Description</th><th></th></tr></thead>
+            <tbody>
+                {% for category in categories %}
+                <tr>
+                    <td class="mono">{{ category.category_code }}</td>
+                    <td><a href="/inventory/products?category={{ category.id }}"><strong>{{ category.category_name }}</strong></a></td>
+                    <td>{% for parent in categories %}{% if parent.id == category.parent_id %}{{ parent.category_name }}{% endif %}{% endfor %}{% if not category.parent_id %}-{% endif %}</td>
+                    <td class="text-right">{{ category.product_count }}</td>
+                    <td><span class="badge badge-{{ category.status|status_class }}">{{ category.get_status_display }}</span></td>
+                    <td>{{ category.description|default:"-"|truncatechars:60 }}</td>
+                    <td>
+                        <div class="table-actions">
+                            {% if can_edit %}<a href="/inventory/categories/edit/{{ category.id }}" class="btn btn-sm btn-secondary" title="Edit"><i class="fas fa-pen"></i></a>{% endif %}
+                            {% if can_delete %}
+                            <form method="post" action="/inventory/categories/delete/{{ category.id }}" onsubmit="return confirm('Delete this category?');">
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-danger" title="Delete"><i class="fas fa-trash"></i></button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7"><div class="empty-state"><i class="fas fa-tags"></i><p>No categories yet.</p>{% if can_create %}<a href="/inventory/categories/create">Add the first category</a>{% endif %}</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

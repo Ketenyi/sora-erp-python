@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-exchange-alt"></i> Create Stock Transfer</h1>
+        <p>Move stock between warehouse locations. A completed transfer is recorded as an out/in movement pair and does not change total company stock.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/inventory/stock-transfers" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+
+<form method="post" action="/inventory/stock-transfers/store" id="transferForm">
+    {% csrf_token %}
+    {{ formset.management_form }}
+
+    {% if form.errors or formset.non_form_errors or formset.errors %}
+    <div class="alert alert-error">
+        <strong>Please fix the following:</strong>
+        {{ form.non_field_errors }}
+        {{ formset.non_form_errors }}
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-warehouse"></i> Transfer Details</span></div>
+        <div style="padding: 20px;">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="{{ form.from_location.id_for_label }}">From location *</label>
+                    {{ form.from_location }}
+                    {{ form.from_location.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.to_location.id_for_label }}">To location *</label>
+                    {{ form.to_location }}
+                    {{ form.to_location.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.transfer_date.id_for_label }}">Transfer date *</label>
+                    {{ form.transfer_date }}
+                    {{ form.transfer_date.errors }}
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="{{ form.notes.id_for_label }}">Notes</label>
+                {{ form.notes }}
+                {{ form.notes.errors }}
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span><i class="fas fa-list"></i> Items to Transfer</span>
+            <button type="button" class="btn btn-sm btn-primary" id="addItemBtn"><i class="fas fa-plus"></i> Add item</button>
+        </div>
+        <div class="table-responsive">
+            <table class="data-table item-table">
+                <thead><tr><th style="min-width:220px;">Product</th><th style="width:120px;">Quantity</th><th style="width:170px;">Available</th><th>Notes</th><th style="width:40px;"></th></tr></thead>
+                <tbody id="itemRows">
+                    {% for item_form in formset %}
+                    <tr class="item-row">
+                        <td>{{ item_form.product }}{{ item_form.product.errors }}</td>
+                        <td>{{ item_form.quantity }}{{ item_form.quantity.errors }}</td>
+                        <td class="available-cell"><span class="info">-</span></td>
+                        <td>{{ item_form.notes }}{{ item_form.notes.errors }}</td>
+                        <td><button type="button" class="btn btn-sm btn-danger remove-row" title="Clear row"><i class="fas fa-times"></i></button></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div style="padding: 10px 20px 18px; color:#64748b; font-size:12px;">
+            Tip: empty rows are ignored. Transfers do not reduce total stock, they record the movement between locations.
+        </div>
+    </div>
+
+    <div class="page-actions" style="margin-top: 6px;">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Create Transfer</button>
+        <a href="/inventory/stock-transfers" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+
+<template id="emptyItemRow">
+    <tr class="item-row">
+        <td>{{ formset.empty_form.product }}{{ formset.empty_form.product.errors }}</td>
+        <td>{{ formset.empty_form.quantity }}{{ formset.empty_form.quantity.errors }}</td>
+        <td class="available-cell"><span class="info">-</span></td>
+        <td>{{ formset.empty_form.notes }}{{ formset.empty_form.notes.errors }}</td>
+        <td><button type="button" class="btn btn-sm btn-danger remove-row" title="Clear row"><i class="fas fa-times"></i></button></td>
+    </tr>
+</template>
+
+{{ products_json|json_script:"products-data" }}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const productMap = {};
+JSON.parse(document.getElementById('products-data').textContent).forEach(product => {
+    productMap[String(product.id)] = product;
+});
+const totalForms = document.getElementById('id_{{ formset.prefix }}-TOTAL_FORMS');
+const itemRows = document.getElementById('itemRows');
+
+function updateRow(row) {
+    const select = row.querySelector('select');
+    const qtyInput = row.querySelector('input[type="number"]');
+    const cell = row.querySelector('.available-cell');
+    if (!select || !cell) return;
+    const product = productMap[String(select.value)];
+    if (!product) {
+        cell.innerHTML = '<span class="info">-</span>';
+        return;
+    }
+    const qty = parseFloat(qtyInput?.value || 0) || 0;
+    const short = qty > product.stock;
+    cell.innerHTML = '<span style="color:' + (short ? '#dc2626' : '#10b981') + '; font-weight:600;">' +
+        product.stock.toFixed(2) + ' ' + product.unit + (short ? ' &middot; insufficient' : '') + '</span>';
+}
+
+document.getElementById('addItemBtn').addEventListener('click', () => {
+    const index = parseInt(totalForms.value, 10);
+    const html = document.getElementById('emptyItemRow').innerHTML.replace(/__prefix__/g, index);
+    itemRows.insertAdjacentHTML('beforeend', html);
+    totalForms.value = index + 1;
+});
+
+itemRows.addEventListener('change', event => {
+    if (event.target.closest('.item-row')) updateRow(event.target.closest('.item-row'));
+});
+itemRows.addEventListener('input', event => {
+    if (event.target.type === 'number') updateRow(event.target.closest('.item-row'));
+});
+itemRows.addEventListener('click', event => {
+    const button = event.target.closest('.remove-row');
+    if (!button) return;
+    const row = button.closest('tr');
+    row.querySelectorAll('input, select, textarea').forEach(input => { input.value = ''; });
+    row.style.display = 'none';
+});
+
+document.querySelectorAll('#itemRows .item-row').forEach(updateRow);
+</script>
+{% endblock %}

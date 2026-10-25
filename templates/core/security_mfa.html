@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ mfa_page_title }} — {{ company_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/security.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="sec-shell">
+    <div class="sec-head">
+        <div>
+            <span class="sec-eyebrow"><i class="fas fa-fingerprint"></i> {{ sec_eyebrow }}</span>
+            <h1>{{ mfa_page_title }}</h1>
+            <p>{{ mfa_page_lead }}</p>
+        </div>
+        <div class="sec-toolbar">
+            <a class="sec-btn" href="/security/"><i class="fas fa-arrow-left"></i> {{ sec_title }}</a>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="sec-note error"><i class="fas fa-circle-exclamation"></i><span>{{ error }}</span></div>
+    {% endif %}
+
+    {% if required %}
+    <div class="sec-note">
+        <i class="fas fa-triangle-exclamation"></i>
+        <span>{{ mfa_required_note }}</span>
+    </div>
+    {% endif %}
+
+    {% if backup_codes %}
+    <div class="sec-panel">
+        <div class="sec-panel-head">
+            <h2><i class="fas fa-key"></i> {{ mfa_codes_title }}</h2>
+            <span>Shown once</span>
+        </div>
+        <div style="padding:20px;">
+            <div class="sec-note">
+                <i class="fas fa-triangle-exclamation"></i>
+                <span>{{ mfa_codes_note }}</span>
+            </div>
+            <div class="sec-codes">
+                {% for code in backup_codes %}<span>{{ code }}</span>{% endfor %}
+            </div>
+            <a class="sec-btn primary" href="/security/"><i class="fas fa-check"></i> {{ mfa_codes_saved }}</a>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if enabled %}
+    <div class="sec-panel">
+        <div class="sec-panel-head">
+            <h2><i class="fas fa-shield-halved"></i> {{ mfa_status_title }}</h2>
+            <span class="sec-chip on"><i class="fas fa-circle-check"></i> {{ sec_enabled }}</span>
+        </div>
+        <div style="padding:20px;">
+            <p class="sec-sub" style="margin:0 0 16px;">
+                {{ mfa_status_active }}
+            </p>
+            {% if not required %}
+            <form method="post" class="sec-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="disable">
+                <div class="sec-field">
+                    <label for="password">Confirm your password</label>
+                    <input type="password" id="password" name="password" required autocomplete="current-password">
+                </div>
+                <div class="sec-field">
+                    <label for="code">Authenticator or backup code</label>
+                    <input type="text" id="code" name="code" class="sec-code" placeholder="000000" maxlength="12"
+                           inputmode="numeric" autocomplete="one-time-code" required>
+                    <div class="hint">A current six-digit code, or one unused backup code.</div>
+                </div>
+                <div class="sec-actions">
+                    <button type="submit" class="sec-btn danger"><i class="fas fa-power-off"></i> {{ mfa_disable_button }}</button>
+                </div>
+            </form>
+            {% else %}
+            <p class="sec-sub" style="margin:0;">{{ mfa_disable_blocked }}</p>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="sec-panel">
+        <div class="sec-panel-head">
+            <h2><i class="fas fa-mobile-screen-button"></i> {{ mfa_setup_title }}</h2>
+            <span>Step 1 of 2</span>
+        </div>
+        <div style="padding:20px;">
+            <p class="sec-sub" style="margin:0 0 14px;max-width:640px;">
+                {{ mfa_setup_body }}
+            </p>
+            <div class="sec-secret">
+                <span id="mfaSecret">{{ setup_secret }}</span>
+                <button type="button" class="sec-btn" id="copySecret" style="border:0;background:transparent;padding:4px 6px;"
+                        data-label="{{ mfa_copy }}" data-copied="{{ mfa_copied }}">
+                    <i class="fas fa-copy"></i> {{ mfa_copy }}
+                </button>
+            </div>
+            <p class="sec-sub" style="margin:12px 0 0;">{{ mfa_setup_format }}</p>
+            {% if otpauth %}
+            <p class="sec-sub" style="margin:8px 0 0;word-break:break-all;">{{ mfa_setup_advanced }} <a href="{{ otpauth }}" style="color:#8a6508;">{{ mfa_setup_title }}</a></p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="sec-panel">
+        <div class="sec-panel-head">
+            <h2><i class="fas fa-check-double"></i> {{ mfa_confirm_title }}</h2>
+            <span>Step 2 of 2</span>
+        </div>
+        <div style="padding:20px;">
+            <form method="post" class="sec-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="enable">
+                <div class="sec-field">
+                    <label for="code">Six-digit code from the app</label>
+                    <input type="text" id="code" name="code" class="sec-code" placeholder="000000" maxlength="6"
+                           inputmode="numeric" autocomplete="one-time-code" required autofocus>
+                </div>
+                <div class="sec-actions">
+                    <button type="submit" class="sec-btn primary"><i class="fas fa-shield-halved"></i> {{ mfa_enable_button }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    var copy = document.getElementById('copySecret');
+    var secret = document.getElementById('mfaSecret');
+    if (!copy || !secret) return;
+    copy.addEventListener('click', function () {
+        var value = secret.textContent.trim();
+        var label = copy.dataset.label || '';
+        var copied = copy.dataset.copied || label;
+        function done() {
+            copy.innerHTML = '<i class="fas fa-check"></i> ' + copied;
+            setTimeout(function () {
+                copy.innerHTML = '<i class="fas fa-copy"></i> ' + label;
+            }, 1600);
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(value).then(done).catch(done);
+        } else {
+            done();
+        }
+    });
+})();
+</script>
+{% endblock %}

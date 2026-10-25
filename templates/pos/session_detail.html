@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-cash-register"></i> {{ session.session_number }}
+            <span class="badge badge-{{ session.status|status_class }}" style="font-size:12px; vertical-align:middle;">{{ session.get_status_display }}</span>
+        </h1>
+        <p>{{ session.terminal_name }} &middot; opened {{ session.opened_at|date:"F d, Y H:i" }}{% if session.closed_at %} &middot; closed {{ session.closed_at|date:"M d, H:i" }}{% endif %}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/pos/sessions" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> All Sessions</a>
+        <a href="/pos/sales?session={{ session.id }}" class="btn btn-secondary"><i class="fas fa-receipt"></i> Filtered Sales</a>
+        {% if session.status == "open" %}<a href="/pos/" class="btn btn-primary"><i class="fas fa-cash-register"></i> Terminal</a>{% endif %}
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-receipt"></i> Sales in this session</span><span class="info">{{ summary.count }} completed</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Sale</th><th>Time</th><th>Cashier</th><th class="text-right">Items</th><th>Payment</th><th class="text-right">Total</th><th>Status</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        {% for sale in sales %}
+                        <tr>
+                            <td class="mono"><a href="/pos/sales/{{ sale.id }}"><strong>{{ sale.sale_number }}</strong></a></td>
+                            <td>{{ sale.created_at|date:"M d, H:i" }}</td>
+                            <td>{{ sale.cashier_name }}</td>
+                            <td class="text-right">{{ sale.item_count|floatformat:0 }}</td>
+                            <td>{{ sale.payment_label }}</td>
+                            <td class="text-right money">{{ currency_symbol }} {{ sale.total_amount|floatformat:2|intcomma }}</td>
+                            <td><span class="badge badge-{{ sale.status|status_class }}">{{ sale.get_status_display }}</span></td>
+                            <td><a href="/pos/sales/{{ sale.id }}" class="btn btn-sm btn-secondary" title="Receipt"><i class="fas fa-receipt"></i></a></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="8"><div class="empty-state"><i class="fas fa-receipt"></i><p>No sales recorded in this session.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% if refunds %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-rotate-left"></i> Refunds in this session</span><span class="info">{{ summary.refund_count }}</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Refund</th><th>Sale</th><th>Time</th><th>Method</th><th>Reason</th><th class="text-right">Amount</th></tr></thead>
+                    <tbody>
+                        {% for refund in refunds %}
+                        <tr>
+                            <td class="mono"><a href="/pos/refunds/{{ refund.id }}">{{ refund.refund_number }}</a></td>
+                            <td class="mono"><a href="/pos/sales/{{ refund.sale.id }}">{{ refund.sale.sale_number }}</a></td>
+                            <td>{{ refund.created_at|date:"M d, H:i" }}</td>
+                            <td>{{ refund.method|humanize_label }}</td>
+                            <td>{{ refund.reason|default:"-" }}</td>
+                            <td class="text-right money">- {{ currency_symbol }} {{ refund.total_amount|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-note-sticky"></i> Session notes</span></div>
+            <div style="padding: 18px; white-space: pre-line; font-size: 13px; color: #475569;">{{ session.notes|default:"No notes recorded for this session." }}</div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-calculator"></i> Cash-up</span></div>
+            <div style="padding: 18px;">
+                <div class="summary-box">
+                    <div class="summary-line"><span>Opening float</span><span>{{ currency_symbol }} {{ session.opening_float|floatformat:2|intcomma }}</span></div>
+                    <div class="summary-line"><span>Cash payments (net)</span><span>{{ currency_symbol }} {{ summary.cash|floatformat:2|intcomma }}</span></div>
+                    <div class="summary-line total"><span>Expected cash</span><span>{{ currency_symbol }} {{ summary.expected_cash|floatformat:2|intcomma }}</span></div>
+                    {% if session.status == "closed" %}
+                    <div class="summary-line"><span>Counted cash</span><span>{{ currency_symbol }} {{ session.closing_float|floatformat:2|intcomma }}</span></div>
+                    <div class="summary-line total"><span>Variance</span><span>{{ currency_symbol }} {{ session.cash_variance|floatformat:2|intcomma }}</span></div>
+                    {% endif %}
+                </div>
+
+                {% if session.status == "open" and can_close %}
+                <form method="post" action="/pos/sessions/{{ session.id }}/close" style="margin-top: 18px; border-top: 1px solid #eef2f6; padding-top: 16px;">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="{{ close_form.closing_float.id_for_label }}">Counted cash in drawer</label>
+                        {{ close_form.closing_float }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ close_form.notes.id_for_label }}">Closing notes</label>
+                        {{ close_form.notes }}
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;" onclick="return confirm('Close this till? Sales in this shift can no longer be voided.');">
+                        <i class="fas fa-lock"></i> Close Till
+                    </button>
+                </form>
+                {% elif session.status == "closed" %}
+                <div style="margin-top: 14px; font-size: 12px; color: #64748b;">
+                    Closed by {{ session.closed_by|default:"-" }} on {{ session.closed_at|date:"M d, Y H:i" }}.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-wallet"></i> Payment mix</span></div>
+            <div style="padding: 10px 18px 18px;">
+                {% for row in method_rows %}
+                <div class="summary-line">
+                    <span>{{ row.label }}</span>
+                    <span class="{% if row.amount %}money{% else %}info{% endif %}">{{ currency_symbol }} {{ row.amount|floatformat:2|intcomma }}</span>
+                </div>
+                {% endfor %}
+                <div class="summary-line total"><span>Gross sales</span><span>{{ currency_symbol }} {{ summary.gross|floatformat:2|intcomma }}</span></div>
+                <div class="summary-line"><span>Refunds ({{ summary.refund_count }})</span><span>- {{ currency_symbol }} {{ summary.refunds|floatformat:2|intcomma }}</span></div>
+                <div class="summary-line"><span>Net sales</span><span>{{ currency_symbol }} {{ summary.net|floatformat:2|intcomma }}</span></div>
+                <div class="summary-line"><span>Discounts</span><span>- {{ currency_symbol }} {{ summary.discounts|floatformat:2|intcomma }}</span></div>
+                <div class="summary-line"><span>Tax</span><span>{{ currency_symbol }} {{ summary.tax|floatformat:2|intcomma }}</span></div>
+                <div class="summary-line"><span>Change given</span><span>{{ currency_symbol }} {{ summary.change|floatformat:2|intcomma }}</span></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-circle-info"></i> Shift</span></div>
+            <div style="padding: 18px;">
+                <div class="detail-item"><div class="detail-label">Terminal</div><div class="detail-value">{{ session.terminal_name }}</div></div>
+                <div class="detail-item"><div class="detail-label">Opened by</div><div class="detail-value">{{ session.opener_name|default:"-" }}</div></div>
+                <div class="detail-item"><div class="detail-label">Opened at</div><div class="detail-value">{{ session.opened_at|date:"M d, Y H:i" }}</div></div>
+                {% if session.closed_at %}
+                <div class="detail-item"><div class="detail-label">Closed by</div><div class="detail-value">{{ session.closer_name|default:"-" }}</div></div>
+                <div class="detail-item"><div class="detail-label">Closed at</div><div class="detail-value">{{ session.closed_at|date:"M d, Y H:i" }}</div></div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-calendar-alt"></i> Leave Management</h1><p>Requests, balances, approvals and the leave calendar.</p></div>
+    <div class="page-actions">
+        <a href="/hr/leave/request" class="btn btn-primary"><i class="fas fa-calendar-plus"></i> Request leave</a>
+        {% if can_manage %}<a href="/hr/leave/types" class="btn btn-secondary"><i class="fas fa-tags"></i> Leave types</a><a href="/hr/leave/approvers" class="btn btn-secondary"><i class="fas fa-user-check"></i> Approvers</a>{% endif %}
+    </div>
+</div>
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-hourglass-half"></i></div><div><div class="stat-number">{{ stats.pending }}</div><div class="stat-label">Pending approvals</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div><div class="stat-number">{{ stats.approved_this_month }}</div><div class="stat-label">Approved this month</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-umbrella-beach"></i></div><div><div class="stat-number">{{ stats.on_leave_today }}</div><div class="stat-label">On leave today</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-tags"></i></div><div><div class="stat-number">{{ stats.types }}</div><div class="stat-label">Active leave types</div></div></div>
+</div>
+<div class="detail-layout">
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-list"></i> Recent requests</span><a href="/hr/leave/pending" class="btn btn-sm btn-secondary">Pending queue</a></div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead><tr><th>Employee</th><th>Type</th><th>Dates</th><th class="text-right">Days</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                    {% for leave in recent_leave %}
+                    <tr>
+                        <td><strong>{{ leave.employee_name }}</strong></td>
+                        <td>{{ leave.type_name }}</td>
+                        <td>{{ leave.start_date|date:"M d" }} – {{ leave.end_date|date:"M d, Y" }}</td>
+                        <td class="text-right">{{ leave.duration_days|floatformat:1 }}</td>
+                        <td><span class="badge badge-{{ leave.status|status_class }}">{{ leave.get_status_display }}</span></td>
+                        <td><a href="/hr/leave/view/{{ leave.id }}" class="btn btn-sm btn-secondary">View</a></td>
+                    </tr>
+                    {% empty %}<tr><td colspan="6"><div class="empty-state"><i class="fas fa-calendar"></i><p>No leave requests recorded.</p></div></td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-chart-pie"></i> By leave type</span></div>
+            <div style="padding:16px 18px;">
+                {% for row in type_rows %}
+                <div style="padding:8px 0; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between;">
+                    <div><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:{{ row.type.color }};margin-right:7px;"></span><strong>{{ row.type.leave_name }}</strong><div class="info" style="font-size:12px;">{{ row.type.days_allowed }} days/year</div></div>
+                    <div class="text-right"><span class="badge badge-info">{{ row.requests }} requests</span><div class="info" style="font-size:11px;">{{ row.approved }} approved</div></div>
+                </div>
+                {% empty %}<p class="info">No active leave types.</p>{% endfor %}
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-bolt"></i> Quick links</span></div>
+            <div style="padding:16px 18px; display:flex; flex-direction:column; gap:8px;">
+                <a class="btn btn-secondary btn-sm" href="/hr/leave/calendar"><i class="fas fa-calendar"></i> Leave calendar</a>
+                <a class="btn btn-secondary btn-sm" href="/hr/leave/balance"><i class="fas fa-chart-line"></i> Leave balances</a>
+                <a class="btn btn-secondary btn-sm" href="/hr/leave/overtime"><i class="fas fa-clock"></i> Overtime</a>
+                <a class="btn btn-secondary btn-sm" href="/hr/leave/pending-overtime"><i class="fas fa-check"></i> Pending overtime</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

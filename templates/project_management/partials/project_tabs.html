@@ -1,0 +1,12 @@
+<div class="tabs">
+    <a href="/projects/{{ project.id }}" class="{% if active == 'overview' %}active{% endif %}"><i class="fas fa-circle-info"></i> Overview</a>
+    <a href="/projects/{{ project.id }}/tasks" class="{% if active == 'tasks' %}active{% endif %}"><i class="fas fa-list-check"></i> Tasks</a>
+    <a href="/projects/{{ project.id }}/board" class="{% if active == 'board' %}active{% endif %}"><i class="fas fa-columns"></i> Board</a>
+    <a href="/projects/gantt/{{ project.id }}" class="{% if active == 'gantt' %}active{% endif %}"><i class="fas fa-chart-gantt"></i> Gantt</a>
+    <a href="/projects/{{ project.id }}/moms" class="{% if active == 'moms' %}active{% endif %}"><i class="fas fa-file-signature"></i> MOMs</a>
+    <a href="/projects/{{ project.id }}/change-requests" class="{% if active == 'crs' %}active{% endif %}"><i class="fas fa-code-pull-request"></i> Change requests</a>
+    <a href="/projects/{{ project.id }}/expenses" class="{% if active == 'expenses' %}active{% endif %}"><i class="fas fa-receipt"></i> Expenses</a>
+    <a href="/projects/{{ project.id }}/timesheets" class="{% if active == 'timesheets' %}active{% endif %}"><i class="fas fa-clock"></i> Timesheets</a>
+    <a href="/projects/{{ project.id }}/team" class="{% if active == 'team' %}active{% endif %}"><i class="fas fa-users"></i> Team</a>
+    <a href="/projects/{{ project.id }}/audit" class="{% if active == 'audit' %}active{% endif %}"><i class="fas fa-shield-halved"></i> Audit</a>
+</div>

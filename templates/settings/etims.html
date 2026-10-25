@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-receipt"></i> eTIMS</h1><p>Connect SORA to the Kenya Revenue Authority electronic tax invoice system.</p></div>
+    <div class="page-actions"><a href="/settings" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Settings</a></div>
+</div>
+{% include "settings/_nav.html" %}
+
+{% include "settings/_integration_form.html" with title="eTIMS" icon="receipt" enabled=settings.etims_enabled description="Every POS receipt is queued once, transmitted to KRA and retried safely if the network or KRA is unavailable. Enter the OSCU base URL, taxpayer details, device serial and the API credentials supplied during eTIMS onboarding. The device key is obtained automatically on the first successful connection." %}
+
+<div class="card" style="margin-top:18px;">
+    <div class="card-header">
+        <span><i class="fas fa-paper-plane"></i> Transmission queue</span>
+        <span>
+            <span class="badge badge-success">{{ stats.submitted }} accepted</span>
+            <span class="badge badge-warning">{{ stats.pending }} pending</span>
+            <span class="badge badge-danger">{{ stats.failed }} failed</span>
+            {% if stats.rejected %}<span class="badge badge-danger">{{ stats.rejected }} rejected</span>{% endif %}
+            {% if stats.processing %}<span class="badge badge-info">{{ stats.processing }} sending</span>{% endif %}
+        </span>
+    </div>
+    <div style="padding:16px 18px;">
+        <div class="form-grid" style="margin-bottom:14px;">
+            <div class="detail-item" style="margin:0;">
+                <div class="detail-label">Configuration</div>
+                <div class="detail-value">
+                    {% if config.enabled %}
+                        {% if config.missing_fields %}
+                            <span class="badge badge-warning">Incomplete</span>
+                            <div class="info" style="margin-top:6px;">Missing {{ config.missing_fields|join:", " }}. Receipts stay queued until the details are saved.</div>
+                        {% else %}
+                            <span class="badge badge-success">Complete</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="badge badge-secondary">Disabled</span>
+                        <div class="info" style="margin-top:6px;">New POS receipts are stored without a KRA submission.</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="detail-item" style="margin:0;">
+                <div class="detail-label">Device key</div>
+                <div class="detail-value">
+                    {% if device_ready %}<span class="badge badge-success">Initialized</span>{% else %}<span class="badge badge-secondary">Not initialized</span>{% endif %}
+                    <div class="info" style="margin-top:6px;">The cmcKey is encrypted at rest and obtained during the connection test or first transmission.</div>
+                </div>
+            </div>
+            <div class="detail-item" style="margin:0;">
+                <div class="detail-label">Automatic transmission</div>
+                <div class="detail-value">
+                    {% if config.auto_submit %}<span class="badge badge-success">On</span>{% else %}<span class="badge badge-secondary">Off</span>{% endif %}
+                    <div class="info" style="margin-top:6px;">Retry worker: <span class="mono">manage.py etims_worker --limit 50</span> from cron every two minutes.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr><th>Document</th><th>Status</th><th class="text-right">Attempts</th><th>KRA receipt</th><th>Last attempt</th><th>Detail</th><th></th></tr>
+                </thead>
+                <tbody>
+                    {% for row in submissions %}
+                    <tr>
+                        <td class="mono">
+                            <strong>{{ row.document_number }}</strong>
+                            <div class="info">{{ row.get_document_type_display }}</div>
+                        </td>
+                        <td>
+                            {% if row.status == "submitted" %}<span class="badge badge-success">{{ row.get_status_display }}</span>
+                            {% elif row.status == "failed" %}<span class="badge badge-danger">{{ row.get_status_display }}</span>
+                            {% elif row.status == "rejected" %}<span class="badge badge-danger">{{ row.get_status_display }}</span>
+                            {% elif row.status == "processing" %}<span class="badge badge-info">{{ row.get_status_display }}</span>
+                            {% elif row.status == "cancelled" %}<span class="badge badge-secondary">{{ row.get_status_display }}</span>
+                            {% else %}<span class="badge badge-warning">{{ row.get_status_display }}</span>{% endif %}
+                        </td>
+                        <td class="text-right">{{ row.attempts }}</td>
+                        <td class="mono">{{ row.kra_receipt_number|default:"-" }}</td>
+                        <td>{{ row.updated_at|date:"M d, H:i" }}</td>
+                        <td style="max-width:320px;">
+                            {% if row.last_error %}<span class="info" style="color:#b91c1c;">{{ row.last_error|truncatechars:140 }}</span>
+                            {% elif row.kra_qr_url %}<span class="info">QR code issued</span>
+                            {% else %}<span class="info">-</span>{% endif %}
+                        </td>
+                        <td>
+                            {% if row.status != "submitted" and row.status != "cancelled" %}
+                            <form method="post" style="margin:0;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="retry">
+                                <input type="hidden" name="submission_id" value="{{ row.id }}">
+                                <button type="submit" class="btn btn-sm btn-secondary"><i class="fas fa-rotate-right"></i> Retry</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7"><div class="empty-state"><i class="fas fa-receipt"></i><p>No receipts have been queued yet. Complete a POS sale after enabling eTIMS.</p></div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

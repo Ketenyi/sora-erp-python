@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-ticket"></i> New SLA Ticket</h1>
+        <p>The SLA deadline is set automatically from the contract's resolution target and the chosen priority.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/sla/tickets" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Tickets</a>
+        <a href="/projects/sla" class="btn btn-secondary"><i class="fas fa-headset"></i> SLA Hub</a>
+    </div>
+</div>
+
+<div class="card" style="max-width:960px;">
+    <div class="card-header"><span><i class="fas fa-pen"></i> Ticket details</span></div>
+    <div style="padding:20px;">
+        <form method="post">
+            {% csrf_token %}
+            {% include "project_management/partials/form_fields.html" with form=form %}
+            <div class="page-actions" style="margin-top:10px;">
+                <button class="btn btn-primary"><i class="fas fa-plus"></i> Create ticket</button>
+                <a href="/projects/sla/tickets" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

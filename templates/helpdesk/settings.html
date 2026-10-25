@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+{% load static sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<style>
+    .settings-nav { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
+    .settings-nav a { padding:8px 14px; border-radius:999px; border:1px solid #e2e8f0; background:#fff; color:#475569; font-size:12.5px; font-weight:600; text-decoration:none; }
+    .settings-nav a:hover { border-color: var(--brand, #FFD700); color:#0f172a; }
+    .check-row { display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px dashed #eef2f6; font-size:13px; }
+    .check-row:last-child { border-bottom:0; }
+    .check-row input[type="checkbox"] { margin-top:3px; width:16px; height:16px; accent-color: var(--brand, #FFD700); }
+    .check-row small { display:block; color:#64748b; font-size:11.5px; margin-top:2px; }
+    .policy-table td, .policy-table th { vertical-align:middle; }
+    .policy-table input[type="number"] { max-width:130px; }
+    .poll-line { display:flex; align-items:center; gap:8px; font-size:12px; color:#64748b; }
+    .dot { width:8px; height:8px; border-radius:50%; background:#94a3b8; display:inline-block; }
+    .dot.ok { background:#10b981; }
+    .dot.fail { background:#ef4444; }
+    body[data-theme="dark"] .settings-nav a { background:#0f172a; border-color:#334155; color:#cbd5e1; }
+    body[data-theme="dark"] .check-row { border-color:#334155; }
+    .section-anchor { scroll-margin-top:90px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-gears"></i> Helpdesk Automation</h1>
+        <p>Shared-mailbox intake, priority SLAs, routing rules and the client satisfaction survey.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/helpdesk/settings/routing" class="btn btn-secondary"><i class="fas fa-route"></i> Routing rules</a>
+        <a href="/helpdesk/dashboard" class="btn btn-secondary"><i class="fas fa-gauge-high"></i> Dashboard</a>
+    </div>
+</div>
+
+<div class="settings-nav">
+    <a href="#mailbox"><i class="fas fa-inbox"></i> Mailbox &amp; notifications</a>
+    <a href="#sla"><i class="fas fa-stopwatch"></i> Priority SLAs</a>
+    <a href="#survey"><i class="fas fa-star"></i> Satisfaction survey</a>
+    <a href="#agents"><i class="fas fa-users"></i> Agent pool</a>
+</div>
+
+{% if not setting.mailbox_identity %}
+<div class="alert alert-warning"><i class="fas fa-circle-info"></i> No shared mailbox is linked yet. Create a helpdesk sender identity in <a href="/settings/email-identities">Settings &rarr; Sender identities</a>, then link it here to turn email into tickets.</div>
+{% endif %}
+
+<div class="detail-layout">
+    <div>
+        <div class="card section-anchor" id="mailbox">
+            <div class="card-header">
+                <span><i class="fas fa-inbox"></i> Shared mailbox &amp; notification rules</span>
+                <form method="post" action="/helpdesk/settings/poll" style="margin:0;">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-secondary" {% if not setting.mailbox_active or not setting.mailbox_identity %}disabled{% endif %}><i class="fas fa-rotate"></i> Poll now</button>
+                </form>
+            </div>
+            <div style="padding:18px 22px;">
+                <div class="poll-line" style="margin-bottom:14px;">
+                    {% if setting.last_poll_error %}
+                    <span class="dot fail"></span> Last poll failed &middot; {{ setting.last_polled_at|date:"M d, Y H:i"|default:"never" }}
+                    {% elif setting.last_polled_at %}
+                    <span class="dot ok"></span> Last polled {{ setting.last_polled_at|date:"M d, Y H:i" }} &middot; UID {{ setting.last_uid }}
+                    {% else %}
+                    <span class="dot"></span> Not polled yet
+                    {% endif %}
+                </div>
+                {% if setting.last_poll_error %}
+                <div class="alert alert-error" style="font-size:12px;">{{ setting.last_poll_error|truncatechars:400 }}</div>
+                {% endif %}
+                <form method="post" action="/helpdesk/settings/mailbox">
+                    {% csrf_token %}
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="{{ mailbox_form.mailbox_identity.id_for_label }}">{{ mailbox_form.mailbox_identity.label }}</label>
+                            {{ mailbox_form.mailbox_identity }}
+                            <div class="text-muted" style="font-size:11px;margin-top:4px;">The IMAP folder on this identity is read by the poller. Credentials stay encrypted.</div>
+                            {{ mailbox_form.mailbox_identity.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ mailbox_form.default_contract.id_for_label }}">{{ mailbox_form.default_contract.label }}</label>
+                            {{ mailbox_form.default_contract }}
+                            <div class="text-muted" style="font-size:11px;margin-top:4px;">New email tickets inherit this contract and its SLA.</div>
+                            {{ mailbox_form.default_contract.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ mailbox_form.status_link_days.id_for_label }}">{{ mailbox_form.status_link_days.label }}</label>
+                            {{ mailbox_form.status_link_days }}
+                            <div class="text-muted" style="font-size:11px;margin-top:4px;">Client status links expire after this many days.</div>
+                            {{ mailbox_form.status_link_days.errors }}
+                        </div>
+                    </div>
+                    <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+                        <div>
+                            <label class="check-row">{{ mailbox_form.mailbox_active }}<span>{{ mailbox_form.mailbox_active.label }}<small>Allow the scheduled poller to fetch new mail.</small></span></label>
+                            <label class="check-row">{{ mailbox_form.auto_reply }}<span>{{ mailbox_form.auto_reply.label }}<small>Send a ticket reference as soon as a request arrives.</small></span></label>
+                        </div>
+                        <div>
+                            <label class="check-row">{{ mailbox_form.auto_assign }}<span>{{ mailbox_form.auto_assign.label }}<small>Distribute unassigned tickets across the active agent pool.</small></span></label>
+                            <label class="check-row">{{ mailbox_form.notify_client }}<span>{{ mailbox_form.notify_client.label }}<small>Email the client when a technician is assigned or the status changes.</small></span></label>
+                        </div>
+                    </div>
+                    {% if mailbox_form.non_field_errors %}<div class="alert alert-error">{{ mailbox_form.non_field_errors }}</div>{% endif %}
+                    <button class="btn btn-primary"><i class="fas fa-check"></i> Save mailbox settings</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card section-anchor" id="sla">
+            <div class="card-header"><span><i class="fas fa-stopwatch"></i> Priority SLA targets</span><span class="text-muted" style="font-size:11.5px;">Stored per workspace &middot; minutes</span></div>
+            <div style="padding:18px 22px;">
+                <form method="post" action="/helpdesk/settings/sla">
+                    {% csrf_token %}
+                    <div class="table-responsive">
+                        <table class="data-table policy-table">
+                            <thead><tr><th>Priority</th><th>First response</th><th>Resolution</th></tr></thead>
+                            <tbody>
+                                {% for row in policy_rows %}
+                                <tr>
+                                    <td><span class="badge badge-{{ row.priority|status_class }}">{{ row.label }}</span></td>
+                                    <td>
+                                        {{ row.response }}
+                                        {{ row.response.errors }}
+                                    </td>
+                                    <td>
+                                        {{ row.resolution }}
+                                        {{ row.resolution.errors }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-muted" style="font-size:11.5px;margin-top:10px;">These clocks start when a ticket is created. Tickets keep the deadline they were given; changes apply to new tickets.</p>
+                    <button class="btn btn-primary"><i class="fas fa-check"></i> Save SLA targets</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card section-anchor" id="survey">
+            <div class="card-header"><span><i class="fas fa-star"></i> Post-resolution survey (CSAT)</span></div>
+            <div style="padding:18px 22px;">
+                <form method="post" action="/helpdesk/settings/survey">
+                    {% csrf_token %}
+                    <label class="check-row" style="border-bottom:0;">{{ survey_form.survey_enabled }}<span>{{ survey_form.survey_enabled.label }}<small>Email the survey when a ticket is resolved and show it on the client status link.</small></span></label>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="{{ survey_form.survey_title.id_for_label }}">{{ survey_form.survey_title.label }}</label>
+                            {{ survey_form.survey_title }}{{ survey_form.survey_title.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ survey_form.survey_rating_label.id_for_label }}">{{ survey_form.survey_rating_label.label }}</label>
+                            {{ survey_form.survey_rating_label }}{{ survey_form.survey_rating_label.errors }}
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="{{ survey_form.survey_intro.id_for_label }}">{{ survey_form.survey_intro.label }}</label>
+                            {{ survey_form.survey_intro }}{{ survey_form.survey_intro.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ survey_form.survey_thanks.id_for_label }}">{{ survey_form.survey_thanks.label }}</label>
+                            {{ survey_form.survey_thanks }}{{ survey_form.survey_thanks.errors }}
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="{{ survey_form.survey_comment_label.id_for_label }}">{{ survey_form.survey_comment_label.label }}</label>
+                            {{ survey_form.survey_comment_label }}{{ survey_form.survey_comment_label.errors }}
+                        </div>
+                        <div>
+                            <label class="check-row">{{ survey_form.survey_comment_enabled }}<span>{{ survey_form.survey_comment_enabled.label }}<small>Show an optional comment box below the rating.</small></span></label>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary"><i class="fas fa-check"></i> Save survey</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card section-anchor" id="agents">
+            <div class="card-header"><span><i class="fas fa-users"></i> Agent pool</span><span class="text-muted" style="font-size:11.5px;">Round robin skips inactive agents</span></div>
+            <div style="padding:18px 22px;">
+                <form method="post" action="/helpdesk/settings/agents">
+                    {% csrf_token %}
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead><tr><th>Include</th><th>Technician</th><th>Email</th><th>Last assigned</th></tr></thead>
+                            <tbody>
+                                {% for agent in agents %}
+                                <tr>
+                                    <td><input type="checkbox" name="agent_{{ agent.id }}" {% if agent.is_active %}checked{% endif %} style="width:16px;height:16px;accent-color:var(--brand,#FFD700);"></td>
+                                    <td><strong>{{ agent.name }}</strong>{% if not agent.is_current %} <span class="badge badge-secondary">Inactive employee</span>{% endif %}</td>
+                                    <td class="text-muted">{{ agent.email|default:"&mdash;" }}</td>
+                                    <td class="text-muted">{{ agent.last_assigned_at|date:"M d, H:i"|default:"Never" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="4"><div class="empty-state"><i class="fas fa-users"></i><p>Add active employees to build the pool.</p></div></td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <button class="btn btn-primary" style="margin-top:12px;"><i class="fas fa-check"></i> Save agent pool</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="sticky-summary">
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-route"></i> Routing rules</span><a href="/helpdesk/settings/routing" class="btn btn-sm btn-secondary">Manage</a></div>
+            <div style="padding:12px 20px;">
+                {% for rule in rules|slice:":5" %}
+                <div style="padding:9px 0; border-bottom:1px solid #eef2f6;">
+                    <div style="display:flex; justify-content:space-between; gap:8px;">
+                        <strong style="font-size:13px;">{{ rule.name }}</strong>
+                        {% if rule.is_active %}<span class="badge badge-success">Active</span>{% else %}<span class="badge badge-secondary">Paused</span>{% endif %}
+                    </div>
+                    <div class="text-muted" style="font-size:11.5px; margin-top:3px;">
+                        {% if rule.keywords %}{{ rule.keywords|truncatechars:48 }}{% else %}Any message{% endif %}
+                        &middot; order {{ rule.order }}
+                    </div>
+                </div>
+                {% empty %}
+                <p class="info">No routing rules yet. Everything goes to the default queue and agent pool.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-clock-rotate-left"></i> Recent inbound mail</span></div>
+            <div style="padding:12px 20px;">
+                {% for message in recent_inbound %}
+                <div style="padding:9px 0; border-bottom:1px solid #eef2f6;">
+                    <div style="display:flex; justify-content:space-between; gap:8px; align-items:center;">
+                        <strong style="font-size:12.5px;">{{ message.sender_email|truncatechars:28 }}</strong>
+                        <span class="badge badge-{% if message.status == 'processed' %}success{% elif message.status == 'ignored' %}warning{% else %}secondary{% endif %}">{{ message.get_status_display }}</span>
+                    </div>
+                    <div class="text-muted" style="font-size:11.5px; margin-top:2px;">
+                        {{ message.subject|truncatechars:52 }}
+                        {% if message.ticket %}&middot; <a href="/helpdesk/tickets/{{ message.ticket.id }}">{{ message.ticket.ticket_number }}</a>{% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <p class="info">No inbound messages have been processed yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-circle-question"></i> How intake works</span></div>
+            <div style="padding:16px 20px; font-size:12px; line-height:1.7; color:#475569;">
+                <p><strong>1.</strong> The mailbox poller reads new messages from the linked IMAP folder without marking them unread.</p>
+                <p><strong>2.</strong> Duplicates, autoresponders and bulk mail are ignored and logged.</p>
+                <p><strong>3.</strong> Routing rules set priority, category and the technician; otherwise round robin picks the next agent.</p>
+                <p><strong>4.</strong> The client receives the ticket reference and, when assigned, the technician's name and status link.</p>
+                <p style="margin-bottom:0;"><strong>5.</strong> Replies thread back onto the ticket by <code>HD-####</code> subject or message headers.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

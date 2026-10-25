@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-file-lines"></i> Email Templates</h1><p>Transactional messages sent by the system. Use <code>&#123;&#123; variable &#125;&#125;</code> placeholders in the subject and body.</p></div>
+    <div class="page-actions"><a href="/settings/email" class="btn btn-secondary"><i class="fas fa-envelope"></i> Email settings</a><a href="/settings" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Settings</a></div>
+</div>
+{% include "settings/_nav.html" %}
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-list"></i> Templates</span><span class="badge badge-info">{{ templates|length }}</span></div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Template</th><th>Key</th><th>Subject</th><th>Variables</th><th>Status</th><th>Updated</th><th class="text-right">Actions</th></tr></thead>
+            <tbody>
+                {% for template in templates %}
+                <tr>
+                    <td><strong>{{ template.name }}</strong></td>
+                    <td><code>{{ template.template_key }}</code></td>
+                    <td>{{ template.subject|truncatechars:70 }}</td>
+                    <td>{{ template.variables|default:"—"|truncatechars:50 }}</td>
+                    <td><span class="badge {% if template.status == 'active' %}badge-success{% else %}badge-secondary{% endif %}">{{ template.get_status_display }}</span></td>
+                    <td>{{ template.updated_at|date:"M d, Y"|default:template.created_at|date:"M d, Y" }}</td>
+                    <td class="text-right"><a href="/settings/email-templates/edit/{{ template.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-pen"></i> Edit</a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7"><div class="empty-state"><i class="fas fa-file-lines"></i><p>No email templates yet.</p><p class="info">Run <code>python manage.py seed_settings</code> to install the default set.</p></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>{{ candidate.first_name }} {{ candidate.last_name }} <span class="badge badge-{{ candidate.status|status_class }}">{{ candidate.get_status_display }}</span></h1>
+        <p>{% if posting %}{{ posting.job_title }}{% else %}No opening linked{% endif %} &middot; added {{ candidate.created_at|date:"M d, Y" }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/hr/recruitment/candidates" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Candidates</a>
+        {% if can_manage %}<a href="/hr/recruitment/schedule-interview?candidate={{ candidate.id }}" class="btn btn-primary"><i class="fas fa-calendar-plus"></i> Schedule interview</a>{% endif %}
+    </div>
+</div>
+{% if can_manage and transitions %}
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-forward"></i> Move candidate</span></div>
+    <form method="post" class="filter-bar">
+        {% csrf_token %}
+        <div class="form-group"><label>Next stage</label><select name="status" class="form-control">{% for value, label in transitions %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
+        <div class="form-group" style="align-self:flex-end;"><button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Update stage</button></div>
+    </form>
+</div>
+{% endif %}
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-user"></i> Profile</span></div>
+            <div style="padding:18px;">
+                <div class="detail-grid">
+                    <div><span class="label">Email</span><strong>{{ candidate.email }}</strong></div>
+                    <div><span class="label">Phone</span><strong>{{ candidate.phone|default:"—" }}</strong></div>
+                    <div><span class="label">Source</span><strong>{{ candidate.source|default:"—" }}</strong></div>
+                    <div><span class="label">Expected salary</span><strong>{% if candidate.expected_salary %}{{ currency_symbol }} {{ candidate.expected_salary|floatformat:0|intcomma }}{% else %}—{% endif %}</strong></div>
+                    <div><span class="label">Notice period</span><strong>{{ candidate.notice_period|default:"—" }}</strong></div>
+                    <div><span class="label">AI score</span><strong>{% if candidate.ai_score %}{{ candidate.ai_score|floatformat:0 }}%{% else %}—{% endif %}</strong></div>
+                </div>
+                {% if candidate.linkedin_url %}<p style="margin-top:14px;"><a href="{{ candidate.linkedin_url }}" target="_blank" rel="noopener"><i class="fab fa-linkedin"></i> LinkedIn profile</a></p>{% endif %}
+                {% if candidate.portfolio_url %}<p><a href="{{ candidate.portfolio_url }}" target="_blank" rel="noopener"><i class="fas fa-globe"></i> Portfolio</a></p>{% endif %}
+                {% if candidate.resume_path %}<p style="margin-top:12px;"><a class="btn btn-secondary btn-sm" href="/uploads/{{ candidate.resume_path }}" target="_blank"><i class="fas fa-file-pdf"></i> Download resume</a></p>{% endif %}
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-align-left"></i> Cover letter</span></div>
+            <div style="padding:18px;"><p>{{ candidate.cover_letter|linebreaks|default:"No cover letter supplied." }}</p></div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-calendar-check"></i> Interviews</span><span class="badge badge-info">{{ interviews|length }}</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>When</th><th>Type</th><th>Interviewer</th><th>Status</th><th>Rating</th><th></th></tr></thead>
+                    <tbody>
+                    {% for interview in interviews %}
+                        <tr>
+                            <td>{{ interview.scheduled_date|date:"M d, Y H:i" }}</td>
+                            <td>{{ interview.get_interview_type_display|default:interview.interview_type }}</td>
+                            <td>{{ interview.interviewer_name }}</td>
+                            <td><span class="badge badge-{{ interview.status|status_class }}">{{ interview.get_status_display }}</span></td>
+                            <td>{% if interview.rating %}{{ interview.rating|floatformat:1 }}/5{% else %}—{% endif %}</td>
+                            <td><a href="/hr/recruitment/interview/{{ interview.id }}" class="btn btn-sm btn-secondary">View</a></td>
+                        </tr>
+                    {% empty %}<tr><td colspan="6"><div class="empty-state"><i class="fas fa-calendar"></i><p>No interviews scheduled.</p></div></td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-chart-line"></i> Application stage</span></div>
+            <div style="padding:18px;">
+                <div class="summary-box"><div style="display:flex; justify-content:space-between; align-items:center;"><span>Current status</span><span class="badge badge-{{ candidate.status|status_class }}">{{ candidate.get_status_display }}</span></div></div>
+                {% if posting %}
+                <div style="margin-top:14px;">
+                    <div class="label">Applied for</div>
+                    <a href="/hr/recruitment/job/{{ posting.id }}">{{ posting.job_title }}</a>
+                    <div class="info" style="font-size:12px;">{{ posting.location|default:"—" }} &middot; {{ posting.get_status_display }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% if candidate.ai_insights %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-robot"></i> AI insights</span></div>
+            <div style="padding:18px;"><p>{{ candidate.ai_insights|linebreaks }}</p></div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

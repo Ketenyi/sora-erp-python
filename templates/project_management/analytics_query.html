@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-sliders"></i> Query Builder</h1>
+        <p>Choose a dataset, slice it by a dimension and compare the metric. Save the query as a reusable report.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/analytics" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Analytics</a>
+        <a href="/projects/analytics/reports" class="btn btn-secondary"><i class="fas fa-file-lines"></i> Saved reports</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-filter"></i> Query definition</span></div>
+    <div style="padding:20px;">
+        <form method="get" action="/projects/analytics/query">
+            <div class="filter-bar">
+                <div class="form-group">
+                    <label>Dataset</label>
+                    <select name="dataset" id="dataset-select" class="form-control">
+                        {% for key, config in datasets.items %}<option value="{{ key }}" {% if filters.dataset == key %}selected{% endif %}>{{ config.label }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Dimension</label>
+                    <select name="dimension" id="dimension-select" class="form-control"></select>
+                </div>
+                <div class="form-group">
+                    <label>Metric</label>
+                    <select name="metric" id="metric-select" class="form-control"></select>
+                </div>
+                <div class="form-group">
+                    <label>Status filter</label>
+                    <select name="status" id="status-select" class="form-control"><option value="">Any status</option></select>
+                </div>
+                <div class="form-group"><label>From</label><input type="date" name="date_from" class="form-control" value="{{ filters.date_from }}"></div>
+                <div class="form-group"><label>To</label><input type="date" name="date_to" class="form-control" value="{{ filters.date_to }}"></div>
+                <div class="form-group"><button class="btn btn-primary"><i class="fas fa-play"></i> Run query</button></div>
+                <div class="form-group"><button class="btn btn-secondary" formaction="/projects/analytics/export"><i class="fas fa-file-csv"></i> Export CSV</button></div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-chart-simple"></i> {{ result.dataset_label }} &middot; {{ result.metric_label }} by {{ result.dimension_label|lower }}</span>
+        <span class="text-muted" style="font-size:12px;">{{ result.rows|length }} row{{ result.rows|length|pluralize }}</span>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>{{ result.dimension_label }}</th><th class="text-right">{{ result.metric_label }}</th><th style="width:35%;">Share of largest</th></tr></thead>
+            <tbody>
+                {% for row in result.rows %}
+                <tr>
+                    <td>{{ row.label }}</td>
+                    <td class="text-right money">{% if result.dataset == 'expenses' and result.metric != 'count' %}{{ currency_symbol }} {% endif %}{{ row.value|floatformat:2 }}{% if result.metric == 'count' and result.dataset != 'expenses' %} {% endif %}</td>
+                    <td>
+                        <div class="progress-track"><span style="width: {{ row.percent }}%;"></span></div>
+                        <small class="text-muted">{{ row.percent }}%</small>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3"><div class="empty-state"><i class="fas fa-chart-simple"></i><p>No rows match this query.</p></div></td></tr>
+                {% endfor %}
+            </tbody>
+            {% if result.rows %}
+            <tfoot>
+                <tr><th>Total</th><th class="text-right">{{ result.total|floatformat:2 }}</th><th></th></tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-bookmark"></i> Save as report</span></div>
+    <div style="padding:20px;">
+        <form method="post" action="/projects/analytics/reports/save">
+            {% csrf_token %}
+            <input type="hidden" name="dataset" value="{{ filters.dataset }}">
+            <input type="hidden" name="dimension" value="{{ filters.dimension }}">
+            <input type="hidden" name="metric" value="{{ filters.metric }}">
+            <input type="hidden" name="status" value="{{ filters.status }}">
+            <input type="hidden" name="date_from" value="{{ filters.date_from }}">
+            <input type="hidden" name="date_to" value="{{ filters.date_to }}">
+            <div class="form-grid">
+                <div class="form-group"><label for="{{ save_form.name.id_for_label }}">{{ save_form.name.label }} *</label>{{ save_form.name }}{{ save_form.name.errors }}</div>
+                <div class="form-group"><label for="{{ save_form.schedule.id_for_label }}">{{ save_form.schedule.label }}</label>{{ save_form.schedule }}{{ save_form.schedule.errors }}</div>
+            </div>
+            <div class="form-grid">
+                <div class="form-group"><label for="{{ save_form.description.id_for_label }}">{{ save_form.description.label }}</label>{{ save_form.description }}{{ save_form.description.errors }}</div>
+                <div class="form-group"><label for="{{ save_form.recipients.id_for_label }}">{{ save_form.recipients.label }}</label>{{ save_form.recipients }}{{ save_form.recipients.errors }}<div class="text-muted" style="font-size:11px;margin-top:4px;">{{ save_form.recipients.help_text }}</div></div>
+            </div>
+            {% if save_form.non_field_errors %}<div class="alert alert-error">{{ save_form.non_field_errors }}</div>{% endif %}
+            <button class="btn btn-primary"><i class="fas fa-bookmark"></i> Save report</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ datasets|json_script:"pm-datasets" }}
+{{ status_choices|json_script:"pm-statuses" }}
+<script>
+(function () {
+    const datasets = JSON.parse(document.getElementById("pm-datasets").textContent);
+    const statuses = JSON.parse(document.getElementById("pm-statuses").textContent);
+    const current = {
+        dataset: "{{ filters.dataset|escapejs }}",
+        dimension: "{{ filters.dimension|escapejs }}",
+        metric: "{{ filters.metric|escapejs }}",
+        status: "{{ filters.status|escapejs }}"
+    };
+    const datasetSelect = document.getElementById("dataset-select");
+    const dimensionSelect = document.getElementById("dimension-select");
+    const metricSelect = document.getElementById("metric-select");
+    const statusSelect = document.getElementById("status-select");
+
+    function titleCase(value) {
+        return value.replace(/_/g, " ").replace(/\b\w/g, function (m) { return m.toUpperCase(); });
+    }
+
+    function fill(select, entries, selected) {
+        select.innerHTML = "";
+        entries.forEach(function (entry) {
+            const option = document.createElement("option");
+            option.value = entry[0];
+            option.textContent = entry[1];
+            if (entry[0] === selected) option.selected = true;
+            select.appendChild(option);
+        });
+    }
+
+    function refresh(preserve) {
+        const key = datasetSelect.value;
+        const config = datasets[key];
+        fill(dimensionSelect, Object.entries(config.dimensions), preserve ? current.dimension : Object.keys(config.dimensions)[0]);
+        fill(metricSelect, Object.entries(config.metrics), preserve ? current.metric : Object.keys(config.metrics)[0]);
+        const statusEntries = [["", "Any status"]].concat((statuses[key] || []).map(function (value) { return [value, titleCase(value)]; }));
+        fill(statusSelect, statusEntries, preserve ? current.status : "");
+    }
+
+    datasetSelect.addEventListener("change", function () { refresh(false); });
+    refresh(true);
+})();
+</script>
+{% endblock %}

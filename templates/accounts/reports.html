@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-chart-bar"></i> Financial Reports</h1>
+        <p>Statements generated from posted journal entries.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/accounts/ledger" class="btn btn-secondary"><i class="fas fa-table"></i> General Ledger</a>
+        <a href="/accounts/trial-balance" class="btn btn-secondary"><i class="fas fa-balance-scale"></i> Trial Balance</a>
+    </div>
+</div>
+
+<div class="report-links">
+    <a href="/accounts/reports/general-ledger" class="report-link">
+        <i class="fas fa-book-open"></i>
+        <strong>General Ledger</strong>
+        <span>Opening, movement and closing balances for every account.</span>
+    </a>
+    <a href="/accounts/reports/income-statement" class="report-link">
+        <i class="fas fa-chart-line"></i>
+        <strong>Income Statement</strong>
+        <span>Revenue less expenses for a selected period.</span>
+    </a>
+    <a href="/accounts/reports/balance-sheet" class="report-link">
+        <i class="fas fa-balance-scale"></i>
+        <strong>Balance Sheet</strong>
+        <span>Assets, liabilities and equity as at a chosen date.</span>
+    </a>
+    <a href="/accounts/trial-balance" class="report-link">
+        <i class="fas fa-list-ol"></i>
+        <strong>Trial Balance</strong>
+        <span>Debit and credit totals by account.</span>
+    </a>
+    <a href="/accounts/reports/export?type=trial_balance" class="report-link">
+        <i class="fas fa-file-csv"></i>
+        <strong>Trial Balance CSV</strong>
+        <span>Download the trial balance for Excel or audit.</span>
+    </a>
+    <a href="/invoices/reports" class="report-link">
+        <i class="fas fa-file-invoice-dollar"></i>
+        <strong>Invoice Reports</strong>
+        <span>Billing, collections and receivables analysis.</span>
+    </a>
+</div>
+{% endblock %}

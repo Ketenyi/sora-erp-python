@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<style>
+    .check-row { display:flex; align-items:flex-start; gap:10px; padding:9px 0; font-size:13px; }
+    .check-row input[type="checkbox"] { margin-top:3px; width:16px; height:16px; accent-color: var(--brand, #FFD700); }
+    .check-row small { display:block; color:#64748b; font-size:11.5px; margin-top:2px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-route"></i> {% if is_edit %}Edit Routing Rule{% else %}New Routing Rule{% endif %}</h1>
+        <p>Match the sender, channel or words in the message, then set the outcome.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/helpdesk/settings/routing" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Rules</a>
+    </div>
+</div>
+
+{% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+    <div class="detail-layout">
+        <div>
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-circle-info"></i> Rule</span></div>
+                <div style="padding:18px 22px;">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="{{ form.name.id_for_label }}">Rule name *</label>
+                            {{ form.name }}{{ form.name.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.order.id_for_label }}">Evaluation order *</label>
+                            {{ form.order }}
+                            <div class="text-muted" style="font-size:11px;margin-top:4px;">Lower numbers run first.</div>
+                            {{ form.order.errors }}
+                        </div>
+                    </div>
+                    <label class="check-row">{{ form.is_active }}<span>Active<small>Paused rules are kept but skipped during intake.</small></span></label>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-filter"></i> Match</span></div>
+                <div style="padding:18px 22px;">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="{{ form.match_channel.id_for_label }}">{{ form.match_channel.label }}</label>
+                            {{ form.match_channel }}{{ form.match_channel.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.from_contains.id_for_label }}">Sender contains</label>
+                            {{ form.from_contains }}
+                            <div class="text-muted" style="font-size:11px;margin-top:4px;">Comma-separated emails or domains.</div>
+                            {{ form.from_contains.errors }}
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.keywords.id_for_label }}">Keywords</label>
+                        {{ form.keywords }}
+                        <div class="text-muted" style="font-size:11px;margin-top:4px;">Comma-separated words checked against the subject and body. Leave blank to match any message on this channel.</div>
+                        {{ form.keywords.errors }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-sliders"></i> Outcome</span></div>
+                <div style="padding:18px 22px;">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="{{ form.set_priority.id_for_label }}">{{ form.set_priority.label }}</label>
+                            {{ form.set_priority }}{{ form.set_priority.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.set_category.id_for_label }}">{{ form.set_category.label }}</label>
+                            {{ form.set_category }}{{ form.set_category.errors }}
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="{{ form.assignee.id_for_label }}">{{ form.assignee.label }}</label>
+                            {{ form.assignee }}
+                            <div class="text-muted" style="font-size:11px;margin-top:4px;">A fixed assignee overrides round robin for this rule.</div>
+                            {{ form.assignee.errors }}
+                        </div>
+                        <div>
+                            <label class="check-row">{{ form.round_robin }}<span>Round robin<small>Skip to the next active agent in the pool.</small></span></label>
+                            {{ form.round_robin.errors }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sticky-summary">
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-envelope-open-text"></i> Client communication</span></div>
+                <div style="padding:14px 20px;">
+                    <label class="check-row">{{ form.notify_client }}<span>Notify the client<small>Send the assignment or status email when this rule applies.</small></span></label>
+                    <label class="check-row">{{ form.stop_processing }}<span>Stop processing<small>Do not evaluate later rules after this one matches.</small></span></label>
+                </div>
+            </div>
+            <div class="card">
+                <div style="padding:16px 20px; display:flex; flex-direction:column; gap:10px;">
+                    <button class="btn btn-primary" style="justify-content:center;"><i class="fas fa-check"></i> {% if is_edit %}Save rule{% else %}Create rule{% endif %}</button>
+                    <a href="/helpdesk/settings/routing" class="btn btn-secondary" style="justify-content:center;">Cancel</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-truck"></i> Purchasing</h1>
+        <p>Purchase orders, goods receipts, supplier bills and payments.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/purchasing/purchase-orders/create" class="btn btn-primary"><i class="fas fa-plus"></i> New Purchase Order</a>
+        <a href="/purchasing/goods-receipts/create" class="btn btn-secondary"><i class="fas fa-check-double"></i> Receive Goods</a>
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-shopping-cart"></i></div>
+        <div><div class="stat-number">{{ stats.purchase_orders }}</div><div class="stat-label">{{ stats.pending_orders }} open orders</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-file-invoice"></i></div>
+        <div><div class="stat-number">{{ stats.bills }}</div><div class="stat-label">{{ stats.bills_received }} awaiting approval</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-hand-holding-usd"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ stats.outstanding|floatformat:0|intcomma }}</div><div class="stat-label">Outstanding payables</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-truck-loading"></i></div>
+        <div><div class="stat-number">{{ stats.vendors }}</div><div class="stat-label">Active suppliers &middot; {{ currency_symbol }} {{ stats.spent|floatformat:0|intcomma }} paid</div></div>
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-clock"></i> Recent Purchase Orders</span>
+                <a href="/purchasing/purchase-orders" class="btn btn-sm btn-secondary">View all</a>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>PO #</th><th>Supplier</th><th>Order date</th><th>Status</th><th class="text-right">Total</th></tr></thead>
+                    <tbody>
+                        {% for order in recent_orders %}
+                        <tr>
+                            <td><a href="/purchasing/purchase-orders/view/{{ order.id }}"><strong>{{ order.po_number }}</strong></a></td>
+                            <td>{{ order.vendor_name }}</td>
+                            <td>{{ order.order_date|date:"M d, Y" }}</td>
+                            <td><span class="badge badge-{{ order.status|status_class }}">{{ order.get_status_display }}</span></td>
+                            <td class="text-right money">{{ currency_symbol }} {{ order.total_amount|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5"><div class="empty-state"><i class="fas fa-shopping-cart"></i><p>No purchase orders yet.</p><a href="/purchasing/purchase-orders/create">Create your first purchase order</a></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-hourglass-half"></i> Accounts Payable Aging</span></div>
+            <div style="padding: 20px;">
+                {% for bucket in aging_buckets %}
+                <div style="margin-bottom:14px;">
+                    <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;">
+                        <span>{{ bucket.label }} <span class="info">({{ bucket.count }})</span></span>
+                        <span class="money">{{ currency_symbol }} {{ bucket.total|floatformat:2|intcomma }}</span>
+                    </div>
+                    <div style="height:7px; background:#eef2f6; border-radius:99px; overflow:hidden;">
+                        <div style="height:100%; width:{% if stats.outstanding %}{{ bucket.total|percentage:stats.outstanding }}{% else %}0{% endif %}%; background:{% if forloop.counter == 4 %}#ef4444{% elif forloop.counter == 3 %}#f59e0b{% else %}#3b82f6{% endif %};"></div>
+                    </div>
+                </div>
+                {% endfor %}
+                <a href="/purchasing/reports/ap-aging" class="btn btn-secondary btn-sm" style="margin-top:4px;">View aging report</a>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-bolt"></i> Quick Links</span></div>
+            <div style="padding: 16px 18px; display:flex; flex-direction:column; gap:10px;">
+                <a href="/purchasing/purchase-orders" class="btn btn-secondary" style="justify-content:flex-start;"><i class="fas fa-shopping-cart"></i> Purchase orders</a>
+                <a href="/purchasing/goods-receipts" class="btn btn-secondary" style="justify-content:flex-start;"><i class="fas fa-check-double"></i> Goods receipts</a>
+                <a href="/purchasing/supplier-bills" class="btn btn-secondary" style="justify-content:flex-start;"><i class="fas fa-file-invoice"></i> Supplier bills</a>
+                <a href="/purchasing/supplier-payments" class="btn btn-secondary" style="justify-content:flex-start;"><i class="fas fa-money-check-alt"></i> Supplier payments</a>
+                <a href="/purchasing/rfq" class="btn btn-secondary" style="justify-content:flex-start;"><i class="fas fa-file-signature"></i> Requests for quotation</a>
+                <a href="/purchasing/reports" class="btn btn-secondary" style="justify-content:flex-start;"><i class="fas fa-chart-bar"></i> Purchasing reports</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

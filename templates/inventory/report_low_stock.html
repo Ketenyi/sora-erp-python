@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-exclamation-triangle"></i> Low Stock Alerts</h1>
+        <p>{{ rows|length }} product{{ rows|length|pluralize }} at or below reorder level.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/inventory/reports" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Reports</a>
+        <a href="/inventory/reports/export?report=low_stock{% if search_query %}&q={{ search_query|urlencode }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}" class="btn btn-primary"><i class="fas fa-download"></i> Export CSV</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="filter-bar">
+            <div class="form-group">
+                <label>Search</label>
+                <input type="text" name="q" class="form-control" value="{{ search_query }}" placeholder="Code or product name">
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <select name="category" class="form-control">
+                    <option value="">All</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if category_filter == category.id|stringformat:"s" %}selected{% endif %}>{{ category.category_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group"><button class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button></div>
+            {% if search_query or category_filter %}<div class="form-group"><a href="/inventory/reports/low-stock" class="btn btn-secondary">Reset</a></div>{% endif %}
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Code</th><th>Product</th><th>Category</th><th class="text-right">On hand</th><th class="text-right">Reorder level</th><th class="text-right">Reorder qty</th><th class="text-right">Shortage</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                {% for product in rows %}
+                <tr>
+                    <td class="mono">{{ product.product_code }}</td>
+                    <td><a href="/inventory/products/view/{{ product.id }}">{{ product.name }}</a></td>
+                    <td>{{ product.category_name }}</td>
+                    <td class="text-right">{{ product.current_stock|floatformat:2 }} <span class="info">{{ product.unit }}</span></td>
+                    <td class="text-right">{{ product.reorder_level|floatformat:2 }}</td>
+                    <td class="text-right">{{ product.reorder_quantity|floatformat:2 }}</td>
+                    <td class="text-right" style="color:#dc2626; font-weight:600;">{{ product.shortage|floatformat:2 }}</td>
+                    <td>{% if product.stock_status == "out" %}<span class="badge badge-danger">Out</span>{% else %}<span class="badge badge-warning">Low</span>{% endif %}</td>
+                    <td><a href="/inventory/stock-adjustments/create" class="btn btn-sm btn-primary">Adjust</a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="9"><div class="empty-state"><i class="fas fa-check-circle"></i><p>All products are above their reorder levels.</p></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-user-shield"></i> Roles &amp; Permissions</h1><p>Define roles and decide which actions each role can perform in every module.</p></div>
+    <div class="page-actions"><a href="/settings/roles/create" class="btn btn-primary"><i class="fas fa-plus"></i> New role</a><a href="/settings" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Settings</a></div>
+</div>
+{% include "settings/_nav.html" %}
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-list"></i> Roles</span><span class="badge badge-info">{{ roles|length }} defined</span></div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Role</th><th>Identifier</th><th>Permissions</th><th>Users</th><th>Updated</th><th class="text-right">Actions</th></tr></thead>
+            <tbody>
+                {% for role in roles %}
+                <tr>
+                    <td><strong>{{ role.display_name }}</strong><div class="info" style="font-size:12px;">{{ role.description|default:"—"|truncatechars:80 }}</div></td>
+                    <td><code>{{ role.name }}</code></td>
+                    <td><span class="badge badge-secondary">{{ role.permission_count }} permission{{ role.permission_count|pluralize }}</span></td>
+                    <td><span class="badge badge-info">{{ role.user_count }} user{{ role.user_count|pluralize }}</span></td>
+                    <td>{{ role.updated_at|date:"M d, Y"|default:role.created_at|date:"M d, Y" }}</td>
+                    <td class="text-right">
+                        <div class="table-actions">
+                            <a href="/settings/roles/edit/{{ role.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-pen"></i></a>
+                            <form method="post" action="/settings/roles/delete/{{ role.id }}" onsubmit="return confirm('Delete role {{ role.display_name }}?');">{% csrf_token %}<button type="submit" class="btn btn-sm btn-danger" {% if role.user_count %}disabled title="Unassign this role first"{% endif %}><i class="fas fa-trash"></i></button></form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6"><div class="empty-state"><i class="fas fa-user-shield"></i><p>No roles defined.</p><a href="/settings/roles/create">Create the first role</a></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-table-list"></i> Permission catalogue</span><span class="info" style="font-size:12px;">{{ permission_groups|length }} modules</span></div>
+    <div style="padding:16px 18px; display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px;">
+        {% for group in permission_groups %}
+        <div class="summary-box">
+            <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:#64748b; margin-bottom:8px;">{{ group.module }}</div>
+            <div style="display:flex; flex-wrap:wrap; gap:6px;">{% for permission in group.permissions %}<span class="badge badge-secondary">{{ permission.action }}</span>{% endfor %}</div>
+        </div>
+        {% empty %}
+        <p class="info">No permissions seeded. Run <code>manage.py seed_data</code>.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

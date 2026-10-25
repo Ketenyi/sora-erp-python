@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-robot"></i> AI Assistant</h1><p>Configure the OpenAI model used for drafting, summarisation and insights.</p></div>
+    <div class="page-actions"><a href="/settings" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Settings</a></div>
+</div>
+{% include "settings/_nav.html" %}
+{% include "settings/_integration_form.html" with title="AI Assistant" icon="robot" enabled=settings.openai_enabled description="The AI assistant uses the OpenAI API. Provide a project API key and choose a model. Features that call the API will only run when the integration is enabled and a key is present. This build stores the credentials and validates their presence; external calls are made only by features that explicitly use them." %}
+{% endblock %}

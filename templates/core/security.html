@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Security — {{ company_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/security.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="sec-shell">
+    <div class="sec-head">
+        <div>
+            <span class="sec-eyebrow"><i class="fas fa-shield-halved"></i> {{ sec_eyebrow }}</span>
+            <h1>{{ sec_title }}</h1>
+            <p>{{ sec_lead }}</p>
+        </div>
+        <div class="sec-toolbar">
+            <a class="sec-btn" href="/security/password"><i class="fas fa-key"></i> {{ sec_change_password }}</a>
+            <a class="sec-btn primary" href="/security/mfa"><i class="fas fa-fingerprint"></i> {{ sec_manage_mfa }}</a>
+        </div>
+    </div>
+
+    {% if mfa_required and not mfa_enabled %}
+    <div class="sec-note error">
+        <i class="fas fa-triangle-exclamation"></i>
+        <span>{{ sec_required_note }} <a href="/security/mfa">{{ sec_set_up }}</a></span>
+    </div>
+    {% endif %}
+
+    <div class="sec-grid">
+        <div class="sec-card">
+            <h2><i class="fas fa-fingerprint"></i> {{ sec_mfa_title }}</h2>
+            <p>{{ sec_mfa_body }}</p>
+            {% if mfa_enabled %}
+            <span class="sec-chip on"><i class="fas fa-circle-check"></i> {{ sec_enabled }}</span>
+            <span class="sec-sub" style="display:block;margin-top:10px;">{{ sec_backup_codes }}</span>
+            {% else %}
+            <span class="sec-chip off"><i class="fas fa-circle-xmark"></i> {{ sec_disabled }}</span>
+            {% endif %}
+            <div class="sec-actions">
+                <a class="sec-btn" href="/security/mfa">{% if mfa_enabled %}{{ sec_manage }}{% else %}{{ sec_set_up }}{% endif %}</a>
+            </div>
+        </div>
+
+        <div class="sec-card">
+            <h2><i class="fas fa-key"></i> {{ sec_password_title }}</h2>
+            <p>{{ sec_password_body }}</p>
+            <span class="sec-chip neutral"><i class="fas fa-lock"></i> {{ sec_protected }}</span>
+            <div class="sec-actions">
+                <a class="sec-btn" href="/security/password">{{ sec_change_password }}</a>
+            </div>
+        </div>
+
+        <div class="sec-card">
+            <h2><i class="fas fa-clock"></i> {{ sec_session_title }}</h2>
+            <p>{{ sec_session_body }}</p>
+            <span class="sec-chip warn"><i class="fas fa-hourglass-half"></i> {{ sec_idle_timeout }}</span>
+            <span class="sec-sub" style="display:block;margin-top:10px;">{{ sec_limits }}</span>
+        </div>
+    </div>
+
+    <div class="sec-panel">
+        <div class="sec-panel-head">
+            <h2><i class="fas fa-right-to-bracket"></i> {{ sec_signin_title }}</h2>
+            <span>{{ sec_signin_range }}</span>
+        </div>
+        {% if attempts %}
+        <table class="sec-table">
+            <thead>
+                <tr><th>When</th><th>Result</th><th>Reason</th><th>IP address</th><th>Device</th></tr>
+            </thead>
+            <tbody>
+                {% for attempt in attempts %}
+                <tr>
+                    <td>{{ attempt.created_at|date:"j M Y H:i" }}</td>
+                    <td>
+                        {% if attempt.successful %}
+                        <span class="sec-pill ok"><i class="fas fa-check"></i> {{ sec_success }}</span>
+                        {% else %}
+                        <span class="sec-pill fail"><i class="fas fa-xmark"></i> {{ sec_failed }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ attempt.reason|default:"—"|cut:"_" }}</td>
+                    <td class="mono">{{ attempt.ip_address|default:"—" }}</td>
+                    <td class="mono">{{ attempt.user_agent|default:"—"|truncatechars:48 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="sec-empty">{{ sec_no_signins }}</div>
+        {% endif %}
+    </div>
+
+    <div class="sec-panel">
+        <div class="sec-panel-head">
+            <h2><i class="fas fa-list-check"></i> {{ sec_audit_title }}</h2>
+            <span>{{ sec_audit_range }}</span>
+        </div>
+        {% if audits %}
+        <table class="sec-table">
+            <thead>
+                <tr><th>When</th><th>Action</th><th>Path</th><th>Status</th><th>Duration</th><th>Request</th></tr>
+            </thead>
+            <tbody>
+                {% for row in audits %}
+                <tr>
+                    <td>{{ row.created_at|date:"j M Y H:i:s" }}</td>
+                    <td><span class="sec-pill neutral">{{ row.method }}</span></td>
+                    <td class="mono">{{ row.path|truncatechars:64 }}</td>
+                    <td>{{ row.status_code }}</td>
+                    <td>{{ row.duration_ms }} ms</td>
+                    <td class="mono">{{ row.request_id|truncatechars:12 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="sec-empty">{{ sec_no_audits }}</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

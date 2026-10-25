@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-user-tie"></i> {{ client.company_name }}
+            <span class="badge badge-{{ client.status|status_class }}" style="font-size:12px; vertical-align:middle;">{{ client.get_status_display }}</span>
+        </h1>
+        <p>{{ client.client_code }}{% if client.city %} &middot; {{ client.city }}{% endif %}{% if client.country %}, {{ client.country }}{% endif %}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/crm/clients" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Clients</a>
+        <a href="/crm/clients/edit/{{ client.id }}" class="btn btn-secondary"><i class="fas fa-pen"></i> Edit</a>
+        <a href="/sales/quotes/create" class="btn btn-primary"><i class="fas fa-file-alt"></i> New Quote</a>
+        {% if can_delete %}
+        <form method="post" action="/crm/clients/delete/{{ client.id }}" onsubmit="return confirm('Archive this client? Related records are kept.');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger"><i class="fas fa-archive"></i> Archive</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ totals.quoted|floatformat:0|intcomma }}</div><div class="stat-label">Quoted</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-file-invoice"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ totals.invoiced|floatformat:0|intcomma }}</div><div class="stat-label">Invoiced</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ totals.paid|floatformat:0|intcomma }}</div><div class="stat-label">Paid</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-hourglass-half"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ totals.outstanding|floatformat:0|intcomma }}</div><div class="stat-label">Outstanding</div></div>
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-address-card"></i> Contact Details</span></div>
+            <div style="padding: 20px;">
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <div class="detail-label">Contact person</div>
+                        <div class="detail-value">{{ client.contact_person|default:"-" }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Email</div>
+                        <div class="detail-value">{{ client.email|default:"-" }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Phone</div>
+                        <div class="detail-value">{{ client.phone|default:"-" }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Tax ID</div>
+                        <div class="detail-value">{{ client.tax_id|default:"-" }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">City</div>
+                        <div class="detail-value">{{ client.city|default:"-" }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Country</div>
+                        <div class="detail-value">{{ client.country|default:"-" }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Client since</div>
+                        <div class="detail-value">{{ client.created_at|date:"M d, Y" }}</div>
+                    </div>
+                    <div class="detail-item span-2">
+                        <div class="detail-label">Address</div>
+                        <div class="detail-value">{{ client.address|default:"-"|linebreaksbr }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-file-alt"></i> Recent Quotes</span>
+                <a href="/sales/quotes?q={{ client.client_code }}" class="btn btn-sm btn-secondary">View all</a>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Quote</th><th>Issued</th><th>Valid until</th><th>Status</th><th class="text-right">Total</th></tr></thead>
+                    <tbody>
+                        {% for quote in quotes %}
+                        <tr>
+                            <td><a href="/sales/quotes/view/{{ quote.id }}"><strong>{{ quote.quote_number }}</strong></a></td>
+                            <td>{{ quote.issue_date|date:"M d, Y" }}</td>
+                            <td>{{ quote.valid_until|date:"M d, Y" }}</td>
+                            <td><span class="badge badge-{{ quote.status|status_class }}">{{ quote.get_status_display }}</span></td>
+                            <td class="text-right money">{{ currency_symbol }} {{ quote.total_amount|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5"><div class="empty-state"><i class="fas fa-file-alt"></i><p>No quotes for this client yet.</p><a href="/sales/quotes/create">Create a quote</a></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-file-invoice"></i> Recent Invoices</span>
+                <a href="/invoices/list?q={{ client.client_code }}" class="btn btn-sm btn-secondary">View all</a>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Invoice</th><th>Date</th><th>Due</th><th>Status</th><th class="text-right">Total</th><th class="text-right">Paid</th></tr></thead>
+                    <tbody>
+                        {% for invoice in invoices %}
+                        <tr>
+                            <td><a href="/invoices/view/{{ invoice.id }}"><strong>{{ invoice.invoice_number }}</strong></a></td>
+                            <td>{{ invoice.invoice_date|date:"M d, Y" }}</td>
+                            <td>{{ invoice.due_date|date:"M d, Y" }}</td>
+                            <td><span class="badge badge-{{ invoice.status|status_class }}">{{ invoice.get_status_display }}</span></td>
+                            <td class="text-right money">{{ currency_symbol }} {{ invoice.total_amount|floatformat:2|intcomma }}</td>
+                            <td class="text-right money">{{ currency_symbol }} {{ invoice.paid_amount|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6"><div class="empty-state"><i class="fas fa-file-invoice"></i><p>No invoices for this client yet.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="sticky-summary">
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-chart-pie"></i> Financial Summary</span></div>
+            <div style="padding: 16px 20px;">
+                <div class="summary-box">
+                    <div class="summary-line"><span>Total quoted</span><span class="money">{{ currency_symbol }} {{ totals.quoted|floatformat:2|intcomma }}</span></div>
+                    <div class="summary-line"><span>Total invoiced</span><span class="money">{{ currency_symbol }} {{ totals.invoiced|floatformat:2|intcomma }}</span></div>
+                    <div class="summary-line"><span>Total paid</span><span class="money">{{ currency_symbol }} {{ totals.paid|floatformat:2|intcomma }}</span></div>
+                    <div class="summary-line total"><span>Outstanding</span><span>{{ currency_symbol }} {{ totals.outstanding|floatformat:2|intcomma }}</span></div>
+                </div>
+                <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 8px;">
+                    <a href="/crm/clients/edit/{{ client.id }}" class="btn btn-secondary btn-block"><i class="fas fa-pen"></i> Edit Client</a>
+                    <a href="/sales/quotes/create" class="btn btn-primary btn-block"><i class="fas fa-plus"></i> New Quote</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

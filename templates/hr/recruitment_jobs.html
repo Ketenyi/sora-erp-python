@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-briefcase"></i> Job Openings</h1><p>Publish vacancies and track the candidate pipeline.</p></div>
+    <div class="page-actions">
+        <a href="/hr/recruitment/candidates" class="btn btn-secondary"><i class="fas fa-users"></i> Candidates</a>
+        <a href="/hr/recruitment/interviews" class="btn btn-secondary"><i class="fas fa-calendar-check"></i> Interviews</a>
+        {% if can_manage %}<a href="/hr/recruitment/create-job" class="btn btn-primary"><i class="fas fa-plus"></i> New opening</a>{% endif %}
+    </div>
+</div>
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-bullhorn"></i></div><div><div class="stat-number">{{ stats.open }}</div><div class="stat-label">Published openings</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-file-alt"></i></div><div><div class="stat-number">{{ stats.applications }}</div><div class="stat-label">Applications</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-clock"></i></div><div><div class="stat-number">{{ stats.closing }}</div><div class="stat-label">Closing in 14 days</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-calendar-plus"></i></div><div><div class="stat-number">{{ stats.recent }}</div><div class="stat-label">Posted last 30 days</div></div></div>
+</div>
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-filter"></i> Filter openings</span></div>
+    <form method="get" class="filter-bar">
+        <div class="form-group"><label>Search</label><input type="text" name="q" class="form-control" value="{{ search_query }}" placeholder="Title or location"></div>
+        <div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="">All statuses</option>{% for value, label in status_choices %}<option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="form-group" style="align-self:flex-end;"><button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Search</button> <a href="/hr/recruitment/jobs" class="btn btn-secondary">Reset</a></div>
+    </form>
+</div>
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-list"></i> Openings</span><span class="badge badge-info">{{ page_obj.paginator.count }} total</span></div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Position</th><th>Department</th><th>Type</th><th>Posted</th><th>Closing</th><th class="text-right">Candidates</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+            {% for posting in postings %}
+                <tr>
+                    <td><strong>{{ posting.job_title }}</strong><div class="info" style="font-size:12px;">{{ posting.location|default:"—" }}</div></td>
+                    <td>{{ posting.department_name }}</td>
+                    <td>{{ posting.get_employment_type_display|default:posting.employment_type|default:"—" }}</td>
+                    <td>{{ posting.posting_date|date:"M d, Y" }}</td>
+                    <td>{% if posting.closing_date %}{{ posting.closing_date|date:"M d, Y" }}{% if posting.is_closing_soon %} <span class="badge badge-warning">Soon</span>{% endif %}{% else %}—{% endif %}</td>
+                    <td class="text-right">{{ posting.candidate_count }}</td>
+                    <td><span class="badge badge-{{ posting.status|status_class }}">{{ posting.get_status_display }}</span></td>
+                    <td><a href="/hr/recruitment/job/{{ posting.id }}" class="btn btn-sm btn-secondary">View</a></td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="8"><div class="empty-state"><i class="fas fa-briefcase"></i><p>No job openings yet.</p>{% if can_manage %}<a href="/hr/recruitment/create-job" class="btn btn-primary btn-sm">Create the first opening</a>{% endif %}</div></td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

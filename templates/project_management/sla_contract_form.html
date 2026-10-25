@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-file-contract"></i> {% if is_edit %}Edit {{ contract.contract_number }}{% else %}New SLA Contract{% endif %}</h1>
+        <p>Define support tier, response targets and monthly recurring value. Ticket deadlines derive from these targets.</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% if is_edit %}/projects/sla/contracts/{{ contract.id }}{% else %}/projects/sla{% endif %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+        <a href="/projects/sla" class="btn btn-secondary"><i class="fas fa-headset"></i> SLA Hub</a>
+    </div>
+</div>
+
+<div class="card" style="max-width:960px;">
+    <div class="card-header"><span><i class="fas fa-pen"></i> Contract details</span></div>
+    <div style="padding:20px;">
+        <form method="post">
+            {% csrf_token %}
+            {% include "project_management/partials/form_fields.html" with form=form %}
+            <div class="page-actions" style="margin-top:10px;">
+                <button class="btn btn-primary"><i class="fas fa-check"></i> {% if is_edit %}Save changes{% else %}Create contract{% endif %}</button>
+                <a href="{% if is_edit %}/projects/sla/contracts/{{ contract.id }}{% else %}/projects/sla{% endif %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

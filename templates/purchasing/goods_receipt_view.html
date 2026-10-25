@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-check-double"></i> {{ receipt.grn_number }}
+            <span class="badge badge-{{ receipt.status|status_class }}" style="font-size:12px; vertical-align:middle;">{{ receipt.get_status_display }}</span>
+        </h1>
+        <p>{{ vendor.company_name|default:"Unknown supplier" }} &middot; received {{ receipt.receipt_date|date:"F d, Y" }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/purchasing/goods-receipts" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+        {% if order %}<a href="/purchasing/purchase-orders/view/{{ order.id }}" class="btn btn-secondary"><i class="fas fa-shopping-cart"></i> View PO</a>{% endif %}
+        <a href="/purchasing/supplier-bills/create?grn_id={{ receipt.id }}" class="btn btn-primary"><i class="fas fa-file-invoice"></i> Record Bill</a>
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-boxes"></i> Received Items</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>#</th><th>Item</th><th class="text-right">Received</th><th class="text-right">Accepted</th><th class="text-right">Rejected</th><th class="text-right">Unit Price</th><th class="text-right">Value</th><th>Rejection reason</th></tr></thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <strong>{{ item.product_name }}</strong>
+                                {% if item.description %}<div class="info">{{ item.description }}</div>{% endif %}
+                            </td>
+                            <td class="text-right">{{ item.quantity_received|floatformat:2 }}</td>
+                            <td class="text-right">{{ item.quantity_accepted|floatformat:2 }}</td>
+                            <td class="text-right">{{ item.quantity_rejected|floatformat:2 }}</td>
+                            <td class="text-right">{{ currency_symbol }} {{ item.unit_price|floatformat:2|intcomma }}</td>
+                            <td class="text-right money">{{ currency_symbol }} {{ item.line_value|floatformat:2|intcomma }}</td>
+                            <td>{{ item.rejection_reason|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="8"><div class="empty-state"><i class="fas fa-box-open"></i><p>No items on this receipt.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot><tr><th colspan="6" class="text-right">Accepted Value</th><th class="text-right">{{ currency_symbol }} {{ total_value|floatformat:2|intcomma }}</th><th></th></tr></tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-info-circle"></i> Receipt Details</span></div>
+            <div style="padding: 20px;">
+                <div class="summary-box">
+                    <div class="summary-line"><span>GRN number</span><span class="mono">{{ receipt.grn_number }}</span></div>
+                    <div class="summary-line"><span>PO number</span><span>{{ order.po_number|default:"-" }}</span></div>
+                    <div class="summary-line"><span>Supplier invoice</span><span>{{ receipt.invoice_number|default:"-" }}</span></div>
+                    <div class="summary-line"><span>Delivery note</span><span>{{ receipt.delivery_note|default:"-" }}</span></div>
+                    <div class="summary-line"><span>Receipt date</span><span>{{ receipt.receipt_date|date:"M d, Y" }}</span></div>
+                    <div class="summary-line"><span>Status</span><span class="badge badge-{{ receipt.status|status_class }}">{{ receipt.get_status_display }}</span></div>
+                </div>
+
+                <div style="margin-top:18px;">
+                    <div class="detail-label">Supplier</div>
+                    <p style="font-size:13px; margin:4px 0;"><strong>{{ vendor.company_name|default:"-" }}</strong></p>
+                    {% if vendor.email %}<p class="info" style="margin:2px 0;">{{ vendor.email }}</p>{% endif %}
+                    {% if vendor.phone %}<p class="info" style="margin:2px 0;">{{ vendor.phone }}</p>{% endif %}
+                </div>
+
+                {% if receipt.notes %}
+                <div style="margin-top:16px;">
+                    <div class="detail-label">Notes</div>
+                    <p style="font-size:13px; color:#475569;">{{ receipt.notes|linebreaksbr }}</p>
+                </div>
+                {% endif %}
+
+                <div style="margin-top:18px; font-size:13px;">
+                    <div class="summary-line" style="padding:4px 0;"><span>Recorded</span><span>{{ receipt.created_at|date:"M d, Y H:i" }}</span></div>
+                    {% if receipt.confirmed_at %}<div class="summary-line" style="padding:4px 0;"><span>Confirmed</span><span>{{ receipt.confirmed_at|date:"M d, Y H:i" }}</span></div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

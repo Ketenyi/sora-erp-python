@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% load static humanize %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-database"></i> System Information</h1><p>Runtime, database health and data volume across the workspace.</p></div>
+    <div class="page-actions">
+        <a href="/admin/dashboard" class="btn btn-secondary"><i class="fas fa-shield-halved"></i> Admin console</a>
+        <a href="/settings" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Settings</a>
+    </div>
+</div>
+
+{% include "settings/_nav.html" %}
+
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-users"></i></div><div><div class="stat-number">{{ counts.users|intcomma }}</div><div class="stat-label">Users ({{ counts.active_users }} active)</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-user-shield"></i></div><div><div class="stat-number">{{ counts.roles }}</div><div class="stat-label">Roles / {{ counts.permissions }} permissions</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-building"></i></div><div><div class="stat-number">{{ counts.clients|intcomma }}</div><div class="stat-label">Clients</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-file-invoice"></i></div><div><div class="stat-number">{{ counts.invoices|intcomma }}</div><div class="stat-label">Invoices</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-user-tie"></i></div><div><div class="stat-number">{{ counts.employees|intcomma }}</div><div class="stat-label">Active employees</div></div></div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-server"></i> Runtime</span></div>
+            <div style="padding:16px 18px;">
+                <div class="detail-grid">
+                    <div class="detail-item"><div class="detail-label">Django</div><div class="detail-value">{{ versions.django }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Python</div><div class="detail-value">{{ versions.python }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Application</div><div class="detail-value">{{ versions.app }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Time zone</div><div class="detail-value">{{ timezone }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Server time</div><div class="detail-value mono">{{ now|date:"Y-m-d H:i:s" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Debug mode</div><div class="detail-value">{{ debug|yesno:"On,Off" }}</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-database"></i> Database</span></div>
+            <div style="padding:16px 18px;">
+                <div class="detail-grid">
+                    <div class="detail-item"><div class="detail-label">Engine</div><div class="detail-value">{{ database.vendor|capfirst }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Database</div><div class="detail-value mono">{{ database.name }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Version</div><div class="detail-value">{{ database.version|default:"Unavailable" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Tables</div><div class="detail-value mono">{{ database.tables }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Size</div><div class="detail-value">{{ database.size|default:"n/a" }}</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-clipboard-list"></i> Recent activity</span></div>
+            <div class="card-body" style="padding:0;">
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead><tr><th>When</th><th>User</th><th>Action</th><th>Table</th><th>Record</th><th>IP</th></tr></thead>
+                        <tbody>
+                            {% for entry in recent_audit %}
+                            <tr>
+                                <td class="mono">{{ entry.created_at|date:"Y-m-d H:i" }}</td>
+                                <td>{{ entry.user_email }}</td>
+                                <td><span class="badge badge-secondary">{{ entry.action }}</span></td>
+                                <td class="mono">{{ entry.table_name|default:"-" }}</td>
+                                <td class="mono">{{ entry.record_id|default:"-" }}</td>
+                                <td class="mono">{{ entry.ip_address|default:"-" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="6"><div class="empty-state"><i class="fas fa-clipboard-list"></i><p>No audit entries recorded yet.</p></div></td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-cubes"></i> Module access</span></div>
+            <div style="padding:16px 18px; display:flex; flex-direction:column; gap:10px; font-size:13px;">
+                {% for label, url, enabled in modules %}
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+                    <span>{{ label }}</span>
+                    {% if enabled %}
+                    <a href="{{ url }}" class="badge badge-success" style="text-decoration:none;">Open</a>
+                    {% else %}
+                    <span class="badge badge-secondary">No access</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-database"></i> Data volume</span></div>
+            <div style="padding:16px 18px; display:flex; flex-direction:column; gap:10px; font-size:13px;">
+                <div style="display:flex; justify-content:space-between;"><span>Audit entries</span><strong>{{ counts.audit_entries|intcomma }}</strong></div>
+                <div style="display:flex; justify-content:space-between;"><span>Clients</span><strong>{{ counts.clients|intcomma }}</strong></div>
+                <div style="display:flex; justify-content:space-between;"><span>Invoices</span><strong>{{ counts.invoices|intcomma }}</strong></div>
+                <div style="display:flex; justify-content:space-between;"><span>Employees</span><strong>{{ counts.employees|intcomma }}</strong></div>
+                <div style="display:flex; justify-content:space-between;"><span>Users</span><strong>{{ counts.users|intcomma }}</strong></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-lightbulb"></i> Maintenance</span></div>
+            <div style="padding:16px 18px; font-size:13px; color:#64748b;">
+                <p style="margin-bottom:10px;">Run migrations and seed reference data from the project directory:</p>
+                <pre class="mono" style="background:#f8fafc; border:1px solid #eef2f6; border-radius:8px; padding:10px 12px; font-size:12px; overflow-x:auto;">python manage.py migrate
+python manage.py seed_settings
+python manage.py seed_demo</pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

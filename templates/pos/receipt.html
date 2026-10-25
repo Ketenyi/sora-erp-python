@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<style>
+    .receipt-shell { max-width: 420px; margin: 0 auto; }
+    .receipt { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 26px 24px; font-size: 12px; color: #0f172a; }
+    .receipt-head { text-align: center; padding-bottom: 14px; border-bottom: 1px dashed #cbd5e1; }
+    .receipt-head img { max-height: 48px; margin-bottom: 8px; }
+    .receipt-title { font-size: 16px; font-weight: 800; letter-spacing: .02em; }
+    .receipt-meta { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; color: #475569; }
+    .receipt-meta strong { color: #0f172a; }
+    .receipt-items { width: 100%; border-collapse: collapse; margin: 12px 0 4px; }
+    .receipt-items th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: #94a3b8; padding-bottom: 6px; border-bottom: 1px solid #e2e8f0; }
+    .receipt-items th.numeric, .receipt-items td.numeric { text-align: right; }
+    .receipt-items td { padding: 7px 0; border-bottom: 1px dotted #e2e8f0; vertical-align: top; }
+    .receipt-items tr:last-child td { border-bottom: 0; }
+    .receipt-vat { display: block; font-size: 10px; color: #94a3b8; }
+    .receipt-totals { border-top: 1px dashed #cbd5e1; padding-top: 10px; margin-top: 4px; }
+    .receipt-total-row { display: flex; justify-content: space-between; padding: 3px 0; color: #475569; }
+    .receipt-total-row.grand { font-size: 17px; font-weight: 800; color: #0f172a; border-top: 1px solid #0f172a; margin-top: 8px; padding-top: 8px; }
+    .receipt-payments { margin-top: 12px; padding-top: 10px; border-top: 1px dashed #cbd5e1; }
+    .receipt-footer { text-align: center; margin-top: 16px; padding-top: 14px; border-top: 1px dashed #cbd5e1; color: #64748b; font-size: 11px; line-height: 1.7; }
+    .receipt-void { text-align: center; margin: 14px 0 0; padding: 8px; border: 2px solid #dc2626; color: #dc2626; font-weight: 800; letter-spacing: .12em; border-radius: 8px; }
+    .receipt-refunded { text-align: center; margin: 14px 0 0; padding: 8px; border: 2px solid #d97706; color: #b45309; font-weight: 800; letter-spacing: .08em; border-radius: 8px; }
+    .receipt-kra { margin-top: 14px; padding-top: 12px; border-top: 1px dashed #cbd5e1; text-align: center; }
+    .receipt-kra img { width: 112px; height: 112px; image-rendering: pixelated; }
+    .receipt-kra .kra-title { font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #334155; }
+    .receipt-kra .kra-meta { font-size: 10px; color: #64748b; word-break: break-all; }
+    .receipt-refund-list { margin-top: 12px; padding-top: 10px; border-top: 1px dashed #cbd5e1; font-size: 11px; }
+    @media print {
+        .header, .sidebar, .page-head, .no-print, .message-toast, #messageStack { display: none !important; }
+        .main-content { margin: 0 !important; padding: 0 !important; }
+        .receipt-shell { max-width: 80mm; margin: 0; }
+        .receipt { border: 0; border-radius: 0; padding: 0; font-size: 11px; }
+        body { background: #fff !important; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head no-print">
+    <div>
+        <h1><i class="fas fa-receipt"></i> {{ sale.sale_number }}
+            <span class="badge badge-{{ sale.status|status_class }}" style="font-size:12px; vertical-align:middle;">{{ sale.get_status_display }}</span>
+        </h1>
+        <p>{{ sale.created_at|date:"F d, Y H:i" }} &middot; {{ sale.session.terminal_name }} &middot; {{ sale.session.session_number }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/pos/sales" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+        <button type="button" class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Print Receipt</button>
+        <a href="/pos/" class="btn btn-secondary"><i class="fas fa-cash-register"></i> New Sale</a>
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="receipt-shell">
+            <div class="receipt">
+                <div class="receipt-head">
+                    {% if company_logo %}<img src="{{ company_logo }}" alt="{{ company_name }}">{% endif %}
+                    <div class="receipt-title">{{ company_name }}</div>
+                    {% if company.company_address %}<div style="color:#64748b;">{{ company.company_address }}</div>{% endif %}
+                    {% if company.company_phone %}<div style="color:#64748b;">{{ company.company_phone }}</div>{% endif %}
+                    {% if company.company_email %}<div style="color:#64748b;">{{ company.company_email }}</div>{% endif %}
+                    {% if company.tax_id %}<div style="color:#64748b;">PIN: {{ company.tax_id }}</div>{% endif %}
+                </div>
+
+                <div style="padding: 12px 0;">
+                    <div class="receipt-meta"><span>Receipt</span><strong>{{ sale.sale_number }}</strong></div>
+                    <div class="receipt-meta"><span>Date</span><strong>{{ sale.created_at|date:"M d, Y H:i" }}</strong></div>
+                    <div class="receipt-meta"><span>Cashier</span><strong>{{ cashier_name }}</strong></div>
+                    <div class="receipt-meta"><span>Terminal</span><strong>{{ sale.session.terminal_name }}</strong></div>
+                    <div class="receipt-meta">
+                        <span>Customer</span>
+                        <strong>{% if sale.client %}{{ sale.client.company_name }}{% elif sale.customer_name %}{{ sale.customer_name }}{% else %}Walk-in{% endif %}</strong>
+                    </div>
+                    {% if sale.customer_phone %}<div class="receipt-meta"><span>Phone</span><strong>{{ sale.customer_phone }}</strong></div>{% endif %}
+                </div>
+
+                <table class="receipt-items">
+                    <thead>
+                        <tr><th>Item</th><th class="numeric">Qty</th><th class="numeric">Price</th><th class="numeric">Amount</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td>
+                                {{ item.description }}
+                                {% if item.tax_rate %}<span class="receipt-vat">VAT {{ item.tax_rate|floatformat:2 }}%</span>{% endif %}
+                            </td>
+                            <td class="numeric">{{ item.quantity|floatformat:2 }}</td>
+                            <td class="numeric">{{ item.unit_price|floatformat:2|intcomma }}</td>
+                            <td class="numeric">{{ item.line_total|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" style="text-align:center; color:#94a3b8;">No line items on this sale.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <div class="receipt-totals">
+                    <div class="receipt-total-row"><span>Subtotal</span><span>{{ currency_symbol }} {{ sale.subtotal|floatformat:2|intcomma }}</span></div>
+                    {% if sale.discount_amount %}<div class="receipt-total-row"><span>Discount</span><span>- {{ currency_symbol }} {{ sale.discount_amount|floatformat:2|intcomma }}</span></div>{% endif %}
+                    <div class="receipt-total-row"><span>Tax</span><span>{{ currency_symbol }} {{ sale.tax_amount|floatformat:2|intcomma }}</span></div>
+                    <div class="receipt-total-row grand"><span>Total</span><span>{{ currency_symbol }} {{ sale.total_amount|floatformat:2|intcomma }}</span></div>
+                </div>
+
+                <div class="receipt-payments">
+                    {% for payment in payments %}
+                    <div class="receipt-total-row">
+                        <span>{{ payment.method|humanize_label }}{% if payment.reference %} <span style="color:#94a3b8;">({{ payment.reference }})</span>{% endif %}</span>
+                        <span>{{ currency_symbol }} {{ payment.amount|floatformat:2|intcomma }}</span>
+                    </div>
+                    {% endfor %}
+                    <div class="receipt-total-row"><span>Paid</span><span>{{ currency_symbol }} {{ sale.amount_paid|floatformat:2|intcomma }}</span></div>
+                    {% if sale.change_amount %}<div class="receipt-total-row"><span>Change</span><span>{{ currency_symbol }} {{ sale.change_amount|floatformat:2|intcomma }}</span></div>{% endif %}
+                </div>
+
+                {% if sale.status == "voided" %}<div class="receipt-void">VOIDED</div>{% endif %}
+                {% if sale.refund_status == "full" %}<div class="receipt-refunded">FULLY REFUNDED</div>
+                {% elif sale.refund_status == "partial" %}<div class="receipt-refunded">PARTIALLY REFUNDED &middot; {{ currency_symbol }} {{ sale.refunded_amount|floatformat:2|intcomma }}</div>{% endif %}
+
+                {% if refunds %}
+                <div class="receipt-refund-list">
+                    {% for refund in refunds %}
+                    <div class="receipt-total-row">
+                        <span>{{ refund.refund_number }} &middot; {{ refund.created_at|date:"M d, H:i" }}</span>
+                        <span>- {{ currency_symbol }} {{ refund.total_amount|floatformat:2|intcomma }}</span>
+                    </div>
+                    {% endfor %}
+                    <div class="receipt-total-row"><span>Refunded</span><span>{{ currency_symbol }} {{ sale.refunded_amount|floatformat:2|intcomma }}</span></div>
+                </div>
+                {% endif %}
+
+                {% if submission and submission.status != "cancelled" %}
+                <div class="receipt-kra">
+                    {% if kra_qr %}<img src="{{ kra_qr }}" alt="KRA eTIMS verification QR code">{% endif %}
+                    <div class="kra-title">KRA eTIMS Receipt</div>
+                    {% if submission.status == "submitted" %}
+                        {% if submission.kra_receipt_number %}<div class="kra-meta">Receipt No: {{ submission.kra_receipt_number }}</div>{% endif %}
+                        <div class="kra-meta">Controlled by KRA</div>
+                    {% else %}
+                        <div class="kra-meta">Not yet accepted by KRA &middot; {{ submission.get_status_display }}</div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <div class="receipt-footer">
+                    {% if receipt_footer %}<div style="white-space: pre-line;">{{ receipt_footer }}</div>{% endif %}
+                    <div>{{ sale.created_at|date:"M d, Y H:i" }} &middot; {{ sale.session.session_number }}</div>
+                </div>
+            </div>
+        </div>
+
+        {% if sale.notes %}
+        <div class="card no-print">
+            <div class="card-header"><span><i class="fas fa-note-sticky"></i> Notes</span></div>
+            <div style="padding: 18px; white-space: pre-line;">{{ sale.notes }}</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="no-print">
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-circle-info"></i> Sale Details</span></div>
+            <div style="padding: 18px;">
+                <div class="detail-item"><div class="detail-label">Receipt</div><div class="detail-value mono">{{ sale.sale_number }}</div></div>
+                <div class="detail-item"><div class="detail-label">Cashier</div><div class="detail-value">{{ cashier_name }}</div></div>
+                <div class="detail-item"><div class="detail-label">Till session</div><div class="detail-value"><a href="/pos/sessions/{{ sale.session.id }}">{{ sale.session.session_number }}</a></div></div>
+                <div class="detail-item"><div class="detail-label">Recorded</div><div class="detail-value">{{ sale.created_at|date:"M d, Y H:i" }}</div></div>
+                <div class="detail-item"><div class="detail-label">Items</div><div class="detail-value">{{ items|length }} line{{ items|length|pluralize }}</div></div>
+                <div class="detail-item"><div class="detail-label">Status</div><div class="detail-value"><span class="badge badge-{{ sale.status|status_class }}">{{ sale.get_status_display }}</span>
+                    {% if sale.refund_status == "partial" %}<span class="badge badge-warning">Part refunded</span>{% elif sale.refund_status == "full" %}<span class="badge badge-warning">Refunded</span>{% endif %}
+                </div></div>
+                {% if sale.invoice %}
+                <div class="detail-item"><div class="detail-label">Invoice</div><div class="detail-value"><a href="/invoices/view/{{ sale.invoice.id }}">{{ sale.invoice.invoice_number }}</a></div></div>
+                {% endif %}
+                {% if submission %}
+                <div class="detail-item"><div class="detail-label">KRA eTIMS</div><div class="detail-value">
+                    {% if submission.status == "submitted" %}<span class="badge badge-success">Accepted</span>
+                    <div class="info mono" style="margin-top:4px;">{{ submission.kra_receipt_number|default:"Receipt issued" }}</div>
+                    {% elif submission.status == "failed" %}<span class="badge badge-danger">Failed</span>
+                    {% elif submission.status == "cancelled" %}<span class="badge badge-secondary">Cancelled</span>
+                    {% else %}<span class="badge badge-warning">{{ submission.get_status_display }}</span>{% endif %}
+                </div></div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-wallet"></i> Payments</span></div>
+            <div style="padding: 10px 18px 18px;">
+                {% for payment in payments %}
+                <div class="summary-line">
+                    <span>{{ method_labels|get_item:payment.method|default:payment.method|humanize_label }}{% if payment.reference %}<div class="info">{{ payment.reference }}</div>{% endif %}</span>
+                    <span class="money">{{ currency_symbol }} {{ payment.amount|floatformat:2|intcomma }}</span>
+                </div>
+                {% empty %}
+                <p class="info">No payments recorded.</p>
+                {% endfor %}
+                <div class="summary-line total"><span>Total paid</span><span>{{ currency_symbol }} {{ sale.amount_paid|floatformat:2|intcomma }}</span></div>
+            </div>
+        </div>
+
+        {% if can_refund %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-rotate-left"></i> Refund</span></div>
+            <div style="padding: 18px;">
+                <p class="info" style="margin-bottom: 12px;">Refund part or all of this sale. Restocked goods are returned to inventory and a KRA credit note is queued.</p>
+                {% if refund_session %}
+                <a href="/pos/sales/{{ sale.id }}/refund" class="btn btn-primary" style="width:100%; justify-content:center;"><i class="fas fa-rotate-left"></i> Process Refund</a>
+                {% else %}
+                <div class="alert alert-warning" style="margin-bottom:10px;">Open a till session on the terminal before refunding.</div>
+                <a href="/pos/" class="btn btn-secondary" style="width:100%; justify-content:center;"><i class="fas fa-cash-register"></i> Go to Terminal</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if can_void %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-ban"></i> Void Sale</span></div>
+            <div style="padding: 18px;">
+                <p class="info" style="margin-bottom: 12px;">Voiding restores stock to inventory. Sales from closed shifts cannot be voided.</p>
+                <form method="post" action="/pos/sales/{{ sale.id }}/void">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="{{ void_form.reason.id_for_label }}">Reason</label>
+                        {{ void_form.reason }}
+                    </div>
+                    <button type="submit" class="btn btn-danger" style="width:100%; justify-content:center;" onclick="return confirm('Void this sale and restore stock?');">
+                        <i class="fas fa-ban"></i> Void {{ sale.sale_number }}
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

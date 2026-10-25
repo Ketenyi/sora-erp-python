@@ -1,0 +1,73 @@
+{% extends "saas/cloud/base.html" %}
+{% load humanize %}
+
+{% block title %}Plans & pricing — SORA Cloud{% endblock %}
+{% block crumb %}Plans &amp; pricing{% endblock %}
+
+{% block content %}
+<div class="cloud-page-head">
+    <h1>Plans &amp; pricing</h1>
+    <p>Commercial bundles shown on the public pricing page and used for manual billing.</p>
+    <div class="actions">
+        <a href="/pricing" target="_blank" rel="noopener" class="cloud-btn"><i class="fas fa-eye"></i> Preview public pricing</a>
+    </div>
+</div>
+
+<div class="cloud-card">
+    {% if rows %}
+    <div class="cloud-card-body flush">
+        <table class="cloud-table">
+            <thead>
+                <tr>
+                    <th>Plan</th>
+                    <th>Pricing</th>
+                    <th>Seats</th>
+                    <th>Included modules</th>
+                    <th>Tenants</th>
+                    <th>Visibility</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td>
+                        <strong style="font-size:12px;">{{ row.plan.name }}</strong>
+                        <div class="cloud-muted">{{ row.plan.code }} · {{ row.plan.tagline }}</div>
+                    </td>
+                    <td>
+                        <strong>{{ platform.default_currency|default:"KES" }} {{ row.plan.monthly_price|floatformat:0|intcomma }}</strong>
+                        <div class="cloud-muted">per month</div>
+                        <div style="font-size:10.5px;color:#16a34a;font-weight:700;margin-top:3px;">
+                            {{ platform.default_currency|default:"KES" }} {{ row.plan.yearly_price|floatformat:0|intcomma }} / year
+                        </div>
+                    </td>
+                    <td>{% if row.plan.max_users %}{{ row.plan.max_users }}{% else %}Unlimited{% endif %}</td>
+                    <td>
+                        <div class="cloud-mini-chips">
+                            {% for module in row.modules %}<span class="cloud-mini-chip">{{ module }}</span>{% empty %}<span class="cloud-muted">None</span>{% endfor %}
+                        </div>
+                    </td>
+                    <td><strong>{{ row.tenant_count }}</strong></td>
+                    <td>
+                        {% if row.plan.is_active %}<span class="cloud-pill active">Active</span>{% else %}<span class="cloud-pill cancelled">Inactive</span>{% endif %}
+                        {% if row.plan.is_public %}<span class="cloud-pill trial" style="margin-left:4px;">Public</span>{% endif %}
+                    </td>
+                    <td style="text-align:right;">
+                        <a href="/cloud/plans/{{ row.plan.id }}/edit/" class="cloud-btn"><i class="fas fa-pen"></i> Edit</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="cloud-empty"><i class="fas fa-tags"></i> No plans configured.</div>
+    {% endif %}
+</div>
+
+<p class="cloud-muted" style="margin-top:10px;">
+    Changing a plan's price does not alter already-recorded payments. New renewals and billing calculations use the
+    updated price. Plans marked inactive are hidden from the public site and cannot be selected for renewal.
+</p>
+{% endblock %}

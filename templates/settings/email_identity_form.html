@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-at"></i> {% if identity %}Edit Sender Identity{% else %}New Sender Identity{% endif %}</h1>
+        <p>{% if identity %}{{ identity.name }} · {{ identity.from_email }}{% else %}Choose the module this address speaks for and connect its mailbox.{% endif %}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/settings/email-identities" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Senders</a>
+    </div>
+</div>
+{% include "settings/_nav.html" %}
+
+{% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+    <div class="detail-layout">
+        <div>
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-id-card"></i> Sender identity</span></div>
+                <div style="padding:18px;">
+                    <div class="form-grid">
+                        <div class="form-group"><label>{{ form.name.label }}</label>{{ form.name }}{{ form.name.errors }}<small class="info">A friendly label such as "HR notifications".</small></div>
+                        <div class="form-group"><label>{{ form.module.label }}</label>{{ form.module }}{{ form.module.errors }}</div>
+                        <div class="form-group"><label>{{ form.from_name.label }}</label>{{ form.from_name }}{{ form.from_name.errors }}</div>
+                        <div class="form-group"><label>{{ form.from_email.label }}</label>{{ form.from_email }}{{ form.from_email.errors }}<small class="info">For example hr-no-reply@yourcompany.com.</small></div>
+                        <div class="form-group span-2"><label>{{ form.reply_to.label }}</label>{{ form.reply_to }}{{ form.reply_to.errors }}<small class="info">Optional. Replies go here instead of the no-reply address.</small></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-paper-plane"></i> Outbound SMTP</span><span class="badge badge-success">Sending</span></div>
+                <div style="padding:18px;">
+                    <div class="form-grid">
+                        <div class="form-group"><label>{{ form.smtp_host.label }}</label>{{ form.smtp_host }}{{ form.smtp_host.errors }}</div>
+                        <div class="form-group"><label>{{ form.smtp_port.label }}</label>{{ form.smtp_port }}{{ form.smtp_port.errors }}</div>
+                        <div class="form-group"><label>{{ form.smtp_username.label }}</label>{{ form.smtp_username }}{{ form.smtp_username.errors }}</div>
+                        <div class="form-group"><label>{{ form.smtp_password.label }}</label>{{ form.smtp_password }}{{ form.smtp_password.errors }}<small class="info">{{ form.smtp_password.help_text }}</small></div>
+                        <div class="form-group span-2"><label>{{ form.smtp_encryption.label }}</label>{{ form.smtp_encryption }}{{ form.smtp_encryption.errors }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-inbox"></i> Inbound mailbox</span><span class="badge badge-info">Optional</span></div>
+                <div style="padding:18px;">
+                    <p class="info" style="font-size:12px; color:#64748b; margin-bottom:14px;">Connect IMAP when this address receives mail, such as a helpdesk queue. Leave it blank for a send-only identity.</p>
+                    <div class="form-grid">
+                        <div class="form-group"><label>{{ form.imap_host.label }}</label>{{ form.imap_host }}{{ form.imap_host.errors }}</div>
+                        <div class="form-group"><label>{{ form.imap_port.label }}</label>{{ form.imap_port }}{{ form.imap_port.errors }}</div>
+                        <div class="form-group"><label>{{ form.imap_username.label }}</label>{{ form.imap_username }}{{ form.imap_username.errors }}</div>
+                        <div class="form-group"><label>{{ form.imap_password.label }}</label>{{ form.imap_password }}{{ form.imap_password.errors }}<small class="info">{{ form.imap_password.help_text }}</small></div>
+                        <div class="form-group"><label>{{ form.imap_encryption.label }}</label>{{ form.imap_encryption }}{{ form.imap_encryption.errors }}</div>
+                        <div class="form-group"><label>{{ form.imap_folder.label }}</label>{{ form.imap_folder }}{{ form.imap_folder.errors }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-signature"></i> Signature</span></div>
+                <div style="padding:18px;">
+                    <div class="form-group"><label>{{ form.signature.label }}</label>{{ form.signature }}{{ form.signature.errors }}<small class="info">Appended to messages sent from this identity.</small></div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-toggle-on"></i> Availability</span></div>
+                <div style="padding:18px;">
+                    <div class="form-group" style="display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid #e2e8f0; border-radius:10px;">
+                        {{ form.is_default }}
+                        <label style="margin:0;">{{ form.is_default.label }}</label>
+                    </div>
+                    <div class="form-group" style="display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid #e2e8f0; border-radius:10px; margin-top:10px;">
+                        {{ form.is_active }}
+                        <label style="margin:0;">{{ form.is_active.label }}</label>
+                    </div>
+                    <p class="info" style="font-size:12px; color:#64748b; margin-top:10px;">Only one identity per module can be the primary sender. If it is paused, other active identities for the module are used.</p>
+                    <button type="submit" class="btn btn-primary" style="width:100%; margin-top:14px;"><i class="fas fa-save"></i> Save sender</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-circle-info"></i> Common providers</span></div>
+                <div style="padding:16px 18px; font-size:12px; color:#64748b; line-height:1.8;">
+                    <div><strong>Gmail:</strong> smtp.gmail.com · 587 · TLS · imap.gmail.com · 993 · SSL</div>
+                    <div><strong>Outlook:</strong> smtp.office365.com · 587 · TLS · outlook.office365.com · 993 · SSL</div>
+                    <div><strong>Zoho:</strong> smtp.zoho.com · 465 · SSL · imap.zoho.com · 993 · SSL</div>
+                    <div style="margin-top:8px;">Use an app password when the provider requires one.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% if identity %}
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-vial"></i> Verify this sender</span></div>
+    <div style="padding:18px;">
+        <form method="post" action="/settings/email-identities/test/{{ identity.id }}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="/settings/email-identities/edit/{{ identity.id }}">
+            <div class="filter-bar">
+                <div class="form-group" style="min-width:280px;">
+                    <label>Send test message to</label>
+                    <input type="email" name="recipient" class="form-control" value="{{ request.user.email }}" placeholder="you@example.com">
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-secondary"><i class="fas fa-vial"></i> Verify SMTP &amp; IMAP</button>
+                </div>
+            </div>
+            <p class="info" style="font-size:12px; color:#64748b; margin-top:10px;">The check connects to SMTP and IMAP with the saved credentials and sends one test message. Save your changes first.</p>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,222 @@
+{% extends "saas/public_base.html" %}
+{% load humanize %}
+
+{% block title %}{{ platform.site_meta_title_pricing|default:"Pricing" }} — {{ platform.platform_name|default:"SORA ERP" }}{% endblock %}
+
+{% block content %}
+<section class="pub-page-head">
+    <div class="pub-shell">
+        <span class="pub-eyebrow"><i class="fas fa-calculator"></i> {{ platform.site_pricing_page_kicker|default:"Simple, modular pricing" }}</span>
+        <h1>{{ platform.site_pricing_page_title|default:"Pay for the modules you run." }}</h1>
+        <p>{{ site.pricing_page_lead|default:"Every workspace starts with a free trial." }}</p>
+    </div>
+</section>
+
+<section class="pub-section">
+    <div class="pub-shell">
+        <div class="pub-toggle-wrap">
+            <div class="pub-toggle" id="billingToggle">
+                <button type="button" class="active" data-cycle="monthly">{{ copy.pricing_toggle_monthly }}</button>
+                <button type="button" data-cycle="yearly">{{ copy.pricing_toggle_yearly }}</button>
+            </div>
+            <span class="pub-save-pill"><i class="fas fa-tag"></i> {{ platform.site_pricing_badge|default:"2 months free on yearly" }}</span>
+        </div>
+
+        <div class="pub-plan-grid">
+            {% for card in plans %}
+            <div class="pub-plan-card {% if card.plan.code == 'business' %}featured{% endif %}"
+                 data-monthly="{{ card.plan.monthly_price|floatformat:2 }}"
+                 data-yearly="{{ card.plan.yearly_price|floatformat:2 }}">
+                {% if card.plan.code == 'business' %}<span class="pub-plan-flag">{{ copy.plan_flag }}</span>{% endif %}
+                <h3>{{ card.plan.name }}</h3>
+                <p class="tagline">{{ card.plan.tagline }}</p>
+                <div class="pub-plan-price">
+                    <strong class="plan-price" data-currency="{{ platform.default_currency|default:'KES' }}"
+                            data-monthly-suffix="{{ copy.price_month_suffix }}"
+                            data-yearly-suffix="{{ copy.price_year_suffix }}">
+                        {{ platform.default_currency|default:"KES" }} {{ card.plan.monthly_price|floatformat:0|intcomma }}
+                    </strong>
+                    <span class="price-cycle">{{ copy.price_month_suffix }}</span>
+                </div>
+                <div class="pub-plan-yearly" data-yearly-text="{% if card.plan.yearly_price %}{{ platform.default_currency|default:'KES' }} {{ card.plan.yearly_price|floatformat:0|intcomma }} {{ copy.price_yearly_suffix }}{% endif %}">
+                    {% if card.plan.yearly_price %}{{ platform.default_currency|default:"KES" }} {{ card.plan.yearly_price|floatformat:0|intcomma }} {{ copy.price_yearly_suffix }}{% endif %}
+                </div>
+                <div class="pub-plan-modules">
+                    {% for name in card.module_names %}<span>{{ name }}</span>{% endfor %}
+                </div>
+                <ul class="pub-feature-list">
+                    {% for feature in card.features %}<li>{{ feature }}</li>{% endfor %}
+                </ul>
+                <a href="/signup?plan={{ card.plan.code }}" class="pub-btn {% if card.plan.code == 'business' %}pub-btn-gold{% else %}pub-btn-dark{% endif %} pub-btn-block">
+                    {{ card.cta }}
+                </a>
+            </div>
+            {% empty %}
+            <div class="pub-plan-card">
+                <h3>{{ copy.plan_empty_title }}</h3>
+                <p class="tagline">{{ copy.plan_empty_body }}</p>
+                <a href="/contact" class="pub-btn pub-btn-dark pub-btn-block">{{ copy.plan_empty_cta }}</a>
+            </div>
+            {% endfor %}
+        </div>
+        <p class="pub-note">{{ platform.site_pricing_note|default:"Prices exclude applicable taxes." }} {{ copy.pricing_custom_note }} <a href="/contact" style="color:#a16207;font-weight:700;">{{ copy.pricing_custom_link }}</a>.</p>
+    </div>
+</section>
+
+<section class="pub-section alt">
+    <div class="pub-shell">
+        <div class="pub-section-head">
+            <div class="pub-kicker">{{ platform.site_pricing_calc_kicker|default:"Build your own" }}</div>
+            <h2>{{ platform.site_pricing_calc_title|default:"Pick only the modules you need" }}</h2>
+            <p>{{ site.pricing_calc_lead|default:"Select modules to see an indicative monthly total." }}</p>
+        </div>
+
+        <div class="pub-calculator" id="moduleCalculator"
+             data-per-month="{{ copy.pricing_calc_per_month|escapejs }}"
+             data-per-year="{{ copy.pricing_calc_per_year|escapejs }}"
+             data-billed-monthly="{{ copy.pricing_calc_billed_monthly|escapejs }}"
+             data-billed-yearly="{{ copy.pricing_calc_billed_yearly|escapejs }}"
+             data-empty="{{ copy.pricing_calc_empty|escapejs }}"
+             data-empty-yearly="{{ copy.pricing_calc_empty_yearly|escapejs }}">
+            <div class="pub-calc-card">
+                <h3>{{ copy.pricing_calc_modules_title }}</h3>
+                <p class="muted">{{ copy.pricing_calc_modules_body }}</p>
+                <div class="pub-calc-modules">
+                    {% for module in modules %}
+                    <div class="pub-calc-module">
+                        <label>
+                            <input type="checkbox" name="calc_module" value="{{ module.code }}"
+                                   data-price="{{ module.monthly_price|floatformat:2 }}"
+                                   data-name="{{ module.brand_name|default:module.name }}">
+                            {{ module.brand_name|default:module.name }}
+                        </label>
+                        <span>{{ platform.default_currency|default:"KES" }} {{ module.monthly_price|floatformat:0|intcomma }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                <p class="pub-calc-note">
+                    {{ copy.pricing_calc_note }}
+                </p>
+            </div>
+
+            <div class="pub-calc-card">
+                <h3>{{ copy.pricing_calc_estimate_title }}</h3>
+                <p class="muted">{{ copy.pricing_calc_estimate_body }}</p>
+                <div class="pub-toggle" id="calcCycle">
+                    <button type="button" class="active" data-cycle="monthly">{{ copy.pricing_toggle_monthly }}</button>
+                    <button type="button" data-cycle="yearly">{{ copy.pricing_toggle_yearly }}</button>
+                </div>
+                <div class="pub-calc-total">
+                    <div>
+                        <small>{{ copy.pricing_calc_total_label }}</small>
+                        <strong id="calcTotal">{{ platform.default_currency|default:"KES" }} 0</strong>
+                    </div>
+                    <span id="calcCycleLabel" style="color:#64748b;font-size:11px;font-weight:700;">{{ copy.pricing_calc_per_month }}</span>
+                </div>
+                <p class="pub-calc-note" id="calcSaving">{{ copy.pricing_calc_empty }}</p>
+                <a href="/signup" class="pub-btn pub-btn-gold pub-btn-block" id="calcStart">
+                    <i class="fas fa-rocket"></i> {{ platform.site_pricing_calc_cta|default:"Start trial with these modules" }}
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="pub-section">
+    <div class="pub-shell">
+        <div class="pub-cta">
+            <div class="pub-eyebrow"><i class="fas fa-gift"></i> {{ copy.pricing_cta_eyebrow }}</div>
+            <h2>{{ copy.pricing_cta_title }}</h2>
+            <p>{{ copy.pricing_cta_lead }}</p>
+            <a href="/signup" class="pub-btn pub-btn-gold pub-btn-lg"><i class="fas fa-arrow-right"></i> {{ copy.pricing_cta_button }}</a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const currency = "{{ platform.default_currency|default:'KES'|escapejs }}";
+
+    function formatMoney(value) {
+        return currency + " " + Math.round(value).toLocaleString();
+    }
+
+    // Plan monthly / yearly switch
+    const planButtons = document.querySelectorAll("#billingToggle button");
+    planButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+            planButtons.forEach(function (b) { b.classList.remove("active"); });
+            button.classList.add("active");
+            const yearly = button.dataset.cycle === "yearly";
+            document.querySelectorAll(".pub-plan-card").forEach(function (card) {
+                const price = card.querySelector(".plan-price");
+                const cycle = card.querySelector(".price-cycle");
+                if (!price || !card.dataset.monthly) return;
+                const monthly = parseFloat(card.dataset.monthly || "0");
+                const year = parseFloat(card.dataset.yearly || "0");
+                if (yearly && year) {
+                    price.textContent = currency + " " + Math.round(year).toLocaleString();
+                    cycle.textContent = price.dataset.yearlySuffix || "/year";
+                } else {
+                    price.textContent = currency + " " + Math.round(monthly).toLocaleString();
+                    cycle.textContent = price.dataset.monthlySuffix || "/month";
+                }
+            });
+        });
+    });
+
+    // Module calculator
+    const boxes = document.querySelectorAll('input[name="calc_module"]');
+    const totalEl = document.getElementById("calcTotal");
+    const savingEl = document.getElementById("calcSaving");
+    const labelEl = document.getElementById("calcCycleLabel");
+    const startLink = document.getElementById("calcStart");
+    const cycleButtons = document.querySelectorAll("#calcCycle button");
+    const calculator = document.getElementById("moduleCalculator");
+    const calcCopy = calculator ? calculator.dataset : {};
+    let cycle = "monthly";
+
+    function selectedModules() {
+        return Array.from(boxes).filter(function (box) { return box.checked; });
+    }
+
+    function updateTotal() {
+        const modules = selectedModules();
+        const monthly = modules.reduce(function (sum, box) {
+            return sum + parseFloat(box.dataset.price || "0");
+        }, 0);
+        let total = monthly;
+        let note = calcCopy.billedMonthly || "Billed monthly. Cancel or change modules at any time.";
+        if (cycle === "yearly") {
+            total = monthly * 12;
+            note = calcCopy.billedYearly || "Yearly billing includes two months free.";
+        }
+        totalEl.textContent = formatMoney(total);
+        labelEl.textContent = cycle === "yearly"
+            ? (calcCopy.perYear || "per year")
+            : (calcCopy.perMonth || "per month");
+        if (!modules.length) {
+            note = cycle === "yearly"
+                ? (calcCopy.emptyYearly || "Select at least one module to see your yearly estimate.")
+                : (calcCopy.empty || "Select at least one module to see your estimate.");
+        }
+        savingEl.textContent = note;
+        const codes = modules.map(function (box) { return box.value; });
+        startLink.href = codes.length ? "/signup?modules=" + encodeURIComponent(codes.join(",")) : "/signup";
+    }
+
+    boxes.forEach(function (box) { box.addEventListener("change", updateTotal); });
+    cycleButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+            cycleButtons.forEach(function (b) { b.classList.remove("active"); });
+            button.classList.add("active");
+            cycle = button.dataset.cycle;
+            updateTotal();
+        });
+    });
+    updateTotal();
+})();
+</script>
+{% endblock %}

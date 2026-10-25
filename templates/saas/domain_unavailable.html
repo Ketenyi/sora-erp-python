@@ -1,0 +1,76 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>{% if domain.status == 'disabled' %}Domain paused{% else %}Domain not ready{% endif %} — {{ tenant.display_name }}</title>
+    <style>
+        :root { color-scheme: light; }
+        * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px;
+            background: #f8fafc; color: #0f172a;
+            font-family: Inter, "Segoe UI", system-ui, -apple-system, sans-serif; }
+        .panel { width: 100%; max-width: 520px; background: #fff; border: 1px solid #e2e8f0;
+            border-radius: 20px; padding: 36px; box-shadow: 0 20px 50px rgba(15, 23, 42, .07); }
+        .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
+        .brand img { width: 40px; height: 40px; border-radius: 12px; object-fit: contain; }
+        .mark { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+            background: #0f172a; color: #facc15; font-weight: 800; font-size: 17px; }
+        .brand strong { display: block; font-size: 14px; letter-spacing: -.01em; }
+        .brand span { color: #94a3b8; font-size: 10.5px; }
+        .icon { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center;
+            font-size: 19px; margin-bottom: 18px; background: #fffbeb; color: #b45309; }
+        h1 { font-size: 22px; letter-spacing: -.03em; margin: 0 0 10px; }
+        p { color: #475569; font-size: 13.5px; line-height: 1.7; margin: 0 0 12px; }
+        code { background: #f1f5f9; padding: 2px 6px; border-radius: 6px; font-size: 12px; }
+        .note { margin-top: 24px; padding-top: 18px; border-top: 1px solid #e2e8f0;
+            color: #94a3b8; font-size: 11.5px; line-height: 1.7; }
+        .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; }
+        .button { display: inline-flex; align-items: center; gap: 7px; padding: 10px 16px;
+            border-radius: 10px; background: #0f172a; color: #fff; text-decoration: none;
+            font-size: 12px; font-weight: 600; }
+        .button.ghost { background: #fff; color: #334155; border: 1px solid #e2e8f0; }
+    </style>
+</head>
+<body>
+    <main class="panel">
+        <div class="brand">
+            {% if tenant.logo_url %}
+            <img src="{{ tenant.logo_url }}" alt="{{ tenant.display_name }}">
+            {% else %}
+            <span class="mark">{{ tenant.display_name|slice:":1" }}</span>
+            {% endif %}
+            <div><strong>{{ tenant.display_name }}</strong><span>{{ domain.hostname }}</span></div>
+        </div>
+
+        {% if domain.status == 'disabled' %}
+        <div class="icon"><i>!</i></div>
+        <h1>This address is paused</h1>
+        <p>The custom domain <code>{{ domain.hostname }}</code> was disabled after it stopped
+            proving ownership, or after it was revoked by workspace support.</p>
+        <p>The workspace itself is unaffected. Sign in on your main SORA address to re-verify the
+            domain or contact your administrator.</p>
+        {% else %}
+        <div class="icon"><i>…</i></div>
+        <h1>This address isn’t ready yet</h1>
+        <p>The workspace owner has added <code>{{ domain.hostname }}</code> but DNS ownership has
+            not been confirmed yet.</p>
+        <p>If you are the workspace administrator, publish the verification TXT record shown under
+            <strong>Billing &amp; Plan → Custom domains</strong> and run the DNS check again.</p>
+        {% endif %}
+
+        {% if platform_url %}
+        <div class="actions">
+            <a class="button" href="{{ platform_url }}/login">Open SORA ERP</a>
+            <a class="button ghost" href="{{ platform_url }}/billing/#domains">Manage domains</a>
+        </div>
+        {% endif %}
+
+        <div class="note">
+            For your security, this address does not serve the workspace until DNS verification succeeds.
+            If you were expecting a different site here, contact the domain owner.
+        </div>
+    </main>
+</body>
+</html>

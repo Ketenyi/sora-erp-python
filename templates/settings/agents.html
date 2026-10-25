@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<style>
+    .agent-facts { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:12px; margin:0 0 6px; }
+    .agent-fact { background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; }
+    .agent-fact span { display:block; font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:#94a3b8; font-weight:700; }
+    .agent-fact strong { display:block; margin-top:4px; font-size:15px; color:#0f172a; }
+    body[data-theme="dark"] .agent-fact { background:#111827; border-color:#334155; }
+    body[data-theme="dark"] .agent-fact strong { color:#e2e8f0; }
+    .endpoint-row { display:flex; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px solid #eef2f6; font-size:13px; }
+    .endpoint-row:last-child { border-bottom:0; }
+    .endpoint-row code { font-size:12px; color:#475569; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-desktop"></i> Endpoint Agents</h1><p>Discovery cadence, access token lifetime and inventory retention for every enrolled device.</p></div>
+    <div class="page-actions">
+        <a href="/settings" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Settings</a>
+        <a href="/assets/agents/enrollment" class="btn btn-primary"><i class="fas fa-key"></i> Issue Bootstrap Token</a>
+    </div>
+</div>
+{% include "settings/_nav.html" %}
+
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-chart-simple"></i> Current footprint</span></div>
+    <div style="padding:16px 18px;">
+        <div class="agent-facts">
+            <div class="agent-fact"><span>Enrolled endpoints</span><strong>{{ agent_count }}</strong></div>
+            <div class="agent-fact"><span>Distinct applications</span><strong>{{ software_count }}</strong></div>
+            <div class="agent-fact"><span>Heartbeat</span><strong>{{ policy.heartbeat_seconds }}s</strong></div>
+            <div class="agent-fact"><span>Inventory</span><strong>{{ policy.inventory_minutes }} min</strong></div>
+            <div class="agent-fact"><span>Token lifetime</span><strong>{{ policy.token_ttl_hours }}h</strong></div>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="margin-top:18px;">
+    <div class="card-header"><span><i class="fas fa-sliders-h"></i> Agent policy</span></div>
+    <form method="post" style="padding:18px;">
+        {% csrf_token %}
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="{{ form.agent_heartbeat_seconds.id_for_label }}">{{ form.agent_heartbeat_seconds.label }}</label>
+                {{ form.agent_heartbeat_seconds }}
+                {{ form.agent_heartbeat_seconds.errors }}
+                <div class="info">{{ form.agent_heartbeat_seconds.help_text }}</div>
+            </div>
+            <div class="form-group">
+                <label for="{{ form.agent_inventory_minutes.id_for_label }}">{{ form.agent_inventory_minutes.label }}</label>
+                {{ form.agent_inventory_minutes }}
+                {{ form.agent_inventory_minutes.errors }}
+                <div class="info">{{ form.agent_inventory_minutes.help_text }}</div>
+            </div>
+            <div class="form-group">
+                <label for="{{ form.agent_token_ttl_hours.id_for_label }}">{{ form.agent_token_ttl_hours.label }}</label>
+                {{ form.agent_token_ttl_hours }}
+                {{ form.agent_token_ttl_hours.errors }}
+                <div class="info">{{ form.agent_token_ttl_hours.help_text }}</div>
+            </div>
+            <div class="form-group">
+                <label for="{{ form.agent_snapshot_retention.id_for_label }}">{{ form.agent_snapshot_retention.label }}</label>
+                {{ form.agent_snapshot_retention }}
+                {{ form.agent_snapshot_retention.errors }}
+                <div class="info">{{ form.agent_snapshot_retention.help_text }}</div>
+            </div>
+            <div class="form-group">
+                <label for="{{ form.agent_software_limit.id_for_label }}">{{ form.agent_software_limit.label }}</label>
+                {{ form.agent_software_limit }}
+                {{ form.agent_software_limit.errors }}
+                <div class="info">{{ form.agent_software_limit.help_text }}</div>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary"><i class="fas fa-floppy-disk"></i> Save Policy</button>
+    </form>
+</div>
+
+<div class="card" style="margin-top:18px;">
+    <div class="card-header"><span><i class="fas fa-truck-fast"></i> Deployment endpoints</span></div>
+    <div style="padding:8px 18px 18px;">
+        <div class="endpoint-row">
+            <div><strong>Windows package</strong><div class="info">ZIP with silent PowerShell installer, GPO startup script and WiX/MSI build helper. Requires a valid bootstrap token.</div></div>
+            <code>{{ server_url }}/api/assets/agent/package?platform=windows&amp;token=…</code>
+        </div>
+        <div class="endpoint-row">
+            <div><strong>Linux package</strong><div class="info">systemd installer with token pre-embedded; the one-line bootstrap is generated per token.</div></div>
+            <code>{{ server_url }}/api/assets/agent/package?platform=linux&amp;token=…</code>
+        </div>
+        <div class="endpoint-row">
+            <div><strong>Self-onboarding portal</strong><div class="info">Share with a device user together with a single-use token. No administrator login required.</div></div>
+            <code>{{ server_url }}/onboard-device</code>
+        </div>
+        <div class="endpoint-row">
+            <div><strong>Register / refresh</strong><div class="info">Bootstrap token is exchanged for a hardware-bound JWT; agents refresh it before expiry.</div></div>
+            <code>{{ server_url }}/api/assets/agent/register</code>
+        </div>
+        <div class="endpoint-row">
+            <div><strong>Inventory ingest</strong><div class="info">JSON or Zstandard-compressed batches, tenant-isolated and checksummed on arrival.</div></div>
+            <code>{{ server_url }}/api/assets/agent/inventory</code>
+        </div>
+    </div>
+</div>
+{% endblock %}

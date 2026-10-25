@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-calendar-check"></i> Interviews</h1><p>Scheduled conversations with candidates.</p></div>
+    <div class="page-actions">
+        <a href="/hr/recruitment/candidates" class="btn btn-secondary"><i class="fas fa-users"></i> Candidates</a>
+        {% if can_manage %}<a href="/hr/recruitment/schedule-interview" class="btn btn-primary"><i class="fas fa-calendar-plus"></i> Schedule interview</a>{% endif %}
+    </div>
+</div>
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-calendar-day"></i></div><div><div class="stat-number">{{ upcoming_count }}</div><div class="stat-label">Upcoming</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-list"></i></div><div><div class="stat-number">{{ page_obj.paginator.count }}</div><div class="stat-label">Scheduled records</div></div></div>
+</div>
+<div class="card">
+    <form method="get" class="filter-bar">
+        <div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="">All statuses</option>{% for value, label in status_choices %}<option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="form-group" style="align-self:flex-end;"><button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button> <a href="/hr/recruitment/interviews" class="btn btn-secondary">Reset</a></div>
+    </form>
+</div>
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-list"></i> Interview schedule</span></div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>When</th><th>Candidate</th><th>Opening</th><th>Type</th><th>Location</th><th>Status</th><th>Rating</th><th></th></tr></thead>
+            <tbody>
+            {% for interview in interviews %}
+                <tr>
+                    <td><strong>{{ interview.scheduled_date|date:"M d, Y" }}</strong><div class="info" style="font-size:12px;">{{ interview.scheduled_date|date:"H:i" }} &middot; {{ interview.duration_minutes }} min</div></td>
+                    <td>{{ interview.candidate_name }}</td>
+                    <td>{{ interview.job_title }}</td>
+                    <td>{{ interview.get_interview_type_display|default:interview.interview_type }}</td>
+                    <td>{{ interview.location|default:"—" }}{% if interview.meeting_link %}<div style="font-size:12px;"><a href="{{ interview.meeting_link }}" target="_blank" rel="noopener">Join link</a></div>{% endif %}</td>
+                    <td><span class="badge badge-{{ interview.status|status_class }}">{{ interview.get_status_display }}</span>{% if interview.is_upcoming %} <span class="badge badge-info">Upcoming</span>{% endif %}</td>
+                    <td>{% if interview.rating %}{{ interview.rating|floatformat:1 }}/5{% else %}—{% endif %}</td>
+                    <td><a href="/hr/recruitment/interview/{{ interview.id }}" class="btn btn-sm btn-secondary">View</a></td>
+                </tr>
+            {% empty %}<tr><td colspan="8"><div class="empty-state"><i class="fas fa-calendar"></i><p>No interviews scheduled.</p></div></td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

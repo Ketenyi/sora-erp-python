@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-screwdriver-wrench"></i> Maintenance</h1>
+        <p>Preventive visits, repairs and inspections across the asset fleet.</p>
+    </div>
+    <div class="page-actions">
+        {% if can_create %}<a href="/assets/maintenance/new" class="btn btn-primary"><i class="fas fa-plus"></i> Schedule Maintenance</a>{% endif %}
+        <a href="/assets/register" class="btn btn-secondary"><i class="fas fa-list"></i> Asset Register</a>
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-calendar"></i></div>
+        <div><div class="stat-number">{{ stats.scheduled }}</div><div class="stat-label">Scheduled jobs</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-wrench"></i></div>
+        <div><div class="stat-number">{{ stats.in_progress }}</div><div class="stat-label">In progress</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-triangle-exclamation"></i></div>
+        <div><div class="stat-number">{{ stats.overdue }}</div><div class="stat-label">Overdue &middot; past scheduled date</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-circle-check"></i></div>
+        <div><div class="stat-number">{{ stats.completed_month }}</div><div class="stat-label">Completed this month &middot; {{ currency_symbol }} {{ stats.completed_month_cost|floatformat:0|intcomma }}</div></div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="filter-bar">
+            <div class="form-group">
+                <label>Search</label>
+                <input type="text" name="q" class="form-control" value="{{ filters.q }}" placeholder="Asset, job title or vendor">
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All</option>
+                    {% for key, label in maintenance_statuses %}
+                    <option value="{{ key }}" {% if filters.status == key %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Type</label>
+                <select name="type" class="form-control">
+                    <option value="">All</option>
+                    {% for key, label in maintenance_types %}
+                    <option value="{{ key }}" {% if filters.type == key %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group"><button class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button></div>
+            {% if filters.q or filters.status or filters.type %}<div class="form-group"><a href="/assets/maintenance" class="btn btn-secondary">Reset</a></div>{% endif %}
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Scheduled</th><th>Asset</th><th>Job</th><th>Type</th><th>Vendor</th><th class="text-right">Cost</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                {% for job in rows %}
+                <tr>
+                    <td>{{ job.scheduled_date|date:"M d, Y" }}{% if job.is_overdue %}<div><span class="badge badge-danger">Overdue</span></div>{% endif %}</td>
+                    <td><a href="/assets/{{ job.asset_id }}"><strong>{{ job.asset.asset_code }}</strong></a><div class="text-muted" style="font-size:11px;">{{ job.asset.name }}</div></td>
+                    <td>{{ job.title }}{% if job.performed_by %}<div class="text-muted" style="font-size:11px;">{{ job.performed_by.first_name }} {{ job.performed_by.last_name }}</div>{% endif %}</td>
+                    <td><span class="badge badge-{{ job.maintenance_type|status_class }}">{{ job.get_maintenance_type_display }}</span></td>
+                    <td>{{ job.vendor|default:"—" }}</td>
+                    <td class="text-right">{{ currency_symbol }} {{ job.cost|floatformat:2|intcomma }}</td>
+                    <td><span class="badge badge-{{ job.status|status_class }}">{{ job.get_status_display }}</span></td>
+                    <td>
+                        <div class="table-actions">
+                            {% if can_edit %}
+                                {% if job.status != "completed" and job.status != "cancelled" %}
+                                <a href="/assets/maintenance/{{ job.id }}/complete" class="btn btn-sm btn-primary" title="Complete"><i class="fas fa-check"></i></a>
+                                {% endif %}
+                                <a href="/assets/maintenance/{{ job.id }}/edit" class="btn btn-sm btn-secondary" title="Edit"><i class="fas fa-pen"></i></a>
+                                {% if job.status != "completed" and job.status != "cancelled" %}
+                                <form method="post" action="/assets/maintenance/{{ job.id }}/cancel" onsubmit="return confirm('Cancel this maintenance job?');" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-secondary" title="Cancel"><i class="fas fa-xmark"></i></button>
+                                </form>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8"><div class="empty-state"><i class="fas fa-screwdriver-wrench"></i><p>No maintenance jobs match this view.</p>{% if can_create %}<a href="/assets/maintenance/new">Schedule maintenance</a>{% endif %}</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

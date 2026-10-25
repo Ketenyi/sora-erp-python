@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-file-contract"></i> {% if is_edit %}Edit SLA Policy{% else %}New SLA Policy{% endif %}</h1>
+        <p>Define the service tier and resolution clock applied to tickets.</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% if contract %}/helpdesk/contracts/{{ contract.id }}{% else %}/helpdesk/contracts{% endif %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+
+<div class="card">
+    <div style="padding: 22px 24px;">
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-grid">
+                {% for field in form %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+                    {{ field }}
+                    {% if field.help_text %}<div class="text-muted" style="font-size:11px;margin-top:4px;">{{ field.help_text }}</div>{% endif %}
+                    {{ field.errors }}
+                </div>
+                {% endfor %}
+            </div>
+            {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <button class="btn btn-primary"><i class="fas fa-check"></i> Save policy</button>
+                <a href="/helpdesk/contracts" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

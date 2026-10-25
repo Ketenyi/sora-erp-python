@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-address-book"></i> CRM Dashboard</h1>
+        <p>Client and vendor relationships across the business.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/crm/clients/create" class="btn btn-primary"><i class="fas fa-plus"></i> New Client</a>
+        <a href="/crm/vendors/create" class="btn btn-secondary"><i class="fas fa-truck"></i> New Vendor</a>
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-users"></i></div>
+        <div><div class="stat-number">{{ stats.clients|intcomma }}</div><div class="stat-label">Clients</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-user-check"></i></div>
+        <div><div class="stat-number">{{ stats.active_clients|intcomma }}</div><div class="stat-label">Active clients</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-user-plus"></i></div>
+        <div><div class="stat-number">{{ stats.new_clients|intcomma }}</div><div class="stat-label">New this month</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-truck"></i></div>
+        <div><div class="stat-number">{{ stats.vendors|intcomma }}</div><div class="stat-label">Vendors</div></div>
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div class="card">
+        <div class="card-header">
+            <span><i class="fas fa-user-friends"></i> Recent Clients</span>
+            <a href="/crm/clients" class="btn btn-sm btn-secondary">View all</a>
+        </div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead><tr><th>Code</th><th>Company</th><th>Contact</th><th>Status</th></tr></thead>
+                <tbody>
+                    {% for client in recent_clients %}
+                    <tr>
+                        <td><a href="/crm/clients/view/{{ client.id }}"><strong>{{ client.client_code }}</strong></a></td>
+                        <td>{{ client.company_name }}</td>
+                        <td>{{ client.contact_person|default:"-" }}<br><span class="info">{{ client.email }}</span></td>
+                        <td><span class="badge badge-{{ client.status|status_class }}">{{ client.get_status_display }}</span></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4"><div class="empty-state"><i class="fas fa-users"></i><p>No clients yet.</p></div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-trophy"></i> Top Clients</span></div>
+            <div style="padding: 16px 20px;">
+                {% for row in top_clients %}
+                <div class="summary-line">
+                    <span>{% if row.client %}<a href="/crm/clients/view/{{ row.client.id }}">{{ row.client.company_name }}</a>{% else %}-{% endif %}</span>
+                    <span class="money">{{ currency_symbol }} {{ row.invoiced|floatformat:0|intcomma }}</span>
+                </div>
+                {% empty %}
+                <p class="info">No invoice data yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-truck"></i> Vendors</span></div>
+            <div style="padding: 16px 20px;">
+                {% for vendor in recent_vendors %}
+                <div class="summary-line"><span><a href="/crm/vendors/view/{{ vendor.id }}">{{ vendor.company_name }}</a></span><span>{{ vendor.vendor_code }}</span></div>
+                {% empty %}
+                <p class="info">No vendors yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

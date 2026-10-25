@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-chart-pie"></i> Project Analytics</h1>
+        <p>Portfolio health, delivery throughput and spend, refreshed live from operational data.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/analytics/query" class="btn btn-primary"><i class="fas fa-sliders"></i> Query builder</a>
+        <a href="/projects/analytics/reports" class="btn btn-secondary"><i class="fas fa-file-lines"></i> Saved reports</a>
+        <a href="/projects/dashboards" class="btn btn-secondary"><i class="fas fa-table-columns"></i> My dashboards</a>
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-folder-open"></i></div><div><div class="stat-number">{{ overview.projects }}</div><div class="stat-label">Projects &middot; {{ overview.in_execution }} in execution</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-sack-dollar"></i></div><div><div class="stat-number">{{ overview.contract_value }}</div><div class="stat-label">Contracted value</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-receipt"></i></div><div><div class="stat-number">{{ overview.expenses }}</div><div class="stat-label">Approved field expenses</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-list-check"></i></div><div><div class="stat-number">{{ overview.tasks_complete }}/{{ overview.tasks_total }}</div><div class="stat-label">Tasks complete &middot; {{ overview.tasks_blocked }} blocked</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-ticket"></i></div><div><div class="stat-number">{{ overview.open_tickets }}</div><div class="stat-label">Open SLA tickets</div></div></div>
+</div>
+
+<div class="widget-grid">
+    <div class="widget">
+        <h3><i class="fas fa-diagram-project"></i> {{ status_chart.dataset_label }} by {{ status_chart.dimension_label|lower }}</h3>
+        <div class="chart-bars">
+            {% for row in status_chart.rows %}
+            <div class="chart-bar-row">
+                <span>{{ row.label }}</span>
+                <div class="bar"><span style="width: {{ row.percent }}%;"></span></div>
+                <span class="value">{{ row.value|floatformat:0 }}</span>
+            </div>
+            {% empty %}
+            <div class="text-muted">No project data yet.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="widget">
+        <h3><i class="fas fa-list-check"></i> {{ task_chart.dataset_label }} by {{ task_chart.dimension_label|lower }}</h3>
+        <div class="chart-bars">
+            {% for row in task_chart.rows %}
+            <div class="chart-bar-row">
+                <span>{{ row.label }}</span>
+                <div class="bar"><span style="width: {{ row.percent }}%;"></span></div>
+                <span class="value">{{ row.value|floatformat:0 }}</span>
+            </div>
+            {% empty %}
+            <div class="text-muted">No task data yet.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="widget">
+        <h3><i class="fas fa-receipt"></i> Approved expenses by category</h3>
+        <div class="chart-bars">
+            {% for row in expense_chart.rows %}
+            <div class="chart-bar-row">
+                <span>{{ row.label }}</span>
+                <div class="bar"><span style="width: {{ row.percent }}%;"></span></div>
+                <span class="value">{{ currency_symbol }} {{ row.value|floatformat:0|intcomma }}</span>
+            </div>
+            {% empty %}
+            <div class="text-muted">No approved expenses yet.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-file-lines"></i> Saved reports</span><a href="/projects/analytics/reports" class="btn btn-sm btn-secondary">View all</a></div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Report</th><th>Delivery</th><th>Last run</th><th></th></tr></thead>
+            <tbody>
+                {% for report in saved_reports %}
+                <tr>
+                    <td><a href="/projects/analytics/reports/{{ report.id }}"><strong>{{ report.name }}</strong></a></td>
+                    <td>{{ report.get_schedule_display }}</td>
+                    <td>{{ report.last_run_at|date:"M d, Y H:i"|default:"Never" }}</td>
+                    <td><a href="/projects/analytics/reports/{{ report.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4"><div class="empty-state"><i class="fas fa-file-lines"></i><p>No saved reports yet. Build a query and save it for scheduled delivery.</p></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

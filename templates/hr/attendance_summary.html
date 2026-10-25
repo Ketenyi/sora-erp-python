@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-chart-bar"></i> Attendance Summary</h1><p>{{ month_label }} by employee.</p></div>
+    <div class="page-actions"><a href="/hr/attendance" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Daily register</a><a href="/hr/reports/attendance?year={{ year }}&month={{ month }}" class="btn btn-primary"><i class="fas fa-file-alt"></i> Report</a></div>
+</div>
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="filter-bar">
+            <div class="form-group"><label>Month</label><select name="month" class="form-control">{% for number, name in month_options %}{% endfor %}<option value="{{ month }}" selected>{{ month_label }}</option></select></div>
+            <div class="form-group"><label>Year</label><input type="number" name="year" class="form-control" value="{{ year }}"></div>
+            <div class="form-group"><label>Department</label><select name="department" class="form-control"><option value="">All departments</option>{% for department in departments %}<option value="{{ department.id }}" {% if department_filter == department.id|stringformat:"s" %}selected{% endif %}>{{ department.department_name }}</option>{% endfor %}</select></div>
+            <div class="form-group"><button class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button></div>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Employee</th><th>Department</th><th class="text-right">Days</th><th class="text-right">Hours</th><th class="text-right">Overtime</th><th class="text-right">Late</th><th class="text-right">Absent</th></tr></thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td><a href="/hr/employees/view/{{ row.employee.id }}"><strong>{{ row.employee.first_name }} {{ row.employee.last_name }}</strong></a></td>
+                    <td>{{ row.department.department_name|default:"—" }}</td>
+                    <td class="text-right">{{ row.days }}</td>
+                    <td class="text-right">{{ row.hours|floatformat:1 }}</td>
+                    <td class="text-right">{{ row.overtime|floatformat:1 }}</td>
+                    <td class="text-right">{{ row.late }}</td>
+                    <td class="text-right">{{ row.absent }}</td>
+                </tr>
+                {% empty %}<tr><td colspan="7"><div class="empty-state"><i class="fas fa-chart-bar"></i><p>No employees in this view.</p></div></td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

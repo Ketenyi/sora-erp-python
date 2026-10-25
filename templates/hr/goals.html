@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load static sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-bullseye"></i> Goals &amp; KPIs</h1><p>Track progress against individual, team and company goals.</p></div>
+    <div class="page-actions"><a href="/hr/performance/create-goal" class="btn btn-primary"><i class="fas fa-plus"></i> New goal</a><a href="/hr/performance" class="btn btn-secondary">Performance</a></div>
+</div>
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="filter-bar">
+            <div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="">All statuses</option>{% for value, label in status_choices %}<option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+            <div class="form-group"><button class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button></div>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Goal</th><th>Employee</th><th>Category</th><th>Target date</th><th style="min-width:190px;">Progress</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                {% for goal in goals %}
+                <tr>
+                    <td><strong>{{ goal.goal_name }}</strong>{% if goal.description %}<div class="info" style="font-size:12px;">{{ goal.description|truncatechars:70 }}</div>{% endif %}</td>
+                    <td>{{ goal.employee_name }}</td>
+                    <td>{{ goal.get_category_display }}</td>
+                    <td>{{ goal.target_date|date:"M d, Y" }}</td>
+                    <td>
+                        <div style="height:7px;background:#eef2f6;border-radius:99px;margin-bottom:5px;"><div style="height:100%;width:{{ goal.progress|floatformat:0 }}%;background:#3b82f6;border-radius:99px;"></div></div>
+                        <div class="info" style="font-size:11px;">{{ goal.progress|floatformat:0 }}%</div>
+                    </td>
+                    <td><span class="badge badge-{{ goal.status|status_class }}">{{ goal.get_status_display }}</span></td>
+                    <td>
+                        <form method="post" style="display:flex; gap:5px;">
+                            {% csrf_token %}<input type="hidden" name="goal_id" value="{{ goal.id }}">
+                            <input type="number" name="progress" class="form-control" style="width:70px;" min="0" max="100" value="{{ goal.progress|floatformat:0 }}">
+                            <button class="btn btn-sm btn-secondary"><i class="fas fa-save"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}<tr><td colspan="7"><div class="empty-state"><i class="fas fa-bullseye"></i><p>No goals found.</p><a href="/hr/performance/create-goal">Create a goal</a></div></td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

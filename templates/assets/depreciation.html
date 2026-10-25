@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-chart-line"></i> Asset Depreciation</h1>
+        <p>Post monthly charges and review the depreciation ledger for {{ year }}.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/assets/register" class="btn btn-secondary"><i class="fas fa-list"></i> Asset Register</a>
+        <a href="/assets/depreciation/export?year={{ year }}" class="btn btn-secondary"><i class="fas fa-file-csv"></i> Export {{ year }}</a>
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-play"></i> Run depreciation</span></div>
+            <div style="padding: 20px;">
+                {% if can_edit %}
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="{{ form.period.id_for_label }}">Period</label>
+                            {{ form.period }}
+                            {{ form.period.errors }}
+                        </div>
+                        <div class="form-group" style="justify-content:flex-end;">
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-calculator"></i> Post Month</button>
+                        </div>
+                    </div>
+                    <p class="info">Straight-line and declining-balance assets are depreciated. Retired, disposed and already-posted assets are skipped, and charges never take an asset below its salvage value.</p>
+                </form>
+                {% else %}
+                <p class="info">You have view-only access to depreciation.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-calendar-days"></i> Monthly runs</span>
+                <form method="get" style="display:flex; gap:8px; align-items:center;">
+                    <select name="year" class="form-control" onchange="this.form.submit()" style="width:auto;">
+                        {% for option in years %}<option value="{{ option }}" {% if option == year %}selected{% endif %}>{{ option }}</option>{% endfor %}
+                    </select>
+                </form>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Period</th><th>Posted</th><th class="text-right">Assets</th><th class="text-right">Charge</th></tr></thead>
+                    <tbody>
+                        {% for row in month_rows %}
+                        <tr>
+                            <td><strong>{{ row.label }}</strong></td>
+                            <td>{{ row.period_date|date:"M d, Y" }}</td>
+                            <td class="text-right">{{ row.count }}</td>
+                            <td class="text-right money">{{ currency_symbol }} {{ row.amount|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4"><div class="empty-state"><i class="fas fa-chart-line"></i><p>Nothing has been posted for {{ year }}.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-table"></i> Depreciation entries</span><span class="info">{{ page_obj.paginator.count }} entries</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Period</th><th>Asset</th><th>Posted</th><th class="text-right">Charge</th><th class="text-right">Accumulated</th></tr></thead>
+                    <tbody>
+                        {% for entry in entries %}
+                        <tr>
+                            <td>{{ entry.period_label }}</td>
+                            <td><a href="/assets/{{ entry.asset_id }}"><strong>{{ entry.asset.asset_code }}</strong></a><div class="text-muted" style="font-size:11px;">{{ entry.asset.name }}</div></td>
+                            <td>{{ entry.created_at|date:"M d, Y" }}</td>
+                            <td class="text-right">{{ currency_symbol }} {{ entry.amount|floatformat:2|intcomma }}</td>
+                            <td class="text-right money">{{ currency_symbol }} {{ entry.accumulated_total|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5"><div class="empty-state"><i class="fas fa-table"></i><p>No depreciation entries for {{ year }}.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% include "partials/pagination.html" %}
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-chart-pie"></i> {{ year }} summary</span></div>
+            <div style="padding: 20px;">
+                <div style="font-size: 28px; font-weight: 800; line-height: 1.1;">{{ currency_symbol }} {{ summary.total|floatformat:2|intcomma }}</div>
+                <p class="info" style="margin-top: 4px;">depreciation posted this year</p>
+                <div class="summary-box" style="margin-top: 16px;">
+                    <div class="summary-line"><span>Entries</span><span>{{ summary.count }}</span></div>
+                    <div class="summary-line"><span>Depreciable assets</span><span>{{ summary.depreciable }}</span></div>
+                    <div class="summary-line"><span>Accumulated (active)</span><span>{{ currency_symbol }} {{ summary.accumulated|floatformat:2|intcomma }}</span></div>
+                    <div class="summary-line total"><span>Book value (active)</span><span>{{ currency_symbol }} {{ summary.book_value|floatformat:2|intcomma }}</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-circle-info"></i> How it works</span></div>
+            <div style="padding: 18px 20px;">
+                <p class="info" style="line-height:1.7;">
+                    <strong>Straight line</strong> spreads cost less salvage value evenly across the useful life.
+                    <br><br>
+                    <strong>Declining balance</strong> applies the annual rate to the current book value.
+                    <br><br>
+                    Post each month once. Re-running a period is safe &mdash; existing entries are skipped.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load static sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-heart-pulse"></i> Preventive Health Checks</h1>
+        <p>{{ page_obj.paginator.count }} visit{{ page_obj.paginator.count|pluralize }} scheduled against active support contracts.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/sla" class="btn btn-secondary"><i class="fas fa-headset"></i> SLA Hub</a>
+        <a href="/projects/sla/tickets" class="btn btn-secondary"><i class="fas fa-ticket"></i> Tickets</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="filter-bar">
+            <div class="form-group">
+                <label>Contract</label>
+                <select name="contract" class="form-control">
+                    <option value="">All contracts</option>
+                    {% for contract in contracts %}<option value="{{ contract.id }}" {% if contract_filter == contract.id|stringformat:"s" %}selected{% endif %}>{{ contract.contract_number }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All statuses</option>
+                    <option value="scheduled" {% if status_filter == 'scheduled' %}selected{% endif %}>Scheduled</option>
+                    <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                    <option value="skipped" {% if status_filter == 'skipped' %}selected{% endif %}>Skipped</option>
+                </select>
+            </div>
+            <div class="form-group"><button class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button></div>
+            {% if contract_filter or status_filter %}<div class="form-group"><a href="/projects/sla/health-checks" class="btn btn-secondary">Reset</a></div>{% endif %}
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Visit date</th><th>Contract</th><th>Type</th><th>Status</th><th>Performed by</th><th>Findings</th><th></th></tr></thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td>{% if row.is_overdue %}<span class="text-danger">{{ row.scheduled_date|date:"M d, Y" }} &middot; overdue</span>{% else %}{{ row.scheduled_date|date:"M d, Y" }}{% endif %}</td>
+                    <td><a href="/projects/sla/contracts/{{ row.contract_id }}">{{ row.contract_number }}</a></td>
+                    <td>{{ row.get_check_type_display }}</td>
+                    <td><span class="badge badge-{{ row.status|status_class }}">{{ row.get_status_display }}</span></td>
+                    <td>{{ row.performed_name }}</td>
+                    <td>{{ row.findings|default:"—"|truncatechars:70 }}</td>
+                    <td>{% if row.status == 'scheduled' %}<a href="/projects/sla/health-checks/{{ row.id }}/complete" class="btn btn-sm btn-primary"><i class="fas fa-check"></i> Complete</a>{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7"><div class="empty-state"><i class="fas fa-heart-pulse"></i><p>No preventive visits scheduled. Open a contract and choose “Schedule visit”.</p></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

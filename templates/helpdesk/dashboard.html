@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-headset"></i> Helpdesk</h1>
+        <p>Live ticket queues, SLA countdowns and preventive service visits.</p>
+    </div>
+    <div class="page-actions">
+        {% if can_manage %}<a href="/helpdesk/settings" class="btn btn-secondary"><i class="fas fa-gears"></i> Automation</a>{% endif %}
+        {% if can_create %}<a href="/helpdesk/tickets/new" class="btn btn-primary"><i class="fas fa-plus"></i> New Ticket</a>{% endif %}
+        <a href="/helpdesk/contracts" class="btn btn-secondary"><i class="fas fa-file-contract"></i> SLA Policies</a>
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-ticket"></i></div>
+        <div><div class="stat-number">{{ stats.open }}</div><div class="stat-label">Open tickets &middot; {{ stats.unassigned }} unassigned</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-stopwatch"></i></div>
+        <div><div class="stat-number">{{ stats.breached }}</div><div class="stat-label">Resolution breached &middot; {{ stats.response_breached }} response missed</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+        <div><div class="stat-number">{{ stats.resolved_month }}</div><div class="stat-label">Resolved this month &middot; {{ stats.awaiting_confirmation }} awaiting confirmation</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-gauge-high"></i></div>
+        <div><div class="stat-number">{{ stats.avg_response }}h</div><div class="stat-label">Avg first response (30d)</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-star"></i></div>
+        <div><div class="stat-number">{% if stats.csat %}{{ stats.csat }}<span style="font-size:13px;color:#94a3b8;">/5</span>{% else %}&mdash;{% endif %}</div><div class="stat-label">CSAT (90d) &middot; {{ stats.survey_count }} response{{ stats.survey_count|pluralize }}</div></div>
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-fire"></i> Open queue</span>
+                <a href="/helpdesk/tickets" class="btn btn-sm btn-secondary">Full queue</a>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Ticket</th><th>Priority</th><th>Status</th><th>Agent</th><th>SLA due</th></tr></thead>
+                    <tbody>
+                        {% for row in recent_tickets %}
+                        <tr>
+                            <td>
+                                <a href="/helpdesk/tickets/{{ row.id }}"><strong>{{ row.ticket_number }}</strong></a>
+                                <div class="text-muted" style="font-size:11px;">{{ row.title|truncatechars:55 }} &middot; {{ row.contract_number }}</div>
+                            </td>
+                            <td><span class="badge badge-{{ row.priority|status_class }}">{{ row.get_priority_display }}</span></td>
+                            <td><span class="badge badge-{{ row.status|status_class }}">{{ row.get_status_display }}</span></td>
+                            <td>{{ row.assignee_name }}</td>
+                            <td>
+                                {% if row.is_overdue %}<span class="text-danger">{{ row.sla_due_at|date:"M d, H:i" }} &middot; overdue</span>
+                                {% elif row.sla_due_at %}{{ row.sla_due_at|date:"M d, H:i" }}{% else %}&mdash;{% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5"><div class="empty-state"><i class="fas fa-mug-hot"></i><p>No open tickets. The queue is clear.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-calendar-check"></i> Upcoming health checks</span><a href="/helpdesk/health-checks" class="btn btn-sm btn-secondary">All visits</a></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Date</th><th>Contract</th><th>Type</th><th>Status</th></tr></thead>
+                    <tbody>
+                        {% for check in upcoming_checks %}
+                        <tr>
+                            <td>{{ check.scheduled_date|date:"M d, Y" }}</td>
+                            <td>{{ check.contract_number }}</td>
+                            <td>{{ check.get_check_type_display }}</td>
+                            <td><span class="badge badge-{{ check.status|status_class }}">{{ check.get_status_display }}</span></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4"><div class="empty-state"><i class="fas fa-calendar"></i><p>No preventive visits scheduled.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-user-gear"></i> Agent workload</span></div>
+            <div style="padding: 10px 18px 18px;">
+                {% for agent in agent_rows %}
+                <div style="padding: 10px 0; border-bottom: 1px solid #eef2f6; display:flex; justify-content:space-between; gap:12px;">
+                    <span>{{ agent.name }}</span><strong>{{ agent.count }}</strong>
+                </div>
+                {% empty %}
+                <p class="info">No tickets are assigned.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-file-contract"></i> Service contracts</span></div>
+            <div style="padding: 16px 18px;">
+                <div class="summary-line"><span>Active policies</span><strong>{{ stats.contracts }}</strong></div>
+                <div class="summary-line total"><span>Monthly retainer</span><span>{{ currency_symbol }} {{ stats.mrr|floatformat:2|intcomma }}</span></div>
+                <a href="/helpdesk/contracts" class="btn btn-secondary" style="width:100%; justify-content:center; margin-top:14px;"><i class="fas fa-arrow-right"></i> View policies</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-inbox"></i> Shared mailbox</span>{% if can_manage %}<a href="/helpdesk/settings#mailbox" class="btn btn-sm btn-secondary">Manage</a>{% endif %}</div>
+            <div style="padding: 16px 18px; font-size:12.5px; line-height:1.6;">
+                {% if mailbox and mailbox.mailbox_identity %}
+                <div class="summary-line"><span>Mailbox</span><strong>{{ mailbox.mailbox_identity.from_email }}</strong></div>
+                <div class="summary-line"><span>Polling</span><strong>{% if mailbox.mailbox_active %}<span class="badge badge-success">Enabled</span>{% else %}<span class="badge badge-secondary">Paused</span>{% endif %}</strong></div>
+                <div class="summary-line"><span>Last polled</span><strong>{{ mailbox.last_polled_at|date:"M d, H:i"|default:"Never" }}</strong></div>
+                {% if mailbox.last_poll_error %}<div class="alert alert-error" style="font-size:11.5px; margin:10px 0 0;">{{ mailbox.last_poll_error|truncatechars:140 }}</div>{% endif %}
+                {% else %}
+                <p class="text-muted" style="margin:0;">No shared mailbox is linked. Email intake is off, but the web ticket form and client portal still work.</p>
+                {% if can_manage %}<a href="/helpdesk/settings#mailbox" class="btn btn-secondary" style="width:100%; justify-content:center; margin-top:10px;"><i class="fas fa-link"></i> Connect mailbox</a>{% endif %}
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-bolt"></i> Shortcuts</span></div>
+            <div style="padding: 16px 18px; display:flex; flex-direction:column; gap:10px;">
+                <a href="/helpdesk/tickets?assignee=me" class="btn btn-secondary" style="justify-content:flex-start;"><i class="fas fa-user"></i> My queue</a>
+                <a href="/helpdesk/tickets?assignee=unassigned" class="btn btn-secondary" style="justify-content:flex-start;"><i class="fas fa-inbox"></i> Unassigned tickets</a>
+                <a href="/helpdesk/tickets?status=waiting_client" class="btn btn-secondary" style="justify-content:flex-start;"><i class="fas fa-hourglass-half"></i> Waiting on client</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

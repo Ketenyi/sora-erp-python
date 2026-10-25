@@ -1,0 +1,117 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ page_title|default:"SORA Cloud Control" }} — SORA Cloud{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/cloud.css' %}">
+    <style>
+        .cloud-flashes { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+        .cloud-flash {
+            display: flex; align-items: center; gap: 9px; padding: 10px 13px; border-radius: 9px;
+            font-size: 11.5px; font-weight: 500; line-height: 1.5; border: 1px solid transparent;
+        }
+        .cloud-flash.success { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
+        .cloud-flash.error { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+        .cloud-flash.warning { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+        .cloud-flash.info { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+        .cloud-btn {
+            display: inline-flex; align-items: center; gap: 6px; padding: 8px 13px; border-radius: 8px;
+            font-size: 11.5px; font-weight: 700; text-decoration: none; border: 1px solid #e2e8f0;
+            background: #fff; color: #334155; cursor: pointer; font-family: inherit;
+        }
+        .cloud-btn:hover { border-color: #facc15; background: #fffbeb; color: #92400e; }
+        .cloud-btn.primary { background: #0b1120; border-color: #0b1120; color: #fff; }
+        .cloud-btn.primary:hover { background: #1e293b; border-color: #1e293b; color: #FFD700; }
+        .cloud-btn.gold { background: #FFD700; border-color: #FFD700; color: #111827; }
+        .cloud-btn.gold:hover { background: #ffe23a; color: #111827; }
+        .cloud-btn.danger { border-color: #fecaca; color: #b91c1c; background: #fef2f2; }
+        .cloud-btn.danger:hover { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+        .cloud-muted { color: #94a3b8; font-size: 10.5px; line-height: 1.6; }
+        .cloud-flash .close { margin-left: auto; background: none; border: 0; color: currentColor; opacity: .5; cursor: pointer; font-size: 15px; }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="cloud-body">
+<div class="cloud-shell">
+    <aside class="cloud-sidebar">
+        <a href="/cloud/" class="cloud-brand" style="text-decoration:none;">
+            <span class="mark">S</span>
+            <span>
+                <strong>SORA Cloud</strong>
+                <small>Platform control</small>
+            </span>
+        </a>
+
+        <nav class="cloud-nav">
+            <div class="nav-section">Platform</div>
+            <a href="/cloud/" class="{% if request.path == '/cloud/' %}active{% endif %}">
+                <i class="fas fa-gauge-high"></i> Overview
+            </a>
+            <a href="/cloud/leads/" class="{% if '/cloud/leads' in request.path %}active{% endif %}">
+                <i class="fas fa-bullseye"></i> Sales pipeline
+                {% if cloud_new_leads %}<span class="cloud-nav-badge">{{ cloud_new_leads }}</span>{% endif %}
+            </a>
+            <a href="/cloud/tenants/" class="{% if '/cloud/tenants' in request.path %}active{% endif %}">
+                <i class="fas fa-building"></i> Tenants
+            </a>
+            <a href="/cloud/billing/" class="{% if '/cloud/billing' in request.path %}active{% endif %}">
+                <i class="fas fa-file-invoice-dollar"></i> Billing &amp; MRR
+            </a>
+            <a href="/cloud/announcements/" class="{% if '/cloud/announcements' in request.path %}active{% endif %}">
+                <i class="fas fa-bullhorn"></i> Broadcasts
+            </a>
+            <a href="/cloud/plans/" class="{% if '/cloud/plans' in request.path %}active{% endif %}">
+                <i class="fas fa-tags"></i> Plans
+            </a>
+
+            <div class="nav-section">Configuration</div>
+            <a href="/cloud/settings/brand/" class="{% if '/cloud/settings' in request.path %}active{% endif %}">
+                <i class="fas fa-sliders"></i> Platform settings
+            </a>
+            <a href="/dashboard">
+                <i class="fas fa-arrow-up-right-from-square"></i> Tenant workspace
+            </a>
+            <a href="/" target="_blank" rel="noopener">
+                <i class="fas fa-globe"></i> Public site
+            </a>
+        </nav>
+
+        <div class="cloud-sidebar-foot">
+            <div class="who">
+                <strong>{{ user_name }}</strong>
+                Platform administrator
+            </div>
+            <a href="/logout"><i class="fas fa-sign-out-alt"></i> Sign out</a>
+        </div>
+    </aside>
+
+    <main class="cloud-main">
+        <div class="cloud-topbar">
+            <div class="crumb">SORA CLOUD / <strong>{% block crumb %}{{ page_title|default:"Overview" }}{% endblock %}</strong></div>
+            <div class="cloud-topbar-actions">
+                <span class="cloud-live">All systems operational</span>
+                {% block topbar_actions %}{% endblock %}
+            </div>
+        </div>
+
+        {% if messages %}
+        <div class="cloud-flashes">
+            {% for message in messages %}
+            <div class="cloud-flash {{ message.tags }}">
+                <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% elif message.tags == 'warning' %}fa-exclamation-triangle{% else %}fa-info-circle{% endif %}"></i>
+                <span>{{ message }}</span>
+                <button type="button" class="close" onclick="this.parentElement.remove()">&times;</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+</div>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

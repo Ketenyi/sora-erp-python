@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>{{ position.position_name|default:"Succession Plan" }}</h1>
+        <p><span class="badge badge-{{ plan.risk_level|status_class }}">{{ plan.get_risk_level_display|default:plan.risk_level }} risk</span> &middot; <span class="badge badge-{{ plan.readiness_level|status_class }}">{{ plan.get_readiness_level_display|default:plan.readiness_level }}</span></p>
+    </div>
+    <div class="page-actions">
+        <a href="/hr/succession" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> All plans</a>
+        {% if can_manage %}<a href="/hr/succession/edit/{{ plan.id }}" class="btn btn-primary"><i class="fas fa-edit"></i> Edit plan</a>{% endif %}
+    </div>
+</div>
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-user-tie"></i> Current holder</span></div>
+            <div style="padding:18px;">
+                {% if holder %}
+                <h3 style="margin:0;">{{ holder.first_name }} {{ holder.last_name }}</h3>
+                <p class="info">{{ holder.job_title|default:"—" }} &middot; {{ holder.employee_code }}</p>
+                <div class="detail-grid">
+                    <div><span class="label">Email</span><strong>{{ holder.email }}</strong></div>
+                    <div><span class="label">Phone</span><strong>{{ holder.phone|default:"—" }}</strong></div>
+                    <div><span class="label">Hire date</span><strong>{{ holder.hire_date|date:"M d, Y"|default:"—" }}</strong></div>
+                    <div><span class="label">Employment</span><strong>{{ holder.get_employment_status_display|default:holder.employment_status }}</strong></div>
+                </div>
+                <p style="margin-top:10px;"><a href="/hr/employees/view/{{ holder.id }}" class="btn btn-sm btn-secondary">Open profile</a></p>
+                {% else %}<p class="info">No current holder recorded.</p>{% endif %}
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-people-arrows"></i> Potential successors</span><span class="badge badge-info">{{ successors|length }}</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Employee</th><th>Job title</th><th>Email</th><th></th></tr></thead>
+                    <tbody>
+                    {% for successor in successors %}
+                        <tr><td><strong>{{ successor.first_name }} {{ successor.last_name }}</strong><div class="info" style="font-size:12px;">{{ successor.employee_code }}</div></td><td>{{ successor.job_title|default:"—" }}</td><td>{{ successor.email }}</td><td><a href="/hr/employees/view/{{ successor.id }}" class="btn btn-sm btn-secondary">Profile</a></td></tr>
+                    {% empty %}<tr><td colspan="4"><div class="empty-state"><i class="fas fa-user-plus"></i><p>No successors identified yet.</p></div></td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% if plan.development_plan %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-road"></i> Development plan</span></div>
+            <div style="padding:18px;"><p>{{ plan.development_plan|linebreaks }}</p></div>
+        </div>
+        {% endif %}
+    </div>
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-circle-info"></i> Plan details</span></div>
+            <div style="padding:18px;">
+                <div class="detail-grid">
+                    <div><span class="label">Position</span><strong>{{ position.position_name|default:"—" }}</strong></div>
+                    <div><span class="label">Risk level</span><strong>{{ plan.get_risk_level_display|default:plan.risk_level }}</strong></div>
+                    <div><span class="label">Readiness</span><strong>{{ plan.get_readiness_level_display|default:plan.readiness_level }}</strong></div>
+                    <div><span class="label">Last updated</span><strong>{{ plan.updated_at|date:"M d, Y H:i"|default:"—" }}</strong></div>
+                </div>
+            </div>
+        </div>
+        {% if plan.ai_prediction %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-robot"></i> AI prediction</span></div>
+            <div style="padding:18px;"><p class="info">{{ plan.ai_prediction|linebreaks }}</p></div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

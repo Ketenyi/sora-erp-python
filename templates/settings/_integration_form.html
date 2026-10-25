@@ -1,0 +1,37 @@
+{% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+<form method="post">
+    {% csrf_token %}
+    <div class="detail-layout">
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-{{ icon }}"></i> {{ title }} configuration</span><span class="badge {% if enabled == 'true' %}badge-success{% else %}badge-secondary{% endif %}">{% if enabled == 'true' %}Enabled{% else %}Disabled{% endif %}</span></div>
+            <div style="padding:18px;">
+                <div class="form-grid">
+                    {% for field in form %}
+                    <div class="form-group {% if field.field.widget.input_type == 'checkbox' %}span-2{% endif %}" {% if field.field.widget.input_type == 'checkbox' %}style="display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid #e2e8f0; border-radius:10px;"{% endif %}>
+                        {% if field.field.widget.input_type == 'checkbox' %}
+                            {{ field }}<label style="margin:0;">{{ field.label }}</label>
+                        {% else %}
+                            <label>{{ field.label }}{% if field.field.required %} *{% endif %}</label>{{ field }}
+                        {% endif %}
+                        {% if field.help_text %}<small class="info">{{ field.help_text }}</small>{% endif %}
+                        {{ field.errors }}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div>
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-circle-check"></i> Actions</span></div>
+                <div style="padding:18px;">
+                    <button type="submit" name="action" value="save" class="btn btn-primary" style="width:100%;"><i class="fas fa-save"></i> Save settings</button>
+                    <button type="submit" name="action" value="test" class="btn btn-secondary" style="width:100%; margin-top:8px;"><i class="fas fa-vial"></i> Save &amp; test configuration</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-circle-info"></i> About this integration</span></div>
+                <div style="padding:16px 18px; font-size:12px; color:#64748b; line-height:1.8;">{{ description }}</div>
+            </div>
+        </div>
+    </div>
+</form>

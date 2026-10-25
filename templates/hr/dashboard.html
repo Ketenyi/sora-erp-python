@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-users"></i> HR Dashboard</h1>
+        <p>People, attendance and leave at a glance &mdash; {{ today|date:"l, F j, Y" }}.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/hr/employees/create" class="btn btn-primary"><i class="fas fa-user-plus"></i> New Employee</a>
+        <a href="/hr/reports" class="btn btn-secondary"><i class="fas fa-file-alt"></i> Reports</a>
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-user-friends"></i></div><div><div class="stat-number">{{ stats.employees }}</div><div class="stat-label">Active employees</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-building"></i></div><div><div class="stat-number">{{ stats.departments }}</div><div class="stat-label">Departments</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-calendar-check"></i></div><div><div class="stat-number">{{ stats.pending_leave }}</div><div class="stat-label">Leave awaiting approval</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-user-clock"></i></div><div><div class="stat-number">{{ stats.on_leave }}</div><div class="stat-label">On leave today</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-briefcase"></i></div><div><div class="stat-number">{{ stats.open_positions }}</div><div class="stat-label">Open positions</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-user-plus"></i></div><div><div class="stat-number">{{ stats.new_hires }}</div><div class="stat-label">New hires this month</div></div></div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-hourglass-half"></i> Leave Awaiting Approval</span><a href="/hr/leave/pending" class="btn btn-sm btn-secondary">View all</a></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Employee</th><th>Dates</th><th>Days</th><th>Status</th><th></th></tr></thead>
+                    <tbody>
+                        {% for leave in pending_leave %}
+                        <tr>
+                            <td><strong>{{ leave.employee_name }}</strong></td>
+                            <td>{{ leave.start_date|date:"M d" }} &ndash; {{ leave.end_date|date:"M d, Y" }}</td>
+                            <td>{{ leave.duration_days|floatformat:1 }}</td>
+                            <td><span class="badge badge-{{ leave.status|status_class }}">{{ leave.get_status_display }}</span></td>
+                            <td><a href="/hr/leave/view/{{ leave.id }}" class="btn btn-sm btn-secondary">Review</a></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5"><div class="empty-state"><i class="fas fa-check-circle"></i><p>No pending leave requests.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-history"></i> Recent Leave Activity</span><a href="/hr/leave" class="btn btn-sm btn-secondary">Leave home</a></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Employee</th><th>Type</th><th>Start</th><th>Status</th></tr></thead>
+                    <tbody>
+                        {% for leave in recent_leave %}
+                        <tr>
+                            <td>{{ leave.employee_name }}</td>
+                            <td>{{ leave.type_name }}</td>
+                            <td>{{ leave.start_date|date:"M d, Y" }}</td>
+                            <td><span class="badge badge-{{ leave.status|status_class }}">{{ leave.get_status_display }}</span></td>
+                        </tr>
+                        {% empty %}<tr><td colspan="4"><div class="empty-state"><p>No leave activity yet.</p></div></td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-birthday-cake"></i> Birthdays this month</span></div>
+            <div style="padding: 16px 18px;">
+                {% for employee in birthdays %}
+                <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #f1f5f9;">
+                    <div><strong>{{ employee.first_name }} {{ employee.last_name }}</strong><div class="info" style="font-size:12px;">{{ employee.job_title|default:"-" }}</div></div>
+                    <div class="badge badge-info">{{ employee.date_of_birth|date:"M d" }}</div>
+                </div>
+                {% empty %}<div class="empty-state"><i class="fas fa-birthday-cake"></i><p>No birthdays this month.</p></div>{% endfor %}
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-award"></i> Work anniversaries</span></div>
+            <div style="padding: 16px 18px;">
+                {% for employee in anniversaries %}
+                <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #f1f5f9;">
+                    <div><strong>{{ employee.first_name }} {{ employee.last_name }}</strong><div class="info" style="font-size:12px;">{{ employee.job_title|default:"-" }}</div></div>
+                    <div class="badge badge-success">{{ employee.years_of_service }} yr{{ employee.years_of_service|pluralize }}</div>
+                </div>
+                {% empty %}<div class="empty-state"><i class="fas fa-award"></i><p>No anniversaries this month.</p></div>{% endfor %}
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-bolt"></i> Quick links</span></div>
+            <div style="padding: 16px 18px; display:flex; flex-direction:column; gap:9px;">
+                <a class="btn btn-secondary btn-sm" href="/hr/attendance/summary"><i class="fas fa-clock"></i> Attendance summary</a>
+                <a class="btn btn-secondary btn-sm" href="/hr/leave/calendar"><i class="fas fa-calendar-alt"></i> Leave calendar</a>
+                <a class="btn btn-secondary btn-sm" href="/hr/recruitment/jobs"><i class="fas fa-user-plus"></i> Recruitment</a>
+                <a class="btn btn-secondary btn-sm" href="/hr/payroll"><i class="fas fa-money-bill-wave"></i> Payroll</a>
+                <a class="btn btn-secondary btn-sm" href="/hr/analytics"><i class="fas fa-chart-line"></i> People analytics</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

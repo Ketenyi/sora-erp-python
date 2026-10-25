@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-key"></i> PM Licence &amp; Features</h1>
+        <p>SaaS tier gating for the project module. Disabled features disappear from navigation and redirect to the PM dashboard on direct access.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> PM Dashboard</a>
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-toggle-on"></i></div><div><div class="stat-number">{{ enabled_count }}/{{ flags|length }}</div><div class="stat-label">Features enabled</div></div></div>
+    {% for tier_key, tier_flags in grouped.items %}
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-layer-group"></i></div><div><div class="stat-number">{{ tier_flags|length }}</div><div class="stat-label">{{ tier_key|title }} tier features</div></div></div>
+    {% endfor %}
+</div>
+
+{% for tier_key, tier_flags in grouped.items %}
+<div class="card">
+    <div class="card-header">
+        <span>
+            <i class="fas {% if tier_key == 'core' %}fa-cubes{% elif tier_key == 'standard' %}fa-cube{% else %}fa-crown{% endif %}"></i>
+            {{ tier_key|title }} tier
+        </span>
+        <span class="text-muted" style="font-size:12px;">{{ tier_flags|length }} feature{{ tier_flags|length|pluralize }}</span>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Feature</th><th>Flag key</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                {% for flag in tier_flags %}
+                <tr>
+                    <td><strong>{{ flag.label }}</strong><div class="text-muted" style="font-size:11px;">Updated {{ flag.updated_at|date:"M d, Y H:i" }}</div></td>
+                    <td><code>{{ flag.flag_key }}</code></td>
+                    <td>{% if flag.enabled %}<span class="badge badge-success">Enabled</span>{% else %}<span class="badge badge-secondary">Disabled</span>{% endif %}</td>
+                    <td>
+                        <form method="post" action="/projects/license/{{ flag.id }}/toggle">
+                            {% csrf_token %}
+                            {% if flag.enabled %}
+                            <button class="btn btn-sm btn-danger"><i class="fas fa-toggle-off"></i> Disable</button>
+                            {% else %}
+                            <button class="btn btn-sm btn-primary"><i class="fas fa-toggle-on"></i> Enable</button>
+                            {% endif %}
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4"><div class="empty-state"><i class="fas fa-key"></i><p>No flags registered for this tier.</p></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-boxes"></i> Products</h1>
+        <p>{{ page_obj.paginator.count }} product{{ page_obj.paginator.count|pluralize }}.</p>
+    </div>
+    <div class="page-actions">
+        {% if can_create %}<a href="/inventory/products/create" class="btn btn-primary"><i class="fas fa-plus"></i> Add Product</a>{% endif %}
+        <a href="/inventory/categories" class="btn btn-secondary"><i class="fas fa-tags"></i> Categories</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="filter-bar">
+            <div class="form-group">
+                <label>Search</label>
+                <input type="text" name="q" class="form-control" value="{{ search_query }}" placeholder="Code or product name">
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <select name="category" class="form-control">
+                    <option value="">All</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if category_filter == category.id|stringformat:"s" %}selected{% endif %}>{{ category.category_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All</option>
+                    <option value="active" {% if status_filter == "active" %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if status_filter == "inactive" %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            <div class="form-group"><button class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button></div>
+            {% if search_query or category_filter or status_filter %}<div class="form-group"><a href="/inventory/products" class="btn btn-secondary">Reset</a></div>{% endif %}
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Product</th>
+                    <th>Category</th>
+                    <th class="text-right">Stock</th>
+                    <th class="text-right">Cost</th>
+                    <th class="text-right">Selling</th>
+                    <th>Stock status</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                <tr>
+                    <td class="mono"><strong>{{ product.product_code }}</strong></td>
+                    <td><a href="/inventory/products/view/{{ product.id }}"><strong>{{ product.name }}</strong></a>{% if product.sku %}<br><span class="info">SKU {{ product.sku }}</span>{% endif %}</td>
+                    <td>{{ product.category_name }}</td>
+                    <td class="text-right">{{ product.current_stock|floatformat:2 }} <span class="info">{{ product.unit }}</span></td>
+                    <td class="text-right">{{ currency_symbol }} {{ product.cost_price|floatformat:2|intcomma }}</td>
+                    <td class="text-right">{{ currency_symbol }} {{ product.unit_price|floatformat:2|intcomma }}</td>
+                    <td>
+                        {% if product.stock_status == "out" %}<span class="badge badge-danger">Out of stock</span>
+                        {% elif product.stock_status == "low" %}<span class="badge badge-warning">Low &middot; {{ product.reorder_level|floatformat:0 }}</span>
+                        {% elif product.stock_status == "over" %}<span class="badge badge-info">Overstock</span>
+                        {% else %}<span class="badge badge-success">In stock</span>{% endif %}
+                    </td>
+                    <td><span class="badge badge-{{ product.status|status_class }}">{{ product.get_status_display }}</span></td>
+                    <td>
+                        <div class="table-actions">
+                            <a href="/inventory/products/view/{{ product.id }}" class="btn btn-sm btn-secondary" title="View"><i class="fas fa-eye"></i></a>
+                            {% if can_edit %}<a href="/inventory/products/edit/{{ product.id }}" class="btn btn-sm btn-secondary" title="Edit"><i class="fas fa-pen"></i></a>{% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="9"><div class="empty-state"><i class="fas fa-boxes"></i><p>No products found.</p>{% if can_create %}<a href="/inventory/products/create">Add your first product</a>{% endif %}</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

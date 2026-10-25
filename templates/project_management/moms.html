@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-file-signature"></i> Minutes of Meeting</h1>
+        <p>{{ project.project_code }} &middot; lock decisions with client approval and an audit trail.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/{{ project.id }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Project</a>
+        <a href="/projects/approvals" class="btn btn-secondary"><i class="fas fa-envelope-open-text"></i> Approvals hub</a>
+        {% if can_create %}<a href="/projects/{{ project.id }}/moms/create" class="btn btn-primary"><i class="fas fa-plus"></i> New MOM</a>{% endif %}
+    </div>
+</div>
+
+{% include "project_management/partials/project_tabs.html" with active="moms" %}
+
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-file-lines"></i> Meeting records</span></div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Title</th><th>Meeting date</th><th>Attendees</th><th>Status</th><th>Approved by</th><th></th></tr></thead>
+            <tbody>
+                {% for mom in moms %}
+                <tr>
+                    <td><a href="/projects/{{ project.id }}/moms/view/{{ mom.id }}"><strong>{{ mom.title }}</strong></a></td>
+                    <td>{{ mom.meeting_date|date:"M d, Y" }}</td>
+                    <td>{{ mom.attendees|truncatechars:60|default:"—" }}</td>
+                    <td><span class="badge badge-{{ mom.status|status_class }}">{{ mom.get_status_display }}</span></td>
+                    <td>{{ mom.approved_by_name|default:"—" }}{% if mom.approved_at %}<div class="text-muted" style="font-size:11px;">{{ mom.approved_at|date:"M d, Y H:i" }}</div>{% endif %}</td>
+                    <td><div class="table-actions"><a href="/projects/{{ project.id }}/moms/view/{{ mom.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></a><a href="/projects/{{ project.id }}/moms/view/{{ mom.id }}/pdf" class="btn btn-sm btn-secondary"><i class="fas fa-file-pdf"></i></a></div></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6"><div class="empty-state"><i class="fas fa-file-signature"></i><p>No minutes recorded yet.</p>{% if can_create %}<a href="/projects/{{ project.id }}/moms/create">Create the first MOM</a>{% endif %}</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

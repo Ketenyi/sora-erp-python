@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+{% load static sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<style>
+    .thread { display:flex; flex-direction:column; gap:14px; padding:18px 20px; }
+    .message { border:1px solid #eef2f6; border-radius:12px; padding:14px 16px; background:#fff; }
+    .message.internal { background:#fffbeb; border-color:#fde68a; }
+    body[data-theme="dark"] .message { background:#0f172a; border-color:#334155; }
+    body[data-theme="dark"] .message.internal { background:#2a220d; border-color:#785f0e; }
+    .message-head { display:flex; justify-content:space-between; gap:12px; font-size:12px; color:#64748b; margin-bottom:8px; }
+    .message-body { white-space:pre-line; font-size:14px; line-height:1.6; }
+    .message.requester { border-left:3px solid var(--brand, #FFD700); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-ticket"></i> {{ ticket.ticket_number }} <span class="badge badge-{{ ticket.status|status_class }}" style="font-size:12px; vertical-align:middle;">{{ ticket.get_status_display }}</span></h1>
+        <p>{{ ticket.title }}{% if contract %} &middot; <a href="/helpdesk/contracts/{{ contract.id }}">{{ contract.contract_number }}</a>{% endif %}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/helpdesk/tickets" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Queue</a>
+        {% if project %}<a href="/projects/{{ project.id }}" class="btn btn-secondary"><i class="fas fa-folder-open"></i> Project</a>{% endif %}
+    </div>
+</div>
+
+{% if ticket.response_breached and not ticket.first_response_at %}
+<div class="alert alert-warning"><i class="fas fa-reply"></i> The first-response target was missed{% if ticket.response_due_at %} (due {{ ticket.response_due_at|date:"M d, Y H:i" }}){% endif %}.</div>
+{% endif %}
+{% if ticket.breached %}
+<div class="alert alert-error"><i class="fas fa-stopwatch"></i> This ticket has breached its resolution SLA deadline{% if ticket.sla_due_at %} (due {{ ticket.sla_due_at|date:"M d, Y H:i" }}){% endif %}.</div>
+{% endif %}
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-circle-info"></i> Ticket details</span></div>
+            <div style="padding:20px;">
+                <div class="detail-grid">
+                    <div class="detail-item"><div class="detail-label">Requester</div><div class="detail-value">{{ ticket.requester_name|default:"&mdash;" }}</div>{% if ticket.requester_email %}<div class="text-muted" style="font-size:12px;">{{ ticket.requester_email }}</div>{% endif %}{% if ticket.requester_phone %}<div class="text-muted" style="font-size:12px;">{{ ticket.requester_phone }}</div>{% endif %}</div>
+                    <div class="detail-item"><div class="detail-label">Channel</div><div class="detail-value">{{ ticket.get_channel_display }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Category</div><div class="detail-value">{{ ticket.get_category_display }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Priority</div><div class="detail-value"><span class="badge badge-{{ ticket.priority|status_class }}">{{ ticket.get_priority_display }}</span></div></div>
+                    <div class="detail-item"><div class="detail-label">Assigned agent</div><div class="detail-value">{{ ticket.assignee_name }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Contract</div><div class="detail-value">{% if contract %}<a href="/helpdesk/contracts/{{ contract.id }}">{{ contract.contract_number }}</a>{% else %}&mdash;{% endif %}</div></div>
+                    <div class="detail-item"><div class="detail-label">Project</div><div class="detail-value">{% if project %}<a href="/projects/{{ project.id }}">{{ project.project_code }}</a>{% else %}&mdash;{% endif %}</div></div>
+                    <div class="detail-item"><div class="detail-label">Created</div><div class="detail-value">{{ ticket.created_at|date:"M d, Y H:i" }}</div></div>
+                </div>
+                <div class="mt-3">
+                    <div class="detail-label">Description</div>
+                    <div style="white-space:pre-line;">{{ ticket.description|default:"&mdash;" }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-comments"></i> Conversation &middot; {{ replies|length }}</span></div>
+            <div class="thread">
+                <div class="message requester">
+                    <div class="message-head">
+                        <strong>{{ ticket.requester_name|default:"Requester" }}</strong>
+                        <span>{{ ticket.created_at|date:"M d, H:i" }} &middot; {{ ticket.get_channel_display }}</span>
+                    </div>
+                    <div class="message-body">{{ ticket.description|default:"No description supplied." }}</div>
+                </div>
+                {% for reply in replies %}
+                <div class="message {% if reply.is_internal %}internal{% endif %}">
+                    <div class="message-head">
+                        <strong>{{ reply.author.get_full_name|default:"System" }}{% if reply.is_internal %} &middot; internal note{% endif %}</strong>
+                        <span>{{ reply.created_at|date:"M d, H:i" }} &middot; {{ reply.get_channel_display }}</span>
+                    </div>
+                    <div class="message-body">{{ reply.body }}</div>
+                </div>
+                {% empty %}
+                <p class="info">No replies yet. Send the first update below.</p>
+                {% endfor %}
+            </div>
+            {% if can_edit %}
+            <div style="padding: 0 20px 20px;">
+                <form method="post" action="/helpdesk/tickets/{{ ticket.id }}/reply">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="{{ reply_form.body.id_for_label }}">{{ reply_form.body.label }}</label>
+                        {{ reply_form.body }}
+                        {{ reply_form.body.errors }}
+                    </div>
+                    <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
+                        <div class="form-group" style="margin:0; min-width:180px;">
+                            <label for="{{ reply_form.channel.id_for_label }}">Channel</label>
+                            {{ reply_form.channel }}
+                        </div>
+                        <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-top:18px;">{{ reply_form.is_internal }} Internal note</label>
+                        <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-top:18px;">{{ reply_form.notify_client }} Email to requester</label>
+                        <button class="btn btn-primary" style="margin-top:18px;"><i class="fas fa-paper-plane"></i> Send update</button>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="sticky-summary">
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-stopwatch"></i> Service level</span></div>
+            <div style="padding: 14px 20px;">
+                <div class="summary-line"><span>Response deadline</span><strong class="{% if ticket.response_breached %}text-danger{% endif %}">{{ ticket.response_due_at|date:"M d, H:i"|default:"&mdash;" }}{% if ticket.response_breached %} &middot; missed{% endif %}</strong></div>
+                <div class="summary-line"><span>First response</span><strong>{{ ticket.first_response_at|date:"M d, H:i"|default:"Pending" }}</strong></div>
+                <div class="summary-line"><span>SLA deadline</span><strong class="{% if ticket.is_overdue %}text-danger{% endif %}">{{ ticket.sla_due_at|date:"M d, H:i"|default:"&mdash;" }}</strong></div>
+                <div class="summary-line"><span>Hours remaining</span><strong>{% if ticket.hours_left is not None %}{{ ticket.hours_left }}h{% else %}&mdash;{% endif %}</strong></div>
+                <div class="summary-line"><span>Age</span><strong>{{ ticket.age_hours }}h</strong></div>
+                <div class="summary-line"><span>Resolved</span><strong>{{ ticket.resolved_at|date:"M d, H:i"|default:"&mdash;" }}</strong></div>
+                <div class="summary-line"><span>Client confirmed</span><strong>{{ ticket.client_confirmed_at|date:"M d, H:i"|default:"Not yet" }}</strong></div>
+                {% if survey %}
+                <div class="summary-line"><span>CSAT</span><strong>{{ survey.rating }}/5 {% if survey.comment %}<span class="text-muted" title="{{ survey.comment }}">&#9432;</span>{% endif %}</strong></div>
+                {% elif ticket.survey_sent_at %}
+                <div class="summary-line"><span>Survey sent</span><strong>{{ ticket.survey_sent_at|date:"M d, H:i" }}</strong></div>
+                {% endif %}
+                {% if contract %}
+                <div class="summary-line"><span>Contract targets</span><strong>{{ contract.response_target_hours }}h / {{ contract.resolution_target_hours }}h</strong></div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if can_edit %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-pen-to-square"></i> Update ticket</span></div>
+            <div style="padding:18px 20px;">
+                <form method="post" action="/helpdesk/tickets/{{ ticket.id }}/update">
+                    {% csrf_token %}
+                    {% for field in update_form %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {{ field.errors }}
+                    </div>
+                    {% endfor %}
+                    <button class="btn btn-primary" style="width:100%; justify-content:center;"><i class="fas fa-check"></i> Save update</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if can_edit %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-paper-plane"></i> Client updates</span></div>
+            <div style="padding:16px 20px;">
+                <label class="detail-label" for="client-status-link">Secure status link</label>
+                <div style="display:flex; gap:6px; margin-bottom:8px;">
+                    <input id="client-status-link" class="form-control" value="{{ status_url }}" readonly style="font-size:11px;">
+                    <button type="button" class="btn btn-secondary" title="Copy link" onclick="copyClientLink(this)"><i class="fas fa-copy"></i></button>
+                </div>
+                <p class="text-muted" style="font-size:11.5px; margin-bottom:10px;">The client can follow the conversation, confirm the fix and rate the service. Links expire automatically.</p>
+                {% if not mail_ready %}
+                <div class="alert alert-warning" style="font-size:11.5px; padding:9px 11px;">Email delivery is not configured for the helpdesk module. Add a sender identity to email the client.</div>
+                {% endif %}
+                <form method="post" action="/helpdesk/tickets/{{ ticket.id }}/notify" style="margin-bottom:8px;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="status">
+                    <button class="btn btn-secondary" style="width:100%; justify-content:center;" {% if not ticket.requester_email %}disabled{% endif %}><i class="fas fa-envelope"></i> Email status update</button>
+                </form>
+                {% if ticket.status == "resolved" or ticket.status == "closed" %}
+                <form method="post" action="/helpdesk/tickets/{{ ticket.id }}/notify">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="survey">
+                    <button class="btn btn-secondary" style="width:100%; justify-content:center;"><i class="fas fa-star"></i> {% if ticket.survey_sent_at %}Resend survey{% else %}Send survey{% endif %}</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-list-check"></i> Automation log</span><a href="/helpdesk/settings" class="btn btn-sm btn-secondary">Settings</a></div>
+            <div style="padding:8px 20px; max-height:280px; overflow:auto;">
+                {% for event in events %}
+                <div style="padding:8px 0; border-bottom:1px solid #f1f5f9; font-size:12px;">
+                    <div style="display:flex; justify-content:space-between; gap:8px;">
+                        <strong>{{ event.kind_label }}</strong>
+                        <span class="text-muted" style="font-size:11px;">{{ event.created_at|date:"M d H:i" }}</span>
+                    </div>
+                    {% if event.detail %}<div class="text-muted" style="margin-top:2px;">{{ event.detail|truncatechars:120 }}</div>{% endif %}
+                </div>
+                {% empty %}
+                <p class="info" style="padding:6px 0;">No automation events recorded yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-shield-halved"></i> Traceability</span></div>
+            <div style="padding:14px 20px; font-size:12px; line-height:1.7;">
+                {% if project %}
+                <p>Ticket activity is written to the linked project audit trail.</p>
+                <a href="/projects/{{ project.id }}/audit" class="btn btn-secondary" style="width:100%; justify-content:center;"><i class="fas fa-shield-halved"></i> Audit trail</a>
+                {% else %}
+                <p>This ticket is not linked to a project. Activity is retained on the ticket itself.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function copyClientLink(button) {
+        var input = document.getElementById('client-status-link');
+        if (!input) return;
+        var done = function () {
+            var original = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-check"></i>';
+            window.setTimeout(function () { button.innerHTML = original; }, 1500);
+        };
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(input.value).then(done);
+        } else {
+            input.select();
+            document.execCommand('copy');
+            done();
+        }
+    }
+</script>
+{% endblock %}
+

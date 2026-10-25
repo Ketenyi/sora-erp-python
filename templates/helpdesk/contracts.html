@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-file-contract"></i> SLA Contracts</h1>
+        <p>Support tiers, response targets and retainer values behind every ticket.</p>
+    </div>
+    <div class="page-actions">
+        {% if can_create %}<a href="/helpdesk/contracts/new" class="btn btn-primary"><i class="fas fa-plus"></i> New Policy</a>{% endif %}
+        <a href="/helpdesk/dashboard" class="btn btn-secondary"><i class="fas fa-gauge-high"></i> Dashboard</a>
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-file-contract"></i></div><div><div class="stat-number">{{ active_count }}</div><div class="stat-label">Active policies</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-coins"></i></div><div><div class="stat-number">{{ currency_symbol }} {{ monthly_value|floatformat:2|intcomma }}</div><div class="stat-label">Monthly retainer value</div></div></div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Contract</th><th>Client</th><th>Tier</th><th>Term</th><th class="text-right">Monthly</th><th>Targets</th><th>Open</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                {% for contract in contracts %}
+                <tr>
+                    <td><a href="/helpdesk/contracts/{{ contract.id }}"><strong>{{ contract.contract_number }}</strong></a><div class="text-muted" style="font-size:11px;">{{ contract.title }}</div></td>
+                    <td>{{ contract.client_name|default:"&mdash;" }}</td>
+                    <td>{{ contract.get_support_tier_display }}</td>
+                    <td>{{ contract.start_date|date:"M d, Y" }} &ndash; {{ contract.end_date|date:"M d, Y"|default:"Open" }}</td>
+                    <td class="text-right money">{{ currency_symbol }} {{ contract.monthly_value|floatformat:2|intcomma }}</td>
+                    <td>{{ contract.response_target_hours }}h / {{ contract.resolution_target_hours }}h</td>
+                    <td>{{ contract.open_tickets }}{% if contract.breached_tickets %} <span class="badge badge-danger">{{ contract.breached_tickets }} breached</span>{% endif %}</td>
+                    <td><span class="badge badge-{{ contract.status|status_class }}">{{ contract.get_status_display }}</span></td>
+                    <td><a href="/helpdesk/contracts/{{ contract.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="9"><div class="empty-state"><i class="fas fa-file-contract"></i><p>No SLA contracts yet. Create a policy to start tracking service levels.</p></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

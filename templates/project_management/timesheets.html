@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-clock"></i> Timesheets</h1>
+        <p>{{ project.project_code }} &middot; approved time becomes project labour cost in the P&amp;L.</p>
+    </div>
+    <div class="page-actions"><a href="/projects/{{ project.id }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Project</a></div>
+</div>
+
+{% include "project_management/partials/project_tabs.html" with active="timesheets" %}
+
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div><div class="stat-number">{{ approved_hours|floatformat:1 }}h</div><div class="stat-label">Approved hours</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-hourglass-half"></i></div><div><div class="stat-number">{{ pending_hours|floatformat:1 }}h</div><div class="stat-label">Awaiting approval</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-coins"></i></div><div><div class="stat-number">{{ currency_symbol }} {{ approved_cost|floatformat:0|intcomma }}</div><div class="stat-label">Approved labour cost</div></div></div>
+</div>
+
+<div class="detail-layout">
+    <div class="card">
+        <div class="card-header">
+            <span><i class="fas fa-list"></i> Time entries</span>
+            <form method="get"><select name="status" class="form-control" onchange="this.form.submit()" style="font-size:12px;"><option value="">All statuses</option><option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option><option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option><option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option></select></form>
+        </div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead><tr><th>Date</th><th>Employee</th><th>Task</th><th class="text-right">Hours</th><th class="text-right">Rate</th><th class="text-right">Amount</th><th>Status</th>{% if can_approve %}<th></th>{% endif %}</tr></thead>
+                <tbody>
+                    {% for entry in entries %}
+                    <tr>
+                        <td>{{ entry.entry_date|date:"M d, Y" }}</td>
+                        <td>{{ entry.employee_name }}</td>
+                        <td>{{ entry.task_name }}{% if entry.description %}<div class="text-muted" style="font-size:11px;">{{ entry.description|truncatechars:45 }}</div>{% endif %}</td>
+                        <td class="text-right">{{ entry.hours|floatformat:2 }}</td>
+                        <td class="text-right">{% if entry.hourly_rate %}{{ entry.hourly_rate|floatformat:2 }}{% else %}—{% endif %}</td>
+                        <td class="text-right money">{% if entry.total_amount %}{{ currency_symbol }} {{ entry.total_amount|floatformat:2|intcomma }}{% else %}—{% endif %}</td>
+                        <td><span class="badge badge-{{ entry.status|status_class }}">{{ entry.get_status_display }}</span></td>
+                        {% if can_approve %}
+                        <td>
+                            {% if entry.status == 'pending' %}
+                            <div class="table-actions">
+                                <form method="post" action="/projects/{{ project.id }}/timesheets/{{ entry.id }}/decision">{% csrf_token %}<input type="hidden" name="action" value="approve"><button class="btn btn-sm btn-primary" title="Approve"><i class="fas fa-check"></i></button></form>
+                                <form method="post" action="/projects/{{ project.id }}/timesheets/{{ entry.id }}/decision">{% csrf_token %}<input type="hidden" name="action" value="reject"><button class="btn btn-sm btn-danger" title="Reject"><i class="fas fa-times"></i></button></form>
+                            </div>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="8"><div class="empty-state"><i class="fas fa-clock"></i><p>No time entries yet.</p></div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if can_edit %}
+    <div class="card sticky-summary">
+        <div class="card-header"><span><i class="fas fa-clock"></i> Log time</span></div>
+        <div style="padding:18px 20px;">
+            <form method="post">
+                {% csrf_token %}
+                {% include "project_management/partials/form_fields.html" with form=form %}
+                <button class="btn btn-primary" style="width:100%; justify-content:center; margin-top:8px;"><i class="fas fa-plus"></i> Submit for approval</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

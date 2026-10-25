@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="welcome-section">
+        <div class="welcome-content">
+            <h1>Welcome back, <span>{{ user_name }}</span>!
+                <span class="role-badge">
+                    <i class="fas fa-shield-alt"></i> {{ user_role }}
+                </span>
+            </h1>
+            <p>Here's what's happening with your business today.</p>
+            <div class="welcome-date">
+                <i class="fas fa-calendar-alt"></i> {{ today|date:"l, F j, Y" }}
+            </div>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        {% if show_quotes %}
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
+            <div class="stat-content">
+                <div class="stat-number">{{ stats.quotes|intcomma }}</div>
+                <div class="stat-label">Total Quotes</div>
+                <div class="stat-trend">
+                    <span class="trend-up"><i class="fas fa-arrow-up"></i> {{ today_quotes }} today</span>
+                    <span style="margin-left: 0.5rem;">+{{ month_quotes }} this month</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if show_invoices %}
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+            <div class="stat-content">
+                <div class="stat-number">{{ stats.invoices|intcomma }}</div>
+                <div class="stat-label">Total Invoices</div>
+                <div class="stat-trend">
+                    <span class="{% if pending_invoices > 0 %}trend-up{% else %}trend-down{% endif %}">
+                        {{ pending_invoices }} pending
+                    </span>
+                    {% if overdue_invoices > 0 %}
+                    <span style="margin-left: 0.5rem; color: #dc3545;">
+                        <i class="fas fa-exclamation-triangle"></i> {{ overdue_invoices }} overdue
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if show_clients %}
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-users"></i></div>
+            <div class="stat-content">
+                <div class="stat-number">{{ stats.clients|intcomma }}</div>
+                <div class="stat-label">Total Clients</div>
+                <div class="stat-trend">
+                    <span class="trend-up"><i class="fas fa-user-plus"></i> Active accounts</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if show_bank and bank_accounts %}
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-university"></i></div>
+            <div class="stat-content">
+                <div class="stat-number">{{ stats.bank_accounts }}</div>
+                <div class="stat-label">Bank Accounts</div>
+                <div class="stat-trend">
+                    <span class="trend-up">Configured for payments</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if show_revenue %}
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+            <div class="stat-content">
+                <div class="stat-number">{{ currency_symbol }} {{ total_revenue|floatformat:2|intcomma }}</div>
+                <div class="stat-label">Total Revenue</div>
+                <div class="stat-trend">
+                    <span class="trend-up"><i class="fas fa-arrow-up"></i> {{ currency_symbol }} {{ month_revenue|floatformat:2|intcomma }} this month</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span><i class="fas fa-clock"></i> Today's Activity</span>
+        </div>
+        <div class="card-body" style="padding: 20px; text-align: center;">
+            <div class="today-hours" id="todayHoursWidget" style="font-size: 48px; font-weight: 700; color: var(--brand, #FFD700);">0h</div>
+            <p class="info">Hours worked today</p>
+            <div class="progress-bar-container" style="background: #e2e8f0; border-radius: 10px; height: 8px; margin-top: 15px;">
+                <div id="hoursProgress" style="width: 0%; background: var(--brand, #FFD700); height: 8px; border-radius: 10px;"></div>
+            </div>
+            <p class="info" style="margin-top: 10px;">Target: 8 hours</p>
+        </div>
+    </div>
+
+    {% if show_bank %}
+    <div class="bank-card">
+        <div class="bank-card-header">
+            <h3><i class="fas fa-university"></i> Default Bank Account</h3>
+            <a href="/accounts/bank-accounts" class="btn-link">Manage Bank Accounts &rarr;</a>
+        </div>
+        <div class="bank-card-body">
+            {% if default_bank %}
+                <div class="bank-details">
+                    <div class="bank-detail-item">
+                        <div class="bank-detail-label">Bank Name</div>
+                        <div class="bank-detail-value">{{ default_bank.bank_name }}</div>
+                    </div>
+                    <div class="bank-detail-item">
+                        <div class="bank-detail-label">Account Number</div>
+                        <div class="bank-detail-value">{{ default_bank.account_number }}</div>
+                    </div>
+                    <div class="bank-detail-item">
+                        <div class="bank-detail-label">Account Name</div>
+                        <div class="bank-detail-value">{{ default_bank.account_name }}</div>
+                    </div>
+                    {% if default_bank.branch %}
+                    <div class="bank-detail-item">
+                        <div class="bank-detail-label">Branch</div>
+                        <div class="bank-detail-value">{{ default_bank.branch }}</div>
+                    </div>
+                    {% endif %}
+                    {% if default_bank.swift_code %}
+                    <div class="bank-detail-item">
+                        <div class="bank-detail-label">Swift Code</div>
+                        <div class="bank-detail-value">{{ default_bank.swift_code }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <p style="color: #6c757d;">No bank account configured. <a href="/accounts/bank-accounts" class="btn-link">Add a bank account</a> to receive payments.</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="activities-card">
+        <div class="activities-header">
+            <h3><i class="fas fa-history"></i> Recent Activities</h3>
+            <span class="text-muted small">Last 8 updates</span>
+        </div>
+        <div class="activities-list">
+            {% if not activities %}
+                <div class="empty-activities">
+                    <i class="fas fa-inbox"></i>
+                    <p>No recent activities</p>
+                    <small>Start by creating a quote, invoice, or adding a client</small>
+                </div>
+            {% else %}
+                {% for activity in activities %}
+                <div class="activity-item">
+                    <div class="activity-icon {{ activity.type }}">
+                        <i class="fas {% if activity.type == 'quote' %}fa-file-alt{% elif activity.type == 'invoice' %}fa-file-invoice{% else %}fa-user-plus{% endif %}"></i>
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-title">
+                            <a href="{{ activity.url }}">
+                                {% if activity.type == 'quote' %}New Quote: {{ activity.reference }}
+                                {% elif activity.type == 'invoice' %}New Invoice: {{ activity.reference }}
+                                {% else %}New Client: {{ activity.company_name }}{% endif %}
+                            </a>
+                        </div>
+                        <div class="activity-details">{{ activity.company_name|default:"" }}</div>
+                    </div>
+                    {% if activity.amount %}
+                    <div class="activity-amount">
+                        {{ currency_symbol }} {{ activity.amount|floatformat:2|intcomma }}
+                    </div>
+                    {% endif %}
+                    <div class="activity-time" title="{{ activity.created_at|date:'M d, Y H:i' }}">
+                        {% if activity.created_at %}{{ activity.created_at|timesince }} ago{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateDashboardWidget() {
+    fetch('/api/presence/status')
+        .then(response => response.json())
+        .then(data => {
+            const hours = data.hours_today || 0;
+            const percentage = Math.min((hours / 8) * 100, 100);
+            document.getElementById('todayHoursWidget').textContent = hours.toFixed(1) + 'h';
+            document.getElementById('hoursProgress').style.width = percentage + '%';
+        })
+        .catch(error => console.error('Activity widget error:', error));
+}
+
+setInterval(updateDashboardWidget, 60000);
+updateDashboardWidget();
+</script>
+{% endblock %}

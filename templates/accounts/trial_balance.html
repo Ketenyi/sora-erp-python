@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-balance-scale"></i> Trial Balance</h1>
+        <p>Balances of all active accounts as at {{ as_at }}.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/accounts/reports/export?type=trial_balance&as_at={{ as_at }}" class="btn btn-secondary"><i class="fas fa-download"></i> Export CSV</a>
+        <button onclick="window.print()" class="btn btn-secondary"><i class="fas fa-print"></i> Print</button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <form method="post" action="/accounts/trial-balance" class="filter-bar">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>As at</label>
+                <input type="date" name="as_at" class="form-control" value="{{ as_at }}">
+            </div>
+            <div class="form-group">
+                <button class="btn btn-primary"><i class="fas fa-filter"></i> Generate</button>
+            </div>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Account</th>
+                    <th>Type</th>
+                    <th class="text-right">Debit</th>
+                    <th class="text-right">Credit</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td class="mono">{{ row.account.account_code }}</td>
+                    <td><a href="/accounts/ledger/account/{{ row.account.id }}"><strong>{{ row.account.account_name }}</strong></a></td>
+                    <td>{{ row.account.get_account_type_display }}</td>
+                    <td class="text-right money">{% if row.debit %}{{ currency_symbol }} {{ row.debit|floatformat:2|intcomma }}{% else %}&mdash;{% endif %}</td>
+                    <td class="text-right money">{% if row.credit %}{{ currency_symbol }} {{ row.credit|floatformat:2|intcomma }}{% else %}&mdash;{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5"><div class="empty-state"><i class="fas fa-balance-scale"></i><p>No active accounts to report.</p><a href="/accounts/chart-of-accounts/create">Create an account</a></div></td></tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr style="border-top: 2px solid #e2e8f0; font-weight: 700;">
+                    <td colspan="3">Totals</td>
+                    <td class="text-right">{{ currency_symbol }} {{ total_debit|floatformat:2|intcomma }}</td>
+                    <td class="text-right">{{ currency_symbol }} {{ total_credit|floatformat:2|intcomma }}</td>
+                </tr>
+                <tr>
+                    <td colspan="5" style="text-align:right; padding-top: 4px;">
+                        {% if total_debit == total_credit %}
+                        <span class="badge badge-success">Balanced</span>
+                        {% else %}
+                        <span class="badge badge-danger">Out of balance</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+{% endblock %}

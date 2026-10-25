@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load static sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1>Performance Review</h1><p>{% if employee_row %}{{ employee_row.first_name }} {{ employee_row.last_name }}{% endif %} &middot; {{ review.get_review_type_display }} &middot; <span class="badge badge-{{ review.status|status_class }}">{{ review.get_status_display }}</span></p></div>
+    <div class="page-actions"><a href="/hr/performance" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Performance</a></div>
+</div>
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-clipboard-list"></i> Review details</span></div>
+            <div class="detail-grid" style="padding:20px;">
+                <div><div class="info">Employee</div><strong>{% if employee_row %}{{ employee_row.first_name }} {{ employee_row.last_name }}{% endif %}</strong></div>
+                <div><div class="info">Reviewer</div><strong>{% if reviewer %}{{ reviewer.first_name }} {{ reviewer.last_name }}{% else %}—{% endif %}</strong></div>
+                <div><div class="info">Period</div><strong>{{ review.review_period_start|date:"M d, Y" }} – {{ review.review_period_end|date:"M d, Y" }}</strong></div>
+                <div><div class="info">Overall rating</div><strong>{% if review.overall_rating %}{{ review.overall_rating|floatformat:2 }} / 5{% else %}—{% endif %}</strong></div>
+            </div>
+            <div style="padding:0 20px 20px;">
+                <div style="margin-bottom:14px;"><div class="info">Strengths</div><p>{{ review.strengths|default:"—"|linebreaksbr }}</p></div>
+                <div style="margin-bottom:14px;"><div class="info">Areas for improvement</div><p>{{ review.areas_for_improvement|default:"—"|linebreaksbr }}</p></div>
+                <div style="margin-bottom:14px;"><div class="info">Goals achieved</div><p>{{ review.goals_achieved|default:"—"|linebreaksbr }}</p></div>
+                <div style="margin-bottom:14px;"><div class="info">Future goals</div><p>{{ review.future_goals|default:"—"|linebreaksbr }}</p></div>
+                <div><div class="info">Development plan</div><p>{{ review.development_plan|default:"—"|linebreaksbr }}</p></div>
+            </div>
+        </div>
+    </div>
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-gavel"></i> Review workflow</span></div>
+            <div style="padding:18px; display:flex; flex-direction:column; gap:8px;">
+                {% if can_submit %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="submit"><button class="btn btn-primary" style="width:100%;"><i class="fas fa-paper-plane"></i> Submit review</button></form>{% endif %}
+                {% if can_manage and review.status == "submitted" %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="review"><button class="btn btn-secondary" style="width:100%;"><i class="fas fa-search"></i> Mark reviewed</button></form>{% endif %}
+                {% if can_manage and review.status == "submitted" or can_manage and review.status == "reviewed" %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="approve"><button class="btn btn-primary" style="width:100%;"><i class="fas fa-check"></i> Approve review</button></form>{% endif %}
+                {% if can_manage and review.status == "approved" %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="complete"><button class="btn btn-secondary" style="width:100%;"><i class="fas fa-flag-checkered"></i> Complete review</button></form>{% endif %}
+                {% if review.status == "completed" %}<span class="badge badge-success">Review completed</span>{% endif %}
+                <div class="info" style="font-size:12px; margin-top:6px;">Submitted: {{ review.submitted_at|date:"M d, Y H:i"|default:"—" }}<br>Reviewed: {{ review.reviewed_at|date:"M d, Y H:i"|default:"—" }}<br>Approved: {{ review.approved_at|date:"M d, Y H:i"|default:"—" }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

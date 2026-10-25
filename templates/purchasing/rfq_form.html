@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-file-signature"></i> New Request for Quotation</h1>
+        <p>Describe the goods or services you want suppliers to quote.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/purchasing/rfq" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+
+<form method="post" action="/purchasing/rfq/store" id="rfqForm">
+    {% csrf_token %}
+    {{ formset.management_form }}
+
+    {% if form.errors or formset.non_form_errors or formset.errors %}
+    <div class="alert alert-error">
+        <strong>Please fix the following:</strong>
+        {{ form.non_field_errors }}
+        {{ formset.non_form_errors }}
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-info-circle"></i> RFQ Details</span></div>
+        <div style="padding: 20px;">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="{{ form.title.id_for_label }}">Title *</label>
+                    {{ form.title }}
+                    {{ form.title.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.required_date.id_for_label }}">Required by</label>
+                    {{ form.required_date }}
+                    {{ form.required_date.errors }}
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="{{ form.description.id_for_label }}">Description</label>
+                {{ form.description }}
+                {{ form.description.errors }}
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span><i class="fas fa-list"></i> Requested Items</span>
+            <button type="button" class="btn btn-sm btn-primary" id="addItemBtn"><i class="fas fa-plus"></i> Add item</button>
+        </div>
+        <div class="table-responsive">
+            <table class="data-table item-table">
+                <thead><tr><th style="min-width:200px;">Product</th><th style="min-width:260px;">Item / service *</th><th style="width:110px;">Quantity</th><th style="width:120px;">Unit</th><th style="width:36px;"></th></tr></thead>
+                <tbody id="itemRows">
+                    {% for item_form in formset %}
+                    <tr class="item-row">
+                        <td>{{ item_form.product }}{{ item_form.product.errors }}{{ item_form.description.errors }}</td>
+                        <td>{{ item_form.description }}</td>
+                        <td>{{ item_form.quantity }}{{ item_form.quantity.errors }}</td>
+                        <td>{{ item_form.unit_of_measure }}{{ item_form.unit_of_measure.errors }}</td>
+                        <td><button type="button" class="btn btn-sm btn-danger remove-row" title="Clear row"><i class="fas fa-times"></i></button></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div style="padding: 10px 20px 18px; color:#64748b; font-size:12px;">Tip: empty rows are ignored. The RFQ is saved as a draft and can be sent to suppliers later.</div>
+    </div>
+
+    <div class="page-actions" style="margin-top: 6px;">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Create RFQ</button>
+        <a href="/purchasing/rfq" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+
+<template id="emptyItemRow">
+    <tr class="item-row">
+        <td>{{ formset.empty_form.product }}{{ formset.empty_form.description.errors }}</td>
+        <td>{{ formset.empty_form.description }}</td>
+        <td>{{ formset.empty_form.quantity }}</td>
+        <td>{{ formset.empty_form.unit_of_measure }}</td>
+        <td><button type="button" class="btn btn-sm btn-danger remove-row" title="Clear row"><i class="fas fa-times"></i></button></td>
+    </tr>
+</template>
+
+{{ products_json|json_script:"products-data" }}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const productMap = {};
+JSON.parse(document.getElementById('products-data').textContent).forEach(product => {
+    productMap[String(product.id)] = product;
+});
+const totalFormsInput = document.getElementById('id_{{ formset.prefix }}-TOTAL_FORMS');
+const itemRows = document.getElementById('itemRows');
+
+document.getElementById('addItemBtn').addEventListener('click', () => {
+    const index = parseInt(totalFormsInput.value, 10);
+    const html = document.getElementById('emptyItemRow').innerHTML.replace(/__prefix__/g, index);
+    itemRows.insertAdjacentHTML('beforeend', html);
+    totalFormsInput.value = index + 1;
+});
+
+document.addEventListener('change', event => {
+    if (!event.target.matches('select[name$="-product"]')) return;
+    const product = productMap[event.target.value];
+    if (!product) return;
+    const row = event.target.closest('tr');
+    const description = row.querySelector('input[name$="-description"]');
+    const unit = row.querySelector('input[name$="-unit_of_measure"]');
+    if (description && !description.value.trim()) description.value = product.name;
+    if (unit && !unit.value.trim() && product.unit) unit.value = product.unit;
+});
+
+itemRows.addEventListener('click', event => {
+    const button = event.target.closest('.remove-row');
+    if (!button) return;
+    const row = button.closest('tr');
+    row.querySelectorAll('input, select, textarea').forEach(input => { input.value = ''; });
+    row.style.display = 'none';
+});
+</script>
+{% endblock %}

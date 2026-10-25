@@ -1,0 +1,84 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ platform.platform_name|default:"SORA ERP" }}{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}{{ platform.site_meta_description|default:"SORA ERP runs projects, finance, procurement, HR, inventory, sales and support in one modular platform." }}{% endblock %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/saas.css' %}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="pub-body">
+    <header class="pub-header">
+        <div class="pub-shell">
+            <nav class="pub-nav">
+                <a href="/" class="pub-brand">
+                    <span class="pub-logo-mark">{{ platform.platform_name|default:"SORA ERP"|slice:":1" }}</span>
+                    <span>
+                        {{ platform.platform_name|default:"SORA ERP" }}
+                        <small>{{ platform.site_brand_subtitle|default:"Modular business cloud" }}</small>
+                    </span>
+                </a>
+                <div class="pub-nav-links">
+                    <a href="/#modules">{{ copy.nav_modules|default:"Modules" }}</a>
+                    <a href="/pricing">{{ copy.nav_pricing|default:"Pricing" }}</a>
+                    <a href="/#how">{{ copy.nav_how|default:"How it works" }}</a>
+                    <a href="/contact">{{ copy.nav_contact|default:"Contact" }}</a>
+                    {% if user.is_authenticated %}
+                    <a href="/dashboard">{{ copy.nav_workspace|default:"Workspace" }}</a>
+                    {% endif %}
+                </div>
+                <div class="pub-nav-actions">
+                    {% if user.is_authenticated %}
+                    <a href="/dashboard" class="pub-btn pub-btn-gold"><i class="fas fa-arrow-right-to-bracket"></i> {{ copy.nav_open_workspace|default:"Open workspace" }}</a>
+                    {% else %}
+                    <a href="/login" class="pub-btn pub-btn-ghost">{{ copy.nav_signin|default:"Sign in" }}</a>
+                    <a href="/signup" class="pub-btn pub-btn-gold">{{ copy.nav_trial|default:"Start free trial" }}</a>
+                    {% endif %}
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    {% if messages %}
+    <div class="pub-flash-stack">
+        {% for message in messages %}
+        <div class="pub-flash {{ message.tags }}">
+            <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% elif message.tags == 'warning' %}fa-exclamation-triangle{% else %}fa-info-circle{% endif %}"></i>
+            <span>{{ message }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+
+    <footer class="pub-footer">
+        <div class="pub-shell">
+            <div class="pub-footer-grid">
+                <div>
+                    <a href="/" class="pub-brand">
+                        <span class="pub-logo-mark">{{ platform.platform_name|default:"SORA ERP"|slice:":1" }}</span>
+                        <span>{{ platform.platform_name|default:"SORA ERP" }}<small>{{ platform.site_brand_subtitle|default:"Modular business cloud" }}</small></span>
+                    </a>
+                    <small>{{ platform.site_footer_blurb|default:platform.legal_footer|default:"Run projects, finance and operations from one connected system." }}</small>
+                </div>
+                <div class="pub-footer-links">
+                    <a href="/#modules">{{ copy.nav_modules|default:"Modules" }}</a>
+                    <a href="/pricing">{{ copy.nav_pricing|default:"Pricing" }}</a>
+                    <a href="/contact">{{ copy.nav_contact|default:"Contact" }}</a>
+                    <a href="/signup">{{ copy.footer_trial|default:"Start a trial" }}</a>
+                    <a href="/login">{{ copy.nav_signin|default:"Sign in" }}</a>
+                    {% if platform.support_email %}<a href="mailto:{{ platform.support_email }}">{{ copy.footer_support|default:"Support" }}</a>{% endif %}
+                </div>
+            </div>
+            <div style="margin-top:26px;padding-top:18px;border-top:1px solid rgba(255,255,255,.08);font-size:10.5px;color:#64748b;">
+                &copy; {% now "Y" %} {{ platform.platform_name|default:"SORA ERP" }}. All rights reserved.
+            </div>
+        </div>
+    </footer>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

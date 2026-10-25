@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-heart-pulse"></i> My Wellness</h1><p>{{ employee.first_name }}, how are you feeling today?</p></div>
+    <div class="page-actions">
+        <a href="/hr/wellness/checkin" class="btn btn-primary"><i class="fas fa-plus"></i> {% if checked_in_today %}Update check-in{% else %}Daily check-in{% endif %}</a>
+        {% if access.is_hr_admin or access.is_admin %}<a href="/hr/wellness/team" class="btn btn-secondary"><i class="fas fa-users"></i> Team wellbeing</a>{% endif %}
+    </div>
+</div>
+{% if not checked_in_today %}
+<div class="card" style="border-left:4px solid var(--brand, #FFD700);">
+    <div style="padding:16px 18px; display:flex; justify-content:space-between; align-items:center;">
+        <div><strong>You have not checked in today.</strong><p class="info" style="margin:2px 0 0;">A quick check-in helps us understand how the team is doing.</p></div>
+        <a href="/hr/wellness/checkin" class="btn btn-primary btn-sm">Check in now</a>
+    </div>
+</div>
+{% endif %}
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-face-smile"></i></div><div><div class="stat-number">{{ averages.mood|floatformat:1|default:"—" }}</div><div class="stat-label">Avg mood (30 days)</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-brain"></i></div><div><div class="stat-number">{{ averages.stress|floatformat:1|default:"—" }}</div><div class="stat-label">Avg stress (30 days)</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-battery-three-quarters"></i></div><div><div class="stat-number">{{ averages.energy|floatformat:1|default:"—" }}</div><div class="stat-label">Avg energy (30 days)</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-fire"></i></div><div><div class="stat-number">{{ streak }}</div><div class="stat-label">Day streak</div></div></div>
+</div>
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-chart-column"></i> Mood over the last 30 days</span></div>
+            <div style="padding:20px;">
+                <div style="display:flex; align-items:flex-end; gap:6px; height:160px;">
+                    {% for record in records %}
+                    <div style="flex:1; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; height:100%;" title="{{ record.checkin_date|date:'M d' }}: mood {{ record.mood_score }}/10">
+                        <div style="width:100%; max-width:26px; height:{% widthratio record.mood_score max_mood 100 %}%; background:linear-gradient(180deg,var(--brand, #FFD700),#f59e0b); border-radius:4px 4px 0 0; min-height:4px;"></div>
+                        <span class="info" style="font-size:9px; margin-top:4px;">{{ record.checkin_date|date:"d" }}</span>
+                    </div>
+                    {% empty %}<div class="empty-state" style="width:100%;"><i class="fas fa-chart-simple"></i><p>No check-ins in the last 30 days.</p></div>{% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-clock-rotate-left"></i> Recent check-ins</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Date</th><th class="text-right">Mood</th><th class="text-right">Stress</th><th class="text-right">Energy</th><th class="text-right">Sleep</th><th>Notes</th></tr></thead>
+                    <tbody>
+                    {% for record in records reversed %}
+                        <tr><td>{{ record.checkin_date|date:"M d, Y" }}</td><td class="text-right">{{ record.mood_score }}/10</td><td class="text-right">{{ record.stress_level }}/10</td><td class="text-right">{{ record.energy_level }}/10</td><td class="text-right">{{ record.sleep_hours|default:"—" }}</td><td>{{ record.notes|default:"—"|truncatechars:60 }}</td></tr>
+                    {% empty %}<tr><td colspan="6"><div class="empty-state"><i class="fas fa-heart"></i><p>No check-ins yet.</p></div></td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-circle-info"></i> Latest check-in</span></div>
+            <div style="padding:18px;">
+                {% if latest %}
+                <div class="summary-box"><div style="display:flex; justify-content:space-between;"><span>Date</span><strong>{{ latest.checkin_date|date:"M d, Y" }}</strong></div></div>
+                <div class="detail-grid" style="margin-top:14px;">
+                    <div><span class="label">Mood</span><strong>{{ latest.mood_score }}/10</strong></div>
+                    <div><span class="label">Stress</span><strong>{{ latest.stress_level }}/10</strong></div>
+                    <div><span class="label">Energy</span><strong>{{ latest.energy_level }}/10</strong></div>
+                    <div><span class="label">Sleep</span><strong>{{ latest.sleep_hours|default:"—" }} hrs</strong></div>
+                </div>
+                {% if latest.notes %}<p style="margin-top:12px;">{{ latest.notes|linebreaks }}</p>{% endif %}
+                {% if latest.ai_suggestion %}<p class="info" style="font-size:12px;"><i class="fas fa-robot"></i> {{ latest.ai_suggestion }}</p>{% endif %}
+                {% else %}<p class="info">No check-in recorded yet.</p>{% endif %}
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-lightbulb"></i> Wellbeing tips</span></div>
+            <div style="padding:18px; display:flex; flex-direction:column; gap:10px;">
+                <p class="info"><i class="fas fa-bed"></i> Aim for 7–8 hours of sleep each night.</p>
+                <p class="info"><i class="fas fa-person-walking"></i> Take short walking breaks between meetings.</p>
+                <p class="info"><i class="fas fa-mug-hot"></i> Stay hydrated and step away from the screen.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

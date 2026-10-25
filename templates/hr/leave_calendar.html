@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load static sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<style>
+    .leave-calendar { width:100%; border-collapse:collapse; table-layout:fixed; }
+    .leave-calendar th { background:#f8fafc; padding:10px; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:#64748b; border:1px solid #e2e8f0; }
+    .leave-calendar td { vertical-align:top; height:100px; border:1px solid #e2e8f0; padding:6px; font-size:12px; }
+    .leave-calendar .day-number { font-weight:600; color:#334155; margin-bottom:5px; }
+    .leave-calendar .outside { background:#f8fafc; color:#cbd5e1; }
+    .leave-calendar .today { background:#fefce8; }
+    .leave-chip { display:block; padding:2px 5px; margin-bottom:3px; border-radius:4px; color:#1e293b; font-size:10.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; border-left:3px solid var(--brand, #FFD700); background:#f1f5f9; }
+</style>{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-calendar-alt"></i> Leave Calendar</h1><p>{{ month_label }} &middot; approved and pending leave.</p></div>
+    <div class="page-actions">
+        <a href="?year={{ prev_month.year }}&month={{ prev_month.month }}" class="btn btn-secondary"><i class="fas fa-chevron-left"></i> Previous</a>
+        <a href="/hr/leave/calendar" class="btn btn-secondary">This month</a>
+        <a href="?year={{ next_month.year }}&month={{ next_month.month }}" class="btn btn-secondary">Next <i class="fas fa-chevron-right"></i></a>
+        <a href="/hr/leave/request" class="btn btn-primary"><i class="fas fa-plus"></i> Request leave</a>
+    </div>
+</div>
+<div class="card" style="padding:18px;">
+    <table class="leave-calendar">
+        <thead><tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th></tr></thead>
+        <tbody>
+            {% for week in weeks %}
+            <tr>
+                {% for day in week %}
+                <td class="{% if not day.in_month %}outside{% endif %}{% if day.is_today %} today{% endif %}">
+                    <div class="day-number">{{ day.date|date:"j" }}</div>
+                    {% for leave in day.leaves %}
+                    <span class="leave-chip" style="border-left-color:{{ leave.color }};" title="{{ leave.employee_name }} · {{ leave.type_name }} ({{ leave.get_status_display }})">{{ leave.employee_name }} · {{ leave.type_name|truncatechars:14 }}</span>
+                    {% endfor %}
+                </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

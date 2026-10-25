@@ -1,0 +1,122 @@
+{% load static humanize %}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/projects.css' %}">
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; }
+        .public-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin: 18px 0; }
+        .public-meta .mini-label { margin-bottom: 3px; }
+        .public-meta strong { font-size: 14px; }
+        .section-label { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: #94a3b8; font-weight: 700; margin: 20px 0 6px; }
+        .public-footer { text-align: center; color: #94a3b8; font-size: 11px; padding: 16px; }
+        .decision-banner { border-radius: 12px; padding: 16px 18px; margin-bottom: 18px; font-size: 14px; }
+        .decision-banner.approved { background: #d1fae5; color: #065f46; }
+        .decision-banner.rejected { background: #fee2e2; color: #991b1b; }
+        .decision-banner.pending { background: #fef3c7; color: #92400e; }
+        .decision-banner.expired { background: #f1f5f9; color: #475569; }
+        .public-card textarea { resize: vertical; min-height: 90px; }
+        .retry-note { color: #64748b; font-size: 12px; line-height: 1.7; }
+    </style>
+</head>
+<body>
+<div class="public-shell">
+    <div>
+        <div class="public-card">
+            <div class="public-head">
+                <div class="eyebrow">SORA ERP · PROJECT MANAGEMENT</div>
+                {% if invalid %}
+                <h1>Invalid or unknown link</h1>
+                <p>This approval link is not recognised.</p>
+                {% else %}
+                <h1>{{ action_label }}</h1>
+                <p>{{ project.project_code }} &middot; {{ project.project_name }}</p>
+                {% endif %}
+            </div>
+
+            <div class="public-body">
+                {% if invalid %}
+                <p>It may have been mistyped or replaced by a newer link. Please ask your project contact to issue a fresh approval request.</p>
+                <div class="retry-note">For security, every approval link is single use, unknown links are rejected and all decisions are audit-logged.</div>
+
+                {% elif expired and not done %}
+                <div class="decision-banner expired"><i class="fas fa-hourglass-end"></i> This approval link expired on {{ link.expires_at|date:"M d, Y H:i" }}.</div>
+                <p>Please contact the project team for a new link. Expired links cannot be used to record a decision.</p>
+
+                {% elif done %}
+                <div class="decision-banner {{ decision|default:'pending' }}">
+                    <i class="fas fa-circle-check"></i>
+                    {% if decision == 'approved' %}This {{ action_label|lower }} was approved and recorded.
+                    {% elif decision == 'rejected' %}This {{ action_label|lower }} was rejected and recorded.
+                    {% else %}This link has already been used.{% endif %}
+                </div>
+                <div class="public-meta">
+                    <div><div class="mini-label">Recorded</div><strong>{{ link.decided_at|date:"M d, Y H:i"|default:link.used_at|date:"M d, Y H:i" }}</strong></div>
+                    <div><div class="mini-label">Recipient</div><strong>{{ link.recipient_email|default:"—" }}</strong></div>
+                </div>
+                {% if link.decision_notes %}<div class="section-label">Your note</div><p>{{ link.decision_notes }}</p>{% endif %}
+                {% if action_label == "UAT acceptance" and project.uat_accepted_at %}
+                <p class="text-muted">UAT was accepted on {{ project.uat_accepted_at|date:"M d, Y H:i" }}.</p>
+                {% endif %}
+
+                {% else %}
+                <p>You are reviewing a client approval for <strong>{{ project.project_name }}</strong>{% if project.client_name %} for {{ project.client_name }}{% endif %}. No login is required. Please review the details below and record your decision.</p>
+
+                {% if link.action_type == 'approve_mom' and entity %}
+                <div class="public-meta">
+                    <div><div class="mini-label">Meeting</div><strong>{{ entity.title }}</strong></div>
+                    <div><div class="mini-label">Date</div><strong>{{ entity.meeting_date|date:"M d, Y" }}</strong></div>
+                </div>
+                {% if entity.attendees %}<div class="section-label">Attendees</div><p>{{ entity.attendees|linebreaksbr }}</p>{% endif %}
+                {% if entity.agenda %}<div class="section-label">Agenda</div><p>{{ entity.agenda|linebreaksbr }}</p>{% endif %}
+                <div class="section-label">Minutes</div><p>{{ entity.minutes|linebreaksbr }}</p>
+                {% if entity.decisions %}<div class="section-label">Decisions</div><p>{{ entity.decisions|linebreaksbr }}</p>{% endif %}
+                {% if entity.action_items %}<div class="section-label">Action items</div><p>{{ entity.action_items|linebreaksbr }}</p>{% endif %}
+
+                {% elif link.action_type == 'approve_change_request' and entity %}
+                <div class="public-meta">
+                    <div><div class="mini-label">Change request</div><strong>{{ entity.cr_number }}</strong></div>
+                    <div><div class="mini-label">Additional cost</div><strong>{{ currency_symbol }} {{ entity.cost_impact|floatformat:2|intcomma }}</strong></div>
+                    <div><div class="mini-label">Schedule impact</div><strong>+{{ entity.schedule_impact_days }} day{{ entity.schedule_impact_days|pluralize }}</strong></div>
+                </div>
+                <div class="section-label">Request</div><p><strong>{{ entity.title }}</strong></p>
+                <p>{{ entity.description|linebreaksbr }}</p>
+                {% if entity.justification %}<div class="section-label">Justification</div><p>{{ entity.justification|linebreaksbr }}</p>{% endif %}
+
+                {% elif link.action_type == 'accept_uat' %}
+                <div class="public-meta">
+                    <div><div class="mini-label">Project</div><strong>{{ project.project_code }}</strong></div>
+                    <div><div class="mini-label">Client</div><strong>{{ project.client_name|default:"—" }}</strong></div>
+                    <div><div class="mini-label">Contract value</div><strong>{{ currency_symbol }} {{ project.contract_value|floatformat:2|intcomma }}</strong></div>
+                </div>
+                <div class="section-label">Confirmation</div>
+                <p>By accepting, you confirm that user acceptance testing has been completed satisfactorily and the project can move to handover and support.</p>
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="section-label">Your note (optional)</div>
+                    <textarea name="notes" placeholder="Add a comment or reason for rejection"></textarea>
+                    <div class="public-actions">
+                        {% if link.action_type == 'accept_uat' %}
+                        <button type="submit" name="decision" value="approve" class="btn btn-approve"><i class="fas fa-circle-check"></i> Accept UAT</button>
+                        {% else %}
+                        <button type="submit" name="decision" value="approve" class="btn btn-approve"><i class="fas fa-circle-check"></i> Approve</button>
+                        <button type="submit" name="decision" value="reject" class="btn btn-reject"><i class="fas fa-circle-xmark"></i> Reject</button>
+                        {% endif %}
+                    </div>
+                </form>
+                <p class="retry-note" style="margin-top:18px;">This link is single use and expires on {{ link.expires_at|date:"M d, Y H:i" }}. Your decision, timestamp and IP address are recorded in the immutable audit trail.</p>
+                {% endif %}
+            </div>
+        </div>
+        <div class="public-footer">Secure client approval · SORA ERP Project Management</div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-table-columns"></i> My Dashboards</h1>
+        <p>Personal widget grids built from live portfolio, delivery and SLA data.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/dashboards/create" class="btn btn-primary"><i class="fas fa-plus"></i> New Dashboard</a>
+        <a href="/projects/analytics" class="btn btn-secondary"><i class="fas fa-chart-pie"></i> Analytics</a>
+    </div>
+</div>
+
+<div class="widget-grid">
+    {% for dashboard in dashboards %}
+    <div class="widget">
+        <h3><i class="fas fa-table-columns"></i> {{ dashboard.title }}{% if dashboard.is_default %} <span class="badge badge-primary">Default</span>{% endif %}</h3>
+        <p class="widget-label">{{ dashboard.layout_config.widgets|length }} widget{{ dashboard.layout_config.widgets|length|pluralize }} &middot; updated {{ dashboard.updated_at|date:"M d, Y" }}</p>
+        <div class="page-actions" style="margin-top:14px;">
+            <a href="/projects/dashboards/{{ dashboard.id }}" class="btn btn-sm btn-primary"><i class="fas fa-eye"></i> Open</a>
+            <a href="/projects/dashboards/{{ dashboard.id }}/edit" class="btn btn-sm btn-secondary"><i class="fas fa-pen"></i> Edit</a>
+            <form method="post" action="/projects/dashboards/{{ dashboard.id }}/delete" onsubmit="return confirm('Delete this dashboard?');">{% csrf_token %}<button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button></form>
+        </div>
+    </div>
+    {% empty %}
+    <div class="widget" style="grid-column:1/-1;">
+        <div class="empty-state"><i class="fas fa-table-columns"></i><p>No dashboards yet. Build one from the nine available widgets.</p><a href="/projects/dashboards/create">Create your first dashboard</a></div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

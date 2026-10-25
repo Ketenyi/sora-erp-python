@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-list-check"></i> Tasks <span class="text-muted" style="font-size:14px;">· {{ project.project_code }}</span></h1>
+        <p>{{ page_obj.paginator.count }} task{{ page_obj.paginator.count|pluralize }} for {{ project.project_name }}.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/{{ project.id }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Project</a>
+        <a href="/projects/{{ project.id }}/board" class="btn btn-secondary"><i class="fas fa-columns"></i> Board</a>
+        {% if can_create %}<a href="/projects/{{ project.id }}/tasks/create" class="btn btn-primary"><i class="fas fa-plus"></i> New task</a>{% endif %}
+    </div>
+</div>
+
+{% include "project_management/partials/project_tabs.html" with active="tasks" %}
+
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="filter-bar">
+            <div class="form-group"><label>Search</label><input type="text" name="q" class="form-control" value="{{ search_query }}" placeholder="Task title or description"></div>
+            <div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="">All statuses</option>{% for value, label in status_choices %}<option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+            <div class="form-group"><label>Assignee</label><select name="assignee" class="form-control"><option value="">All assignees</option>{% for employee_id, employee in assignees.items %}<option value="{{ employee_id }}" {% if assignee_filter == employee_id|stringformat:"s" %}selected{% endif %}>{{ employee.first_name }} {{ employee.last_name }}</option>{% endfor %}</select></div>
+            <div class="form-group"><button class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button></div>
+            {% if search_query or status_filter or assignee_filter %}<div class="form-group"><a href="/projects/{{ project.id }}/tasks" class="btn btn-secondary">Reset</a></div>{% endif %}
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Task</th><th>Assignee</th><th>Start</th><th>Due</th><th>Status</th><th>Priority</th><th>Scope</th><th style="width:110px;">Progress</th>{% if can_edit %}<th></th>{% endif %}</tr></thead>
+            <tbody>
+                {% for task in tasks %}
+                <tr>
+                    <td><a href="/projects/{{ project.id }}/tasks/edit/{{ task.id }}"><strong>{{ task.task_name }}</strong></a>{% if task.is_overdue %} <span class="badge badge-danger">Overdue</span>{% endif %}<div class="text-muted" style="font-size:11px;">{{ task.estimated_hours|default:"—" }}h estimated &middot; {{ task.actual_hours|default:0 }}h actual</div></td>
+                    <td>{{ task.assignee_name }}</td>
+                    <td>{{ task.start_date|date:"M d, Y"|default:"—" }}</td>
+                    <td>{{ task.deadline_date|date:"M d, Y"|default:"—" }}</td>
+                    <td><span class="badge badge-{{ task.status|status_class }}">{{ task.get_status_display }}</span></td>
+                    <td><span class="badge badge-{{ task.priority|status_class }}">{{ task.get_priority_display }}</span></td>
+                    <td>{% if task.is_scope_change %}<span class="badge badge-{% if task.scope_approved %}success{% else %}warning{% endif %}">{% if task.scope_approved %}CR approved{% else %}Needs CR{% endif %}</span>{% else %}<span class="text-muted">In scope</span>{% endif %}</td>
+                    <td><div class="progress-track"><span style="width: {{ task.completion_percent|floatformat:0 }}%;"></span></div><small class="text-muted">{{ task.completion_percent|floatformat:0 }}%</small></td>
+                    {% if can_edit %}<td><div class="table-actions"><a href="/projects/{{ project.id }}/tasks/edit/{{ task.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-pen"></i></a></div></td>{% endif %}
+                </tr>
+                {% empty %}
+                <tr><td colspan="9"><div class="empty-state"><i class="fas fa-list-check"></i><p>No tasks match the filters.</p>{% if can_create %}<a href="/projects/{{ project.id }}/tasks/create">Create a task</a>{% endif %}</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

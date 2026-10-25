@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load static sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-hourglass-half"></i> Pending Leave</h1><p>{{ leaves|length }} request{{ leaves|length|pluralize }} awaiting a decision.</p></div>
+    <div class="page-actions"><a href="/hr/leave" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Leave home</a></div>
+</div>
+<div class="card">
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Employee</th><th>Type</th><th>Dates</th><th class="text-right">Days</th><th>Reason</th><th></th></tr></thead>
+            <tbody>
+                {% for leave in leaves %}
+                <tr>
+                    <td><strong>{{ leave.employee_name }}</strong></td>
+                    <td>{{ leave.type_name }}</td>
+                    <td>{{ leave.start_date|date:"M d" }} – {{ leave.end_date|date:"M d, Y" }}</td>
+                    <td class="text-right">{{ leave.duration_days|floatformat:1 }}</td>
+                    <td>{{ leave.reason|default:"—"|truncatechars:60 }}</td>
+                    <td><div class="table-actions"><a href="/hr/leave/view/{{ leave.id }}" class="btn btn-sm btn-primary">Review</a></div></td>
+                </tr>
+                {% empty %}<tr><td colspan="6"><div class="empty-state"><i class="fas fa-check-circle"></i><p>Nothing awaiting approval.</p></div></td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

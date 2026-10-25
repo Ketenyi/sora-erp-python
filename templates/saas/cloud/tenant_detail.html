@@ -1,0 +1,464 @@
+{% extends "saas/cloud/base.html" %}
+{% load humanize %}
+
+{% block title %}{{ tenant.company_name }} — SORA Cloud{% endblock %}
+{% block crumb %}{{ tenant.company_name }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="/cloud/tenants/" class="cloud-btn"><i class="fas fa-arrow-left"></i> Tenants</a>
+<a href="#support-access" class="cloud-btn primary"><i class="fas fa-user-shield"></i> Support access</a>
+{% endblock %}
+
+{% block content %}
+<div class="cloud-detail-head">
+    <div class="identity">
+        <div class="big-avatar">{{ tenant.display_name|slice:":2"|upper }}</div>
+        <div>
+            <h1>{{ tenant.display_name }}</h1>
+            <div class="slug">{{ tenant.slug }} · created {{ tenant.created_at|date:"d M Y" }}</div>
+            <div class="tags">
+                <span class="cloud-pill {{ tenant.effective_status }}">{{ tenant.effective_status_label }}</span>
+                <span class="tag"><i class="fas fa-tag"></i> {{ tenant.plan.name|default:"No plan" }}</span>
+                <span class="tag">{{ tenant.get_billing_cycle_display }} billing</span>
+                {% if tenant.is_demo %}<span class="tag">Demo workspace</span>{% endif %}
+                {% if tenant.effective_status == 'trial' %}<span class="tag">{{ tenant.trial_days_left }} trial days left</span>{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="cloud-detail-stats">
+        <div>
+            <strong>{{ platform.default_currency|default:tenant.currency }} {{ mrr|floatformat:0|intcomma }}</strong>
+            <span>Monthly value</span>
+        </div>
+        <div>
+            <strong>{{ module_count }}/{{ module_rows|length }}</strong>
+            <span>Modules</span>
+        </div>
+        <div>
+            <strong>{{ seat_used }}{% if tenant.max_users %} / {{ tenant.max_users }}{% endif %}</strong>
+            <span>Seats</span>
+        </div>
+        <div>
+            <strong>{{ pending_payments|length }}</strong>
+            <span>Pending payments</span>
+        </div>
+    </div>
+</div>
+
+<div class="cloud-grid">
+    <div>
+        <div class="cloud-card" style="margin-bottom:15px;">
+            <div class="cloud-card-head">
+                <h2><i class="fas fa-layer-group"></i> Module licences</h2>
+                <span class="cloud-muted">One click to grant or revoke access</span>
+            </div>
+            {% for row in module_rows %}
+            <div class="cloud-module-toggle">
+                <div class="module-name">
+                    <span class="module-icon"><i class="fas fa-{{ row.module.icon }}"></i></span>
+                    <div>
+                        {{ row.module.brand_name|default:row.module.name }}
+                        <div class="meta">
+                            {% if row.licence %}
+                                {{ row.licence.get_source_display }}{% if row.licence.valid_until %} · until {{ row.licence.valid_until|date:"d M Y" }}{% endif %}
+                                {% if row.licence.note %} · {{ row.licence.note }}{% endif %}
+                            {% else %}
+                                Not licensed
+                            {% endif %}
+                            {% if not row.module.is_available %} · in development{% endif %}
+                        </div>
+                    </div>
+                </div>
+                <form method="post" action="/cloud/tenants/{{ tenant.id }}/modules/{{ row.module.id }}/toggle/" class="cloud-switch-form">
+                    {% csrf_token %}
+                    <span class="state">{% if row.licence and row.licence.is_enabled %}Enabled{% else %}Off{% endif %}</span>
+                    <button type="submit" class="cloud-switch {% if row.licence and row.licence.is_enabled %}on{% endif %}"
+                            title="{% if row.licence and row.licence.is_enabled %}Disable{% else %}Enable{% endif %} {{ row.module.brand_name|default:row.module.name }}"
+                            aria-label="Toggle {{ row.module.brand_name|default:row.module.name }}"></button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="cloud-card" style="margin-bottom:15px;">
+            <div class="cloud-card-head">
+                <h2><i class="fas fa-receipt"></i> Payments</h2>
+                <span class="cloud-muted">{{ payments|length }} recent</span>
+            </div>
+            {% if payments %}
+            <div class="cloud-card-body flush">
+                <table class="cloud-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Reference</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in payments %}
+                        <tr>
+                            <td>{{ payment.created_at|date:"d M Y" }}</td>
+                            <td><strong>{{ payment.currency }} {{ payment.amount|floatformat:0|intcomma }}</strong>
+                                <div class="cloud-muted">{{ payment.plan.name|default:"—" }} · {{ payment.get_billing_cycle_display }}</div>
+                            </td>
+                            <td>{{ payment.get_method_display }}</td>
+                            <td>{{ payment.reference|default:"—" }}</td>
+                            <td><span class="cloud-pill {{ payment.status }}">{{ payment.get_status_display }}</span></td>
+                            <td style="text-align:right;">
+                                {% if payment.status == 'pending' %}
+                                <form method="post" action="/cloud/payments/{{ payment.id }}/confirm/">
+                                    {% csrf_token %}
+                                    <button type="submit" class="cloud-btn gold"><i class="fas fa-check"></i> Confirm</button>
+                                </form>
+                                {% elif payment.status == 'completed' %}
+                                <span class="cloud-muted">{{ payment.paid_at|date:"d M Y" }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="cloud-empty"><i class="fas fa-file-invoice"></i> No payments recorded yet.</div>
+            {% endif %}
+        </div>
+
+        <div class="cloud-card" style="margin-bottom:15px;">
+            <div class="cloud-card-head"><h2><i class="fas fa-globe"></i> Custom domains</h2></div>
+            {% if domains %}
+            <div class="cloud-card-body flush">
+                <table class="cloud-table">
+                    <thead>
+                        <tr><th>Domain</th><th>Status</th><th>Verified</th><th>Last check</th><th style="text-align:right;">Control</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for domain in domains %}
+                        <tr>
+                            <td>
+                                <strong style="font-size:11.5px;">{{ domain.hostname }}</strong>
+                                {% if domain.is_primary %}<span class="cloud-pill success">Primary</span>{% endif %}
+                                <div class="cloud-muted">Added {{ domain.created_at|date:"d M Y" }}</div>
+                            </td>
+                            <td><span class="cloud-pill {{ domain.status }}">{{ domain.get_status_display }}</span></td>
+                            <td>{{ domain.verified_at|date:"d M Y H:i"|default:"—" }}</td>
+                            <td>
+                                {{ domain.last_checked_at|date:"d M H:i"|default:"—" }}
+                                {% if domain.last_error %}<div class="cloud-muted" style="max-width:250px;">{{ domain.last_error }}</div>{% endif %}
+                            </td>
+                            <td style="text-align:right;">
+                                {% if domain.status != 'disabled' %}
+                                <form method="post" action="/cloud/tenants/{{ tenant.id }}/domains/{{ domain.id }}/revoke/">
+                                    {% csrf_token %}
+                                    <button type="submit" class="cloud-btn" onclick="return confirm('Stop routing {{ domain.hostname }}?');">
+                                        <i class="fas fa-ban"></i> Revoke
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span class="cloud-muted">Revoked</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="cloud-empty"><i class="fas fa-globe"></i> No custom domains.</div>
+            {% endif %}
+        </div>
+
+        <div class="cloud-grid equal" style="margin-bottom:15px;">
+            <div class="cloud-card">
+                <div class="cloud-card-head"><h2><i class="fas fa-users"></i> Team</h2></div>
+                {% if memberships %}
+                <div class="cloud-card-body flush">
+                    <table class="cloud-table">
+                        <thead>
+                            <tr><th>User</th><th>Role</th><th>Seen</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for membership in memberships %}
+                            <tr>
+                                <td>
+                                    <strong style="font-size:11.5px;">{{ membership.user.get_full_name|default:membership.user.email }}</strong>
+                                    <div class="cloud-muted">{{ membership.user.email }}</div>
+                                </td>
+                                <td>
+                                    <span class="cloud-pill {% if membership.is_tenant_admin %}admin{% endif %}">{{ membership.get_role_display }}</span>
+                                    {% if membership.status != 'active' %}<div class="cloud-muted">{{ membership.get_status_display }}</div>{% endif %}
+                                </td>
+                                <td>{{ membership.last_seen_at|date:"d M"|default:"—" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="cloud-empty"><i class="fas fa-user-plus"></i> No members yet.</div>
+                {% endif %}
+            </div>
+
+            <div class="cloud-card">
+                <div class="cloud-card-head"><h2><i class="fas fa-clock-rotate-left"></i> Audit trail</h2></div>
+                <div class="cloud-card-body">
+                    {% if audit_logs %}
+                    <ul class="cloud-timeline">
+                        {% for log in audit_logs %}
+                        <li>
+                            <div class="action">{{ log.action }}</div>
+                            {% if log.details %}<div class="detail">{{ log.details }}</div>{% endif %}
+                            <div class="when">
+                                {{ log.created_at|date:"d M Y H:i" }}
+                                {% if log.actor %} · {{ log.actor.get_full_name|default:log.actor.email }}{% endif %}
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="cloud-empty" style="padding:16px;"><i class="fas fa-list"></i> No audit entries yet.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {% if impersonations %}
+        <div class="cloud-card">
+            <div class="cloud-card-head"><h2><i class="fas fa-user-shield"></i> Support impersonation history</h2></div>
+            <div class="cloud-card-body flush">
+                <table class="cloud-table">
+                    <thead>
+                        <tr><th>Administrator</th><th>Signed in as</th><th>Reason</th><th>Started</th><th>Ended</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for log in impersonations %}
+                        <tr>
+                            <td>{{ log.platform_admin.get_full_name|default:log.platform_admin.email }}</td>
+                            <td>{{ log.target_user.get_full_name|default:log.target_user.email }}</td>
+                            <td>{{ log.reason|default:"—" }}</td>
+                            <td>{{ log.started_at|date:"d M Y H:i" }}</td>
+                            <td>{{ log.ended_at|date:"d M Y H:i"|default:"Active" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div>
+        <div class="cloud-action-card">
+            <div class="head"><i class="fas fa-circle-info"></i> Account summary</div>
+            <div class="body">
+                <div style="display:grid;grid-template-columns:auto 1fr;gap:7px 12px;font-size:11px;line-height:1.5;">
+                    <span style="color:#94a3b8;font-weight:600;">Admin contact</span>
+                    <span style="font-weight:600;word-break:break-all;">{{ tenant.admin_email }}</span>
+                    <span style="color:#94a3b8;font-weight:600;">Phone</span>
+                    <span style="font-weight:600;">{{ tenant.phone_number|default:"—" }}</span>
+                    <span style="color:#94a3b8;font-weight:600;">Plan</span>
+                    <span style="font-weight:600;">{{ tenant.plan.name|default:"Trial (no plan)" }}</span>
+                    <span style="color:#94a3b8;font-weight:600;">Currency</span>
+                    <span style="font-weight:600;">{{ tenant.currency }}</span>
+                    <span style="color:#94a3b8;font-weight:600;">Trial</span>
+                    <span style="font-weight:600;">
+                        {% if tenant.trial_ends_at %}{{ tenant.trial_ends_at|date:"d M Y" }}{% else %}—{% endif %}
+                    </span>
+                    <span style="color:#94a3b8;font-weight:600;">Subscription</span>
+                    <span style="font-weight:600;">
+                        {% if tenant.subscription_ends_at %}ends {{ tenant.subscription_ends_at|date:"d M Y" }}{% else %}No paid term{% endif %}
+                    </span>
+                    <span style="color:#94a3b8;font-weight:600;">Seat limit</span>
+                    <span style="font-weight:600;">{% if tenant.max_users %}{{ tenant.max_users }}{% else %}Unlimited{% endif %}</span>
+                </div>
+                {% if tenant.notes %}
+                <p style="margin-top:11px;padding-top:11px;border-top:1px solid #f1f5f9;font-size:10.5px;color:#64748b;line-height:1.6;">
+                    <strong>Internal notes:</strong> {{ tenant.notes|linebreaksbr }}
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="cloud-action-card" id="support-access">
+            <div class="head"><i class="fas fa-user-shield"></i> Support access</div>
+            <div class="body">
+                <p class="note">Sign in as this workspace's owner to troubleshoot. The session is logged and you can return to Cloud Control at any time.</p>
+                <form method="post" action="/cloud/tenants/{{ tenant.id }}/impersonate/">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="impersonationReason">Reason (optional)</label>
+                        <input type="text" id="impersonationReason" name="reason" class="form-control" placeholder="e.g. Investigating a support ticket">
+                    </div>
+                    <button type="submit" class="cloud-btn primary" style="width:100%;justify-content:center;">
+                        <i class="fas fa-arrow-right-to-bracket"></i> Log in as tenant
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="cloud-action-card">
+            <div class="head"><i class="fas fa-calendar-plus"></i> Extend trial</div>
+            <div class="body">
+                <p class="note">Grant extra trial days without changing the plan. Extensions are audited.</p>
+                <form method="post" action="/cloud/tenants/{{ tenant.id }}/trial/extend/">
+                    {% csrf_token %}
+                    <div class="cloud-inline-form">
+                        <div class="form-group">
+                            <label for="{{ extend_form.days.id_for_label }}">Days</label>
+                            {{ extend_form.days }}
+                            {{ extend_form.days.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ extend_form.reason.id_for_label }}">Reason</label>
+                            {{ extend_form.reason }}
+                            {{ extend_form.reason.errors }}
+                        </div>
+                    </div>
+                    <button type="submit" class="cloud-btn" style="margin-top:10px;width:100%;justify-content:center;">
+                        <i class="fas fa-hourglass-half"></i> Extend trial
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="cloud-action-card">
+            <div class="head"><i class="fas fa-toggle-on"></i> Account status</div>
+            <div class="body">
+                <p class="note">Manually override the lifecycle state for enterprise or support cases.</p>
+                <form method="post" action="/cloud/tenants/{{ tenant.id }}/status/">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="{{ status_form.status.id_for_label }}">Status</label>
+                        {{ status_form.status }}
+                        {{ status_form.status.errors }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ status_form.reason.id_for_label }}">Reason / note</label>
+                        {{ status_form.reason }}
+                        {{ status_form.reason.errors }}
+                    </div>
+                    <button type="submit" class="cloud-btn" style="width:100%;justify-content:center;">
+                        <i class="fas fa-floppy-disk"></i> Update status
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="cloud-action-card">
+            <div class="head"><i class="fas fa-money-bill-wave"></i> Record a payment</div>
+            <div class="body">
+                <p class="note">Record an offline or manually verified payment and activate the subscription immediately.</p>
+                <form method="post" action="/cloud/tenants/{{ tenant.id }}/payments/record/">
+                    {% csrf_token %}
+                    <div class="cloud-form-grid">
+                        <div class="form-group">
+                            <label for="{{ payment_form.amount.id_for_label }}">Amount</label>
+                            {{ payment_form.amount }}
+                            {{ payment_form.amount.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ payment_form.method.id_for_label }}">Method</label>
+                            {{ payment_form.method }}
+                            {{ payment_form.method.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ payment_form.plan.id_for_label }}">Plan</label>
+                            {{ payment_form.plan }}
+                            {{ payment_form.plan.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ payment_form.billing_cycle.id_for_label }}">Cycle</label>
+                            {{ payment_form.billing_cycle }}
+                            {{ payment_form.billing_cycle.errors }}
+                        </div>
+                        <div class="form-group span-2">
+                            <label for="{{ payment_form.reference.id_for_label }}">Reference</label>
+                            {{ payment_form.reference }}
+                            {{ payment_form.reference.errors }}
+                        </div>
+                        <div class="form-group span-2">
+                            <label for="{{ payment_form.notes.id_for_label }}">Notes</label>
+                            {{ payment_form.notes }}
+                            {{ payment_form.notes.errors }}
+                        </div>
+                    </div>
+                    <button type="submit" class="cloud-btn gold" style="width:100%;justify-content:center;">
+                        <i class="fas fa-check"></i> Record &amp; activate
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="cloud-action-card">
+            <div class="head"><i class="fas fa-pen"></i> Workspace details</div>
+            <div class="body">
+                <details>
+                    <summary style="cursor:pointer;font-size:10.5px;font-weight:700;color:#92400e;margin-bottom:11px;">Edit company, branding &amp; limits</summary>
+                    <form method="post" action="/cloud/tenants/{{ tenant.id }}/edit/">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="{{ edit_form.company_name.id_for_label }}">Company name</label>
+                            {{ edit_form.company_name }}
+                            {{ edit_form.company_name.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ edit_form.brand_name.id_for_label }}">Display name</label>
+                            {{ edit_form.brand_name }}
+                            {{ edit_form.brand_name.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ edit_form.admin_email.id_for_label }}">Billing email</label>
+                            {{ edit_form.admin_email }}
+                            {{ edit_form.admin_email.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ edit_form.phone_number.id_for_label }}">Phone</label>
+                            {{ edit_form.phone_number }}
+                            {{ edit_form.phone_number.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ edit_form.logo_url.id_for_label }}">Logo URL</label>
+                            {{ edit_form.logo_url }}
+                            {{ edit_form.logo_url.errors }}
+                        </div>
+                        <div class="cloud-inline-form">
+                            <div class="form-group">
+                                <label for="{{ edit_form.primary_color.id_for_label }}">Accent</label>
+                                {{ edit_form.primary_color }}
+                                {{ edit_form.primary_color.errors }}
+                            </div>
+                            <div class="form-group">
+                                <label for="{{ edit_form.currency.id_for_label }}">Currency</label>
+                                {{ edit_form.currency }}
+                                {{ edit_form.currency.errors }}
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ edit_form.timezone_name.id_for_label }}">Time zone</label>
+                            {{ edit_form.timezone_name }}
+                            {{ edit_form.timezone_name.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ edit_form.max_users.id_for_label }}">Seat limit (0 = unlimited)</label>
+                            {{ edit_form.max_users }}
+                            {{ edit_form.max_users.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ edit_form.notes.id_for_label }}">Internal notes</label>
+                            {{ edit_form.notes }}
+                            {{ edit_form.notes.errors }}
+                        </div>
+                        <button type="submit" class="cloud-btn" style="width:100%;justify-content:center;">
+                            <i class="fas fa-save"></i> Save details
+                        </button>
+                    </form>
+                </details>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

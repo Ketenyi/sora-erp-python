@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-user-tag"></i> Multi-Role Manager</h1><p>Assign a primary role plus additional module roles to each user.</p></div>
+    <div class="page-actions"><a href="/settings/roles" class="btn btn-secondary"><i class="fas fa-user-shield"></i> Roles</a><a href="/settings/users" class="btn btn-secondary"><i class="fas fa-users"></i> Users</a></div>
+</div>
+{% include "settings/_nav.html" %}
+<div class="alert alert-success" style="background:#eff6ff; color:#1e40af;">Module access is resolved from these role assignments. Explicit module roles override roles derived from the primary role.</div>
+<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:16px;">
+    {% for row in rows %}
+    <div class="card" style="margin-bottom:0;">
+        <div class="card-header">
+            <span><i class="fas fa-user"></i> {{ row.user.get_full_name }}</span>
+            <span class="badge {% if row.user.status == 'active' %}badge-success{% else %}badge-danger{% endif %}">{{ row.user.get_status_display }}</span>
+        </div>
+        <form method="post" action="/settings/multi-roles/update" style="padding:16px 18px;">
+            {% csrf_token %}
+            <input type="hidden" name="user_id" value="{{ row.user.id }}">
+            <div style="font-size:12px; color:#64748b; margin-bottom:12px;">{{ row.user.email }}</div>
+            <div class="form-group">
+                <label>Primary role</label>
+                <select name="primary_role" class="form-control">
+                    {% for value, label in primary_roles %}<option value="{{ value }}" {% if row.user.role == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Additional roles</label>
+                <select name="additional_roles" class="form-control" multiple size="5">
+                    {% for role in roles %}<option value="{{ role.id }}" {% if role.id in row.selected_role_ids %}selected{% endif %}>{{ role.display_name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 14px;">
+                {% for module, role_name in row.access.module_roles.items %}<span class="badge badge-secondary">{{ module }}: {{ role_name }}</span>{% endfor %}
+                {% if not row.access.module_roles %}<span class="info" style="font-size:12px;">No module access</span>{% endif %}
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;"><i class="fas fa-save"></i> Update roles</button>
+        </form>
+    </div>
+    {% empty %}
+    <div class="card"><div class="empty-state"><i class="fas fa-users"></i><p>No users available.</p></div></div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-users"></i> Team Wellbeing</h1><p>Aggregated wellbeing signals for {{ window_start|date:"M d" }} – {{ today|date:"M d, Y" }}. Individual check-ins stay private.</p></div>
+    <div class="page-actions"><a href="/hr/wellness" class="btn btn-secondary"><i class="fas fa-heart-pulse"></i> My wellness</a></div>
+</div>
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-user-check"></i></div><div><div class="stat-number">{{ participation }}%</div><div class="stat-label">Checked in this week</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-users"></i></div><div><div class="stat-number">{{ checked_in_week }}/{{ active_count }}</div><div class="stat-label">Active employees</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-triangle-exclamation"></i></div><div><div class="stat-number">{{ at_risk|length }}</div><div class="stat-label">Needs attention</div></div></div>
+</div>
+<div class="detail-layout">
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-building"></i> Wellbeing by department</span></div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead><tr><th>Department</th><th class="text-right">Mood</th><th class="text-right">Stress</th><th class="text-right">People</th><th class="text-right">Check-ins</th></tr></thead>
+                <tbody>
+                {% for row in comparison %}
+                    <tr>
+                        <td><strong>{{ row.department }}</strong></td>
+                        <td class="text-right">{{ row.mood|floatformat:1 }}/10</td>
+                        <td class="text-right">{{ row.stress|floatformat:1 }}/10</td>
+                        <td class="text-right">{{ row.people }}</td>
+                        <td class="text-right">{{ row.checkins }}</td>
+                    </tr>
+                {% empty %}<tr><td colspan="5"><div class="empty-state"><i class="fas fa-chart-simple"></i><p>No wellness check-ins in this period.</p></div></td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-triangle-exclamation"></i> People who may need support</span></div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead><tr><th>Employee</th><th>Department</th><th class="text-right">Mood</th><th class="text-right">Stress</th><th>Last check-in</th></tr></thead>
+                <tbody>
+                {% for row in at_risk %}
+                    <tr>
+                        <td><strong>{{ row.employee.first_name }} {{ row.employee.last_name }}</strong></td>
+                        <td>{{ row.department }}</td>
+                        <td class="text-right">{{ row.mood|floatformat:1 }}</td>
+                        <td class="text-right">{{ row.stress|floatformat:1 }}</td>
+                        <td>{{ row.last_checkin|date:"M d, Y" }}</td>
+                    </tr>
+                {% empty %}<tr><td colspan="5"><div class="empty-state"><i class="fas fa-face-smile"></i><p>No wellbeing alerts in this period.</p></div></td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

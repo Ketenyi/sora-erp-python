@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load static sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-ticket"></i> SLA Tickets</h1>
+        <p>{{ page_obj.paginator.count }} ticket{{ page_obj.paginator.count|pluralize }}. Deadlines scale with priority and the contract's resolution target.</p>
+    </div>
+    <div class="page-actions">
+        {% if can_create %}<a href="/projects/sla/tickets/create" class="btn btn-primary"><i class="fas fa-plus"></i> New Ticket</a>{% endif %}
+        <a href="/projects/sla" class="btn btn-secondary"><i class="fas fa-headset"></i> SLA Hub</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="filter-bar">
+            <div class="form-group"><label>Search</label><input type="text" name="q" class="form-control" value="{{ search_query }}" placeholder="Number, title or description"></div>
+            <div class="form-group">
+                <label>Contract</label>
+                <select name="contract" class="form-control">
+                    <option value="">All contracts</option>
+                    {% for contract in contracts %}<option value="{{ contract.id }}" {% if contract_filter == contract.id|stringformat:"s" %}selected{% endif %}>{{ contract.contract_number }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Priority</label>
+                <select name="priority" class="form-control">
+                    <option value="">All priorities</option>
+                    {% for value, label in priority_choices %}<option value="{{ value }}" {% if priority_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All statuses</option>
+                    {% for value, label in status_choices %}<option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group"><button class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button></div>
+            {% if search_query or contract_filter or priority_filter or status_filter %}<div class="form-group"><a href="/projects/sla/tickets" class="btn btn-secondary">Reset</a></div>{% endif %}
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Ticket</th><th>Contract</th><th>Project</th><th>Priority</th><th>Status</th><th>Assigned</th><th>SLA due</th><th></th></tr></thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td><a href="/projects/sla/tickets/{{ row.id }}"><strong>{{ row.ticket_number }}</strong></a><div class="text-muted" style="font-size:11px;">{{ row.title|truncatechars:55 }}</div></td>
+                    <td><a href="/projects/sla/contracts/{{ row.contract_id }}">{{ row.contract_number }}</a></td>
+                    <td>{% if row.project_code %}<a href="/projects/{{ row.project_id }}">{{ row.project_code }}</a>{% else %}—{% endif %}</td>
+                    <td>{{ row.get_priority_display }}</td>
+                    <td><span class="badge badge-{{ row.status|status_class }}">{{ row.get_status_display }}</span>{% if row.breached %} <span class="badge badge-danger">Breached</span>{% endif %}</td>
+                    <td>{{ row.assignee_name }}</td>
+                    <td>{% if row.is_overdue %}<span class="text-danger">{{ row.sla_due_at|date:"M d, H:i" }}</span>{% else %}{{ row.sla_due_at|date:"M d, H:i"|default:"—" }}{% endif %}</td>
+                    <td><a href="/projects/sla/tickets/{{ row.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8"><div class="empty-state"><i class="fas fa-ticket"></i><p>No tickets match the current filters.</p></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-shopping-cart"></i> {{ order.po_number }}
+            <span class="badge badge-{{ order.status|status_class }}" style="font-size:12px; vertical-align:middle;">{{ order.get_status_display }}</span>
+        </h1>
+        <p>{{ vendor.company_name|default:"Unknown supplier" }} &middot; {{ order.order_date|date:"F d, Y" }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/purchasing/purchase-orders" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+        {% if can_edit %}<a href="/purchasing/purchase-orders/edit/{{ order.id }}" class="btn btn-secondary"><i class="fas fa-edit"></i> Edit</a>{% endif %}
+        {% if can_send %}
+        <form method="post" action="/purchasing/purchase-orders/send/{{ order.id }}">
+            {% csrf_token %}
+            <button class="btn btn-primary"><i class="fas fa-paper-plane"></i> Send to Supplier</button>
+        </form>
+        {% endif %}
+        {% if can_confirm %}
+        <form method="post" action="/purchasing/purchase-orders/confirm/{{ order.id }}">
+            {% csrf_token %}
+            <button class="btn btn-primary"><i class="fas fa-check"></i> Confirm Order</button>
+        </form>
+        {% endif %}
+        {% if can_receive %}<a href="/purchasing/goods-receipts/create?po_id={{ order.id }}" class="btn btn-primary"><i class="fas fa-check-double"></i> Receive Goods</a>{% endif %}
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-list"></i> Order Items</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>#</th><th>Item</th><th class="text-right">Ordered</th><th class="text-right">Received</th><th class="text-right">Remaining</th><th class="text-right">Unit Price</th><th class="text-right">Tax</th><th class="text-right">Total</th></tr></thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <strong>{{ item.product_name }}</strong>
+                                {% if item.description %}<div class="info">{{ item.description }}</div>{% endif %}
+                            </td>
+                            <td class="text-right">{{ item.quantity|floatformat:2 }}</td>
+                            <td class="text-right">{{ item.received_quantity|floatformat:2 }}</td>
+                            <td class="text-right">{{ item.remaining|floatformat:2 }}</td>
+                            <td class="text-right">{{ currency_symbol }} {{ item.unit_price|floatformat:2|intcomma }}</td>
+                            <td class="text-right">{{ currency_symbol }} {{ item.tax_amount|floatformat:2|intcomma }}</td>
+                            <td class="text-right money">{{ currency_symbol }} {{ item.total|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="8"><div class="empty-state"><i class="fas fa-list"></i><p>No items on this order.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr><th colspan="7" class="text-right">Subtotal</th><th class="text-right">{{ currency_symbol }} {{ order.subtotal|floatformat:2|intcomma }}</th></tr>
+                        <tr><th colspan="7" class="text-right">Tax</th><th class="text-right">{{ currency_symbol }} {{ order.tax_amount|floatformat:2|intcomma }}</th></tr>
+                        <tr><th colspan="7" class="text-right">Total</th><th class="text-right money">{{ currency_symbol }} {{ order.total_amount|floatformat:2|intcomma }}</th></tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-check-double"></i> Goods Receipts</span>
+                {% if can_receive %}<a href="/purchasing/goods-receipts/create?po_id={{ order.id }}" class="btn btn-sm btn-primary">Receive goods</a>{% endif %}
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>GRN #</th><th>Received</th><th>Invoice #</th><th>Status</th><th></th></tr></thead>
+                    <tbody>
+                        {% for receipt in receipts %}
+                        <tr>
+                            <td><a href="/purchasing/goods-receipts/view/{{ receipt.id }}"><strong>{{ receipt.grn_number }}</strong></a></td>
+                            <td>{{ receipt.receipt_date|date:"M d, Y" }}</td>
+                            <td>{{ receipt.invoice_number|default:"-" }}</td>
+                            <td><span class="badge badge-{{ receipt.status|status_class }}">{{ receipt.get_status_display }}</span></td>
+                            <td><a href="/purchasing/goods-receipts/view/{{ receipt.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></a></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5"><div class="empty-state"><i class="fas fa-truck-loading"></i><p>No goods received yet.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-file-invoice"></i> Supplier Bills</span>
+                <a href="/purchasing/supplier-bills/create?po_id={{ order.id }}" class="btn btn-sm btn-primary">Record bill</a>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Bill #</th><th>Date</th><th>Due</th><th>Status</th><th class="text-right">Total</th><th class="text-right">Balance</th><th></th></tr></thead>
+                    <tbody>
+                        {% for bill in bills %}
+                        <tr>
+                            <td><a href="/purchasing/supplier-bills/view/{{ bill.id }}"><strong>{{ bill.bill_number }}</strong></a></td>
+                            <td>{{ bill.bill_date|date:"M d, Y" }}</td>
+                            <td>{{ bill.due_date|date:"M d, Y" }}</td>
+                            <td><span class="badge badge-{{ bill.status|status_class }}">{{ bill.get_status_display }}</span></td>
+                            <td class="text-right">{{ currency_symbol }} {{ bill.total_amount|floatformat:2|intcomma }}</td>
+                            <td class="text-right">{{ currency_symbol }} {{ bill.balance|floatformat:2|intcomma }}</td>
+                            <td><a href="/purchasing/supplier-bills/view/{{ bill.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></a></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7"><div class="empty-state"><i class="fas fa-file-invoice"></i><p>No supplier bills linked to this order.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-info-circle"></i> Order Details</span></div>
+            <div style="padding: 20px;">
+                <div class="summary-box">
+                    <div class="summary-line"><span>PO number</span><span class="mono">{{ order.po_number }}</span></div>
+                    <div class="summary-line"><span>Status</span><span class="badge badge-{{ order.status|status_class }}">{{ order.get_status_display }}</span></div>
+                    <div class="summary-line"><span>Order date</span><span>{{ order.order_date|date:"M d, Y" }}</span></div>
+                    <div class="summary-line"><span>Expected</span><span>{{ order.expected_delivery|date:"M d, Y"|default:"-" }}</span></div>
+                    <div class="summary-line"><span>Currency</span><span>{{ order.currency|default:"KES" }}</span></div>
+                    <div class="summary-line total"><span>Total</span><span>{{ currency_symbol }} {{ order.total_amount|floatformat:2|intcomma }}</span></div>
+                </div>
+
+                <div style="margin-top:18px;">
+                    <div class="detail-label">Supplier</div>
+                    <p style="font-size:13px; margin:4px 0;"><strong>{{ vendor.company_name|default:"-" }}</strong></p>
+                    {% if vendor.contact_person %}<p class="info" style="margin:2px 0;">{{ vendor.contact_person }}</p>{% endif %}
+                    {% if vendor.email %}<p class="info" style="margin:2px 0;">{{ vendor.email }}</p>{% endif %}
+                    {% if vendor.phone %}<p class="info" style="margin:2px 0;">{{ vendor.phone }}</p>{% endif %}
+                    {% if vendor %}<a href="/crm/vendors/view/{{ vendor.id }}" class="btn btn-sm btn-secondary" style="margin-top:8px;">Supplier record</a>{% endif %}
+                </div>
+
+                {% if order.terms %}
+                <div style="margin-top:16px;">
+                    <div class="detail-label">Terms</div>
+                    <p style="font-size:13px; color:#475569;">{{ order.terms|linebreaksbr }}</p>
+                </div>
+                {% endif %}
+                {% if order.notes %}
+                <div style="margin-top:16px;">
+                    <div class="detail-label">Notes</div>
+                    <p style="font-size:13px; color:#475569;">{{ order.notes|linebreaksbr }}</p>
+                </div>
+                {% endif %}
+
+                <div style="margin-top:18px; font-size:13px;">
+                    <div class="summary-line" style="padding:4px 0;"><span>Created</span><span>{{ order.created_at|date:"M d, Y H:i" }}</span></div>
+                    {% if order.sent_at %}<div class="summary-line" style="padding:4px 0;"><span>Sent</span><span>{{ order.sent_at|date:"M d, Y H:i" }}</span></div>{% endif %}
+                    {% if order.confirmed_at %}<div class="summary-line" style="padding:4px 0;"><span>Confirmed</span><span>{{ order.confirmed_at|date:"M d, Y H:i" }}</span></div>{% endif %}
+                </div>
+
+                {% if can_delete %}
+                <form method="post" action="/purchasing/purchase-orders/delete/{{ order.id }}" style="margin-top:18px;" onsubmit="return confirm('Delete this draft purchase order?');">
+                    {% csrf_token %}
+                    <button class="btn btn-danger" style="width:100%; justify-content:center;"><i class="fas fa-trash"></i> Delete Draft</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

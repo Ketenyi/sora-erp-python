@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-file-alt"></i> Quotes</h1>
+        <p>{{ page_obj.paginator.count }} quote{{ page_obj.paginator.count|pluralize }} matching your access.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/sales/quotes/create" class="btn btn-primary"><i class="fas fa-plus"></i> New Quote</a>
+        <a href="/sales/reports/export" class="btn btn-secondary"><i class="fas fa-download"></i> Export CSV</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="filter-bar">
+            <div class="form-group">
+                <label>Search</label>
+                <input type="text" name="q" class="form-control" value="{{ search_query }}" placeholder="Quote #, client or notes">
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All statuses</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button>
+                {% if search_query or status_filter %}
+                <a href="/sales/quotes" class="btn btn-secondary">Reset</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Quote #</th>
+                    <th>Client</th>
+                    <th>Issue Date</th>
+                    <th>Valid Until</th>
+                    <th class="text-right">Subtotal</th>
+                    <th class="text-right">Total</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for quote in quotes %}
+                <tr>
+                    <td><a href="/sales/quotes/view/{{ quote.id }}"><strong>{{ quote.quote_number }}</strong></a></td>
+                    <td>{% with client=clients|get_item:quote.client_id %}{{ client.company_name|default:"-" }}{% endwith %}</td>
+                    <td>{{ quote.issue_date|date:"M d, Y" }}</td>
+                    <td>{{ quote.valid_until|date:"M d, Y" }}</td>
+                    <td class="text-right mono">{{ currency_symbol }} {{ quote.subtotal|floatformat:2|intcomma }}</td>
+                    <td class="text-right money">{{ currency_symbol }} {{ quote.total_amount|floatformat:2|intcomma }}</td>
+                    <td><span class="badge badge-{{ quote.status|status_class }}">{{ quote.get_status_display }}</span></td>
+                    <td>
+                        <div class="table-actions">
+                            <a href="/sales/quotes/view/{{ quote.id }}" class="btn btn-sm btn-secondary" title="View"><i class="fas fa-eye"></i></a>
+                            {% if quote.status != "converted" %}
+                            <a href="/sales/quotes/edit/{{ quote.id }}" class="btn btn-sm btn-secondary" title="Edit"><i class="fas fa-pen"></i></a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8"><div class="empty-state"><i class="fas fa-file-alt"></i><p>No quotes found.</p><a href="/sales/quotes/create">Create a quote</a></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

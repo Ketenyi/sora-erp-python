@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-book-open"></i> My Trainings</h1><p>Your learning record and progress.</p></div>
+    <div class="page-actions"><a href="/hr/training" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Programme catalogue</a></div>
+</div>
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-list"></i> Enrolments</span></div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Programme</th><th>Provider</th><th>Enrolled</th><th>Completed</th><th class="text-right">Score</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+            {% for row in rows %}
+                <tr>
+                    <td><strong>{{ row.program_name }}</strong>{% if row.program %}<div class="info" style="font-size:12px;">{{ row.program.program_code }}</div>{% endif %}</td>
+                    <td>{{ row.program.provider|default:"—" }}</td>
+                    <td>{{ row.created_at|date:"M d, Y" }}</td>
+                    <td>{{ row.completion_date|date:"M d, Y"|default:"—" }}</td>
+                    <td class="text-right">{% if row.score %}{{ row.score|floatformat:0 }}%{% else %}—{% endif %}</td>
+                    <td><span class="badge badge-{{ row.status|status_class }}">{{ row.get_status_display|default:row.status }}</span></td>
+                    <td>
+                        {% if row.status != "completed" %}
+                        <form method="post" action="/hr/training/complete/{{ row.id }}" style="display:flex; gap:4px;">{% csrf_token %}<input type="hidden" name="next" value="/hr/training/my-trainings"><input type="number" name="score" min="0" max="100" placeholder="Score" class="form-control" style="width:80px; padding:4px 6px;"><button type="submit" class="btn btn-sm btn-primary">Mark complete</button></form>
+                        {% else %}<span class="info" style="font-size:12px;"><i class="fas fa-check"></i> Finished</span>{% endif %}
+                    </td>
+                </tr>
+            {% empty %}<tr><td colspan="7"><div class="empty-state"><i class="fas fa-book-open"></i><p>You are not enrolled in any programme.</p><a href="/hr/training" class="btn btn-primary btn-sm">Browse programmes</a></div></td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

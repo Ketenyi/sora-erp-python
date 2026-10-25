@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>{{ period.period_name }} <span class="badge badge-{{ period.status|status_class }}">{{ period.get_status_display }}</span></h1>
+        <p>{{ period.start_date|date:"M d, Y" }} – {{ period.end_date|date:"M d, Y" }} &middot; {{ items|length }} payslip{{ items|length|pluralize }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/hr/payroll" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Payroll</a>
+        {% if can_recalculate %}<form method="post" action="/hr/payroll/calculate/{{ period.id }}" style="display:inline;" onsubmit="return confirm('Recalculate payroll? Pending payslips will be regenerated.');">{% csrf_token %}<button type="submit" class="btn btn-secondary"><i class="fas fa-rotate"></i> Recalculate</button></form>{% endif %}
+        {% if can_approve %}<form method="post" action="/hr/payroll/approve/{{ period.id }}" style="display:inline;" onsubmit="return confirm('Approve this payroll?');">{% csrf_token %}<button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Approve payroll</button></form>{% endif %}
+        {% if can_pay %}<form method="post" action="/hr/payroll/mark-paid/{{ period.id }}" style="display:inline;" onsubmit="return confirm('Mark all payslips as paid?');">{% csrf_token %}<button type="submit" class="btn btn-primary"><i class="fas fa-money-bill-transfer"></i> Mark paid</button></form>{% endif %}
+    </div>
+</div>
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-sack-dollar"></i></div><div><div class="stat-number">{{ currency_symbol }} {{ period.total_gross|floatformat:0|intcomma }}</div><div class="stat-label">Gross pay</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-minus-circle"></i></div><div><div class="stat-number">{{ currency_symbol }} {{ period.total_deductions|floatformat:0|intcomma }}</div><div class="stat-label">Total deductions</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-landmark"></i></div><div><div class="stat-number">{{ currency_symbol }} {{ period.total_tax|floatformat:0|intcomma }}</div><div class="stat-label">PAYE</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-wallet"></i></div><div><div class="stat-number">{{ currency_symbol }} {{ period.total_net|floatformat:0|intcomma }}</div><div class="stat-label">Net pay</div></div></div>
+</div>
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-receipt"></i> Payslips</span>{% if period.processed_at %}<span class="info" style="font-size:12px;">Processed {{ period.processed_at|date:"M d, Y H:i" }}</span>{% endif %}</div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Employee</th><th class="text-right">Basic</th><th class="text-right">Overtime</th><th class="text-right">Allowances</th><th class="text-right">Gross</th><th class="text-right">Deductions</th><th class="text-right">Net</th><th>Payment</th><th></th></tr></thead>
+            <tbody>
+            {% for item in items %}
+                <tr>
+                    <td><strong>{% if item.employee %}{{ item.employee.first_name }} {{ item.employee.last_name }}{% else %}Employee #{{ item.employee_id }}{% endif %}</strong><div class="info" style="font-size:12px;">{{ item.employee.employee_code|default:"" }}</div></td>
+                    <td class="text-right">{{ item.basic_salary|floatformat:2|intcomma }}</td>
+                    <td class="text-right">{{ item.overtime_amount|floatformat:2|intcomma }}</td>
+                    <td class="text-right">{{ item.allowances_total|default_if_none:"" }}{% for row in item.allowance_rows %}<div class="info" style="font-size:11px;">{{ row.name }}: {{ row.amount|floatformat:2|intcomma }}</div>{% endfor %}</td>
+                    <td class="text-right"><strong>{{ item.gross_pay|floatformat:2|intcomma }}</strong></td>
+                    <td class="text-right">{{ item.total_deductions|floatformat:2|intcomma }}<div class="info" style="font-size:11px;">PAYE {{ item.paye_tax|floatformat:2|intcomma }} · NSSF {{ item.nssf|floatformat:2|intcomma }} · NHIF {{ item.nhif|floatformat:2|intcomma }}</div></td>
+                    <td class="text-right"><strong>{{ item.net_pay|floatformat:2|intcomma }}</strong></td>
+                    <td><span class="badge badge-{{ item.payment_status|status_class }}">{{ item.get_payment_status_display }}</span>{% if item.payment_reference %}<div class="info" style="font-size:11px;">{{ item.payment_reference }}</div>{% endif %}</td>
+                    <td><a href="/hr/payroll/payslip/{{ item.employee_id }}/{{ period.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-file-invoice"></i> Payslip</a></td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="9"><div class="empty-state"><i class="fas fa-calculator"></i><p>Payroll has not been calculated yet.</p>{% if can_recalculate %}<form method="post" action="/hr/payroll/calculate/{{ period.id }}">{% csrf_token %}<button type="submit" class="btn btn-primary btn-sm">Calculate now</button></form>{% endif %}</div></td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

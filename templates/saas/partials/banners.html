@@ -1,0 +1,51 @@
+{% if saas.impersonating %}
+<div class="saas-banner impersonation">
+    <div>
+        <i class="fas fa-user-shield"></i>
+        Support mode — you are signed in as <strong>{{ user_name }}</strong>
+        {% if saas.tenant %}at {{ saas.tenant.display_name }}{% endif %}.
+        Actions taken here are logged.
+    </div>
+    <div class="saas-banner-actions">
+        <form method="post" action="/cloud/return/">
+            {% csrf_token %}
+            <button type="submit" class="return-btn"><i class="fas fa-arrow-left"></i> Return to SORA Cloud</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% if saas.trial and not saas.locked %}
+<div class="saas-banner trial-{{ saas.trial.tone }}">
+    <div>
+        <i class="fas fa-hourglass-half"></i>
+        {% if saas.trial.days_left %}
+            Your {{ saas.platform_name }} trial ends in <strong>{{ saas.trial.days_left }} day{{ saas.trial.days_left|pluralize }}</strong>.
+        {% else %}
+            Your trial ends <strong>today</strong>.
+        {% endif %}
+        Upgrade to keep every module and your full history.
+    </div>
+    <div class="saas-banner-actions">
+        <a href="/billing/" class="saas-banner-link">Upgrade now</a>
+    </div>
+</div>
+{% endif %}
+
+{% for announcement in saas.announcements %}
+<div class="saas-banner announcement-{{ announcement.level }}">
+    <div>
+        <strong><i class="fas {% if announcement.level == 'success' %}fa-check-circle{% elif announcement.level == 'warning' %}fa-exclamation-triangle{% elif announcement.level == 'critical' %}fa-exclamation-circle{% else %}fa-bullhorn{% endif %}"></i> {{ announcement.title }}</strong>
+        <div style="margin-top:3px;">{{ announcement.body|linebreaksbr }}</div>
+    </div>
+    <div class="saas-banner-actions">
+        {% if announcement.is_dismissible %}
+        <form method="post" action="/announcements/{{ announcement.id }}/dismiss/">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="dismiss-btn" title="Dismiss" aria-label="Dismiss announcement">&times;</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}

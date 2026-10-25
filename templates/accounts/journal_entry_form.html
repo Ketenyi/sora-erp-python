@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% load static sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-book"></i> New Journal Entry</h1>
+        <p>Draft a balanced double-entry journal. It can be posted once approved.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/accounts/journal-entries" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+
+<form method="post" action="/accounts/journal-entries/create" id="journalForm">
+    {% csrf_token %}
+    {{ formset.management_form }}
+
+    {% if form.errors or formset.non_form_errors or formset.errors %}
+    <div class="alert alert-error">
+        <strong>Please fix the following:</strong>
+        {{ form.non_field_errors }}
+        {{ formset.non_form_errors }}
+    </div>
+    {% endif %}
+
+    <div class="detail-layout">
+        <div>
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-info-circle"></i> Entry Details</span></div>
+                <div style="padding: 20px;">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="{{ form.entry_date.id_for_label }}">Entry date *</label>
+                            {{ form.entry_date }}
+                            {{ form.entry_date.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.reference.id_for_label }}">Reference</label>
+                            {{ form.reference }}
+                            {{ form.reference.errors }}
+                        </div>
+                        <div class="form-group span-2">
+                            <label for="{{ form.description.id_for_label }}">Description *</label>
+                            {{ form.description }}
+                            {{ form.description.errors }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span><i class="fas fa-list"></i> Journal Lines</span>
+                    <button type="button" class="btn btn-sm btn-primary" id="addLineBtn"><i class="fas fa-plus"></i> Add line</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table item-table" id="lineTable">
+                        <thead>
+                            <tr>
+                                <th style="min-width: 220px;">Account *</th>
+                                <th style="width: 110px;">Type *</th>
+                                <th style="width: 130px;">Amount *</th>
+                                <th style="min-width: 200px;">Line description</th>
+                                <th style="width: 40px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="lineRows">
+                            {% for line_form in formset %}
+                            <tr class="line-row">
+                                <td>{{ line_form.account }}{{ line_form.account.errors }}</td>
+                                <td>{{ line_form.entry_type }}{{ line_form.entry_type.errors }}</td>
+                                <td>{{ line_form.amount }}{{ line_form.amount.errors }}</td>
+                                <td>{{ line_form.description }}{{ line_form.description.errors }}</td>
+                                <td><button type="button" class="btn btn-sm btn-danger remove-row" title="Clear row"><i class="fas fa-times"></i></button></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div style="padding: 10px 20px 18px; color:#64748b; font-size:12px;">
+                    Tip: debits must equal credits before the entry can be saved. Empty rows are ignored.
+                </div>
+            </div>
+        </div>
+
+        <div class="card sticky-summary">
+            <div class="card-header"><span><i class="fas fa-calculator"></i> Balance</span></div>
+            <div style="padding: 20px;">
+                <div class="summary-box">
+                    <div class="summary-line"><span>Total debits</span><span id="totalDebit">0.00</span></div>
+                    <div class="summary-line"><span>Total credits</span><span id="totalCredit">0.00</span></div>
+                    <div class="summary-line total"><span>Difference</span><span id="totalDifference">0.00</span></div>
+                </div>
+                <p id="balanceHint" class="info" style="margin-top: 12px; font-size: 12px;">Add at least two lines.</p>
+                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; margin-top:20px;" id="saveEntryBtn">
+                    <i class="fas fa-save"></i> Save Draft
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<template id="emptyLineRow">
+    <tr class="line-row">
+        <td>{{ formset.empty_form.account }}{{ formset.empty_form.account.errors }}</td>
+        <td>{{ formset.empty_form.entry_type }}{{ formset.empty_form.entry_type.errors }}</td>
+        <td>{{ formset.empty_form.amount }}{{ formset.empty_form.amount.errors }}</td>
+        <td>{{ formset.empty_form.description }}{{ formset.empty_form.description.errors }}</td>
+        <td><button type="button" class="btn btn-sm btn-danger remove-row" title="Clear row"><i class="fas fa-times"></i></button></td>
+    </tr>
+</template>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const totalFormsInput = document.getElementById('id_{{ formset.prefix }}-TOTAL_FORMS');
+const lineRows = document.getElementById('lineRows');
+
+function money(value) {
+    return (Math.round(value * 100) / 100).toFixed(2);
+}
+
+function recalc() {
+    let debit = 0;
+    let credit = 0;
+    let filled = 0;
+    document.querySelectorAll('#lineRows .line-row').forEach(row => {
+        if (row.style.display === 'none') return;
+        const type = row.querySelector('.line-type')?.value;
+        const amount = parseFloat(row.querySelector('.line-amount')?.value || 0) || 0;
+        if (type && amount > 0) {
+            filled += 1;
+            if (type === 'debit') debit += amount;
+            if (type === 'credit') credit += amount;
+        }
+    });
+    const difference = debit - credit;
+    document.getElementById('totalDebit').textContent = money(debit);
+    document.getElementById('totalCredit').textContent = money(credit);
+    document.getElementById('totalDifference').textContent = money(difference);
+    const hint = document.getElementById('balanceHint');
+    if (filled < 2) {
+        hint.textContent = 'Add at least two lines.';
+        hint.style.color = '#64748b';
+    } else if (Math.abs(difference) < 0.005) {
+        hint.textContent = 'Entry is balanced.';
+        hint.style.color = '#059669';
+    } else {
+        hint.textContent = 'Entry is not balanced yet.';
+        hint.style.color = '#dc2626';
+    }
+}
+
+document.addEventListener('input', event => {
+    if (event.target.closest('#lineTable')) recalc();
+});
+document.addEventListener('change', event => {
+    if (event.target.closest('#lineTable')) recalc();
+});
+
+document.getElementById('addLineBtn').addEventListener('click', () => {
+    const index = parseInt(totalFormsInput.value, 10);
+    const html = document.getElementById('emptyLineRow').innerHTML.replace(/__prefix__/g, index);
+    lineRows.insertAdjacentHTML('beforeend', html);
+    totalFormsInput.value = index + 1;
+    recalc();
+});
+
+lineRows.addEventListener('click', event => {
+    const button = event.target.closest('.remove-row');
+    if (!button) return;
+    const row = button.closest('tr');
+    row.querySelectorAll('input, select, textarea').forEach(input => { input.value = ''; });
+    row.style.display = 'none';
+    recalc();
+});
+
+recalc();
+</script>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-link"></i> Approval Link Created</h1>
+        <p>{{ action_label }} &middot; {{ project.project_code }}</p>
+    </div>
+    <div class="page-actions"><a href="{{ back_url }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to record</a></div>
+</div>
+
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-paper-plane"></i> {{ title }}</span></div>
+    <div style="padding:24px;">
+        {% if email_sent %}
+        <div class="alert alert-success"><i class="fas fa-circle-check"></i> The approval request was emailed successfully.</div>
+        {% else %}
+        <div class="alert alert-error"><i class="fas fa-triangle-exclamation"></i> The email could not be sent: {{ email_error }}<br>Share the secure link below manually. No login is required for the client.</div>
+        {% endif %}
+
+        <p class="text-muted" style="font-size:13px;">This is a single-use, HMAC-signed link that expires on <strong>{{ expires_at|date:"M d, Y H:i" }}</strong>. Only the hash is stored in the database.</p>
+
+        <label style="font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:#94a3b8;">Secure approval URL</label>
+        <div class="copy-link mt-2">
+            <input id="approvalUrl" type="text" class="form-control" value="{{ approval_url }}" readonly>
+            <button type="button" class="btn btn-primary" onclick="copyApprovalLink()"><i class="fas fa-copy"></i> Copy</button>
+        </div>
+
+        <div class="mt-3" style="display:flex; gap:10px; flex-wrap:wrap;">
+            <a href="{{ approval_url }}" target="_blank" rel="noopener" class="btn btn-secondary"><i class="fas fa-arrow-up-right-from-square"></i> Preview client page</a>
+            <a href="{{ back_url }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+        </div>
+
+        <div class="alert alert-success" style="margin-top:20px;">
+            <strong>Security controls:</strong> single use &middot; 72-hour expiry &middot; SHA-256 HMAC token hash &middot; previous unused links revoked &middot; decision captured with timestamp, IP and audit entry.
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyApprovalLink() {
+    const input = document.getElementById('approvalUrl');
+    input.select();
+    navigator.clipboard.writeText(input.value).then(() => {
+        const button = event.target.closest('button');
+        button.innerHTML = '<i class="fas fa-check"></i> Copied';
+        setTimeout(() => { button.innerHTML = '<i class="fas fa-copy"></i> Copy'; }, 1800);
+    });
+}
+</script>
+{% endblock %}

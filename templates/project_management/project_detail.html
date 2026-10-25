@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="project-hero">
+    <div style="display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap; position:relative; z-index:1;">
+        <div>
+            <div class="eyebrow" style="color:var(--brand, #FFD700); font-size:11px; letter-spacing:1.4px; text-transform:uppercase; font-weight:700;">{{ project.project_code }} &middot; {{ project.get_project_type_display }}</div>
+            <h1 style="margin-top:8px;">{{ project.project_name }}</h1>
+            <p>{{ project.client_name|default:"Internal initiative" }}{% if project.client_email %} &middot; {{ project.client_email }}{% endif %}</p>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start;">
+            <span class="badge badge-{{ project.status|status_class }}" style="padding:6px 12px;">{{ project.get_status_display }}</span>
+            <span class="health-pill {{ health.css }}">{{ health.label }}</span>
+            {% if can_edit %}<a href="/projects/edit/{{ project.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-pen"></i> Edit</a>{% endif %}
+            <a href="/projects/gantt/{{ project.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-chart-gantt"></i> Gantt</a>
+        </div>
+    </div>
+    <div class="hero-meta">
+        <div>Manager<strong>{{ manager_name }}</strong></div>
+        <div>Planned dates<strong>{{ project.start_date|date:"d M Y"|default:"—" }} → {{ project.end_date|date:"d M Y"|default:"—" }}</strong></div>
+        <div>Baseline<strong>{% if project.baseline_locked_at %}{{ project.baseline_start_date|date:"d M Y" }} → {{ project.baseline_end_date|date:"d M Y" }}{% else %}Not locked{% endif %}</strong></div>
+        <div>Delivery<strong>{{ summary.completion_percent }}% &middot; {{ summary.completed }}/{{ summary.total }} tasks</strong></div>
+        <div>Health{% for reason in health.reasons %}<strong style="font-weight:500; font-size:11px; color:#fcd34d;">{{ reason }}</strong>{% empty %}<strong>All signals normal</strong>{% endfor %}</div>
+    </div>
+</div>
+
+{% include "project_management/partials/project_tabs.html" with active="overview" %}
+
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-file-contract"></i></div><div><div class="stat-number">{{ currency_symbol }} {{ financials.contract_value|floatformat:0|intcomma }}</div><div class="stat-label">Contract value</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-fire"></i></div><div><div class="stat-number">{{ currency_symbol }} {{ financials.total_cost|floatformat:0|intcomma }}</div><div class="stat-label">Approved cost + labour</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-chart-pie"></i></div><div><div class="stat-number {% if financials.margin < 0 %}text-danger{% endif %}">{{ currency_symbol }} {{ financials.margin|floatformat:0|intcomma }}</div><div class="stat-label">Projected margin &middot; {{ financials.margin_percent }}%</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-file-invoice-dollar"></i></div><div><div class="stat-number">{{ currency_symbol }} {{ financials.billed|floatformat:0|intcomma }}</div><div class="stat-label">Billed / invoiced</div></div></div>
+    <div class="stat-box {% if financials.expense_alert %}alert-card{% endif %}"><div class="stat-icon"><i class="fas fa-receipt"></i></div><div><div class="stat-number">{{ financials.expense_burn_percent|floatformat:0 }}%</div><div class="stat-label">Expense burn of allocated budget</div></div></div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-list-check"></i> Delivery tasks</span><a href="/projects/{{ project.id }}/tasks" class="btn btn-sm btn-secondary">All tasks</a></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Task</th><th>Assignee</th><th>Due</th><th>Status</th><th>Scope</th><th style="width:110px;">Progress</th></tr></thead>
+                    <tbody>
+                        {% for task in tasks %}
+                        <tr>
+                            <td><a href="/projects/{{ project.id }}/tasks/edit/{{ task.id }}"><strong>{{ task.task_name }}</strong></a>{% if task.is_overdue %} <span class="badge badge-danger">Overdue</span>{% endif %}</td>
+                            <td>{{ task.assignee_name }}</td>
+                            <td>{{ task.deadline_date|date:"M d, Y"|default:"—" }}</td>
+                            <td><span class="badge badge-{{ task.status|status_class }}">{{ task.get_status_display }}</span></td>
+                            <td>{% if task.is_scope_change %}<span class="badge badge-{% if task.scope_approved %}success{% else %}warning{% endif %}">{% if task.scope_approved %}CR approved{% else %}Out of scope{% endif %}</span>{% else %}<span class="text-muted">In scope</span>{% endif %}</td>
+                            <td><div class="progress-track"><span style="width: {{ task.completion_percent|floatformat:0 }}%;"></span></div><small class="text-muted">{{ task.completion_percent|floatformat:0 }}%</small></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6"><div class="empty-state"><i class="fas fa-list-check"></i><p>No tasks yet.</p><a href="/projects/{{ project.id }}/tasks/create">Add the first task</a></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="detail-layout" style="grid-template-columns: 1fr 1fr;">
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-receipt"></i> Field expenses</span><a href="/projects/{{ project.id }}/expenses" class="btn btn-sm btn-secondary">Manage</a></div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead><tr><th>Date</th><th>Category</th><th class="text-right">Amount</th><th>Status</th></tr></thead>
+                        <tbody>
+                            {% for expense in expenses %}
+                            <tr><td>{{ expense.expense_date|date:"M d" }}</td><td>{{ expense.category|humanize_label }}</td><td class="text-right">{{ currency_symbol }} {{ expense.amount|floatformat:2|intcomma }}</td><td><span class="badge badge-{{ expense.status|status_class }}">{{ expense.get_status_display }}</span></td></tr>
+                            {% empty %}
+                            <tr><td colspan="4"><div class="empty-state" style="padding:18px;"><p class="text-muted">No expenses submitted.</p></div></td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-file-signature"></i> MOMs &amp; change requests</span><a href="/projects/{{ project.id }}/moms" class="btn btn-sm btn-secondary">MOMs</a></div>
+                <div style="padding: 10px 20px 16px;">
+                    <ul class="activity-list">
+                        {% for mom in moms %}
+                        <li><div class="activity-icon"><i class="fas fa-file-lines"></i></div><div><a href="/projects/{{ project.id }}/moms/view/{{ mom.id }}"><strong>{{ mom.title }}</strong></a><small>{{ mom.meeting_date|date:"M d, Y" }} &middot; <span class="badge badge-{{ mom.status|status_class }}">{{ mom.get_status_display }}</span></small></div></li>
+                        {% endfor %}
+                        {% for cr in change_requests %}
+                        <li><div class="activity-icon"><i class="fas fa-code-pull-request"></i></div><div><a href="/projects/{{ project.id }}/change-requests/view/{{ cr.id }}"><strong>{{ cr.cr_number }} · {{ cr.title }}</strong></a><small>{{ currency_symbol }} {{ cr.cost_impact|floatformat:2|intcomma }} &middot; +{{ cr.schedule_impact_days }} days &middot; {{ cr.get_status_display }}</small></div></li>
+                        {% empty %}
+                        {% if not moms %}<li><div class="activity-icon"><i class="fas fa-inbox"></i></div><div>No MOMs or change requests yet.</div></li>{% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-clock-rotate-left"></i> Audit trail</span><a href="/projects/{{ project.id }}/audit" class="btn btn-sm btn-secondary">Full log</a></div>
+            <div style="padding: 8px 20px 16px;">
+                <ul class="activity-list">
+                    {% for log in audit_logs %}
+                    <li><div class="activity-icon"><i class="fas fa-pen"></i></div><div><strong>{{ log.user_name }}</strong> &middot; {{ log.action|cut:"_"|title }}{% if log.field_name %} &middot; {{ log.field_name }}{% endif %}{% if log.new_value %}: {{ log.new_value }}{% endif %}<small>{{ log.created_at|date:"M d, Y H:i" }}{% if log.note %} &middot; {{ log.note }}{% endif %}</small></div></li>
+                    {% empty %}
+                    <li><div class="activity-icon"><i class="fas fa-inbox"></i></div><div>No audit activity yet.</div></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="sticky-summary">
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-calculator"></i> Financial control</span></div>
+            <div style="padding: 18px 20px;">
+                <div class="summary-line"><span>Contract value</span><span>{{ currency_symbol }} {{ financials.contract_value|floatformat:2|intcomma }}</span></div>
+                <div class="summary-line"><span>Allocated expense budget</span><span>{{ currency_symbol }} {{ financials.allocated_expense_budget|floatformat:2|intcomma }}</span></div>
+                <div class="summary-line"><span>Approved expenses</span><span>{{ currency_symbol }} {{ financials.approved_expenses|floatformat:2|intcomma }}</span></div>
+                <div class="summary-line"><span>Pending expenses</span><span>{{ currency_symbol }} {{ financials.pending_expenses|floatformat:2|intcomma }}</span></div>
+                <div class="summary-line"><span>Labour cost</span><span>{{ currency_symbol }} {{ financials.labour_cost|floatformat:2|intcomma }}</span></div>
+                <div class="summary-line total"><span>Projected margin</span><span>{{ currency_symbol }} {{ financials.margin|floatformat:2|intcomma }}</span></div>
+                <div class="summary-line"><span>Realised margin</span><span>{{ currency_symbol }} {{ financials.realized_margin|floatformat:2|intcomma }} ({{ financials.realized_margin_percent }}%)</span></div>
+                <div style="margin-top:14px;">
+                    <div class="summary-line"><span>Expense burn</span><span><strong>{{ financials.expense_burn_percent }}%</strong></span></div>
+                    <div class="progress-track {% if financials.expense_burn_percent >= 100 %}danger{% elif financials.expense_alert %}warning{% endif %}"><span style="width: {{ financials.expense_burn_percent|floatformat:0 }}%;"></span></div>
+                    {% if financials.expense_alert %}<div class="alert alert-error" style="margin:10px 0 0; font-size:11px;">80% threshold reached. Finance should review this project.</div>{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-users"></i> Team</span><a href="/projects/{{ project.id }}/team" class="btn btn-sm btn-secondary">Manage</a></div>
+            <div style="padding: 10px 20px 16px;">
+                {% for member in team %}
+                <div class="summary-line"><span>{{ member.employee_name }}</span><span class="text-muted">{{ member.role|default:"Team member" }} &middot; {{ member.allocation_percentage|floatformat:0 }}%</span></div>
+                {% empty %}<p class="text-muted" style="font-size:12px;">No team members assigned.</p>{% endfor %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-lock"></i> Baseline &amp; client acceptance</span></div>
+            <div style="padding: 16px 20px;">
+                {% if project.baseline_locked_at %}
+                <div class="summary-line"><span>Locked</span><span>{{ project.baseline_locked_at|date:"M d, Y H:i" }}</span></div>
+                <div class="summary-line"><span>Baseline window</span><span>{{ project.baseline_start_date|date:"M d" }} → {{ project.baseline_end_date|date:"M d, Y" }}</span></div>
+                {% elif can_approve and project.start_date and project.end_date %}
+                <form method="post" action="/projects/{{ project.id }}/lock-baseline">{% csrf_token %}<button class="btn btn-primary" style="width:100%; justify-content:center;"><i class="fas fa-lock"></i> Lock baseline &amp; start execution</button></form>
+                {% else %}
+                <p class="text-muted" style="font-size:12px;">Set planned dates, then an approver can lock the bid baseline.</p>
+                {% endif %}
+                <hr style="border-color:#eef2f6; margin:16px 0;">
+                <div class="summary-line"><span>UAT accepted</span><span>{% if project.uat_accepted_at %}<span class="text-success">{{ project.uat_accepted_at|date:"M d, Y" }}</span> <small class="text-muted">by {{ project.uat_accepted_by }}</small>{% else %}<span class="text-muted">Pending</span>{% endif %}</span></div>
+                {% if can_approve and not project.uat_accepted_at %}
+                <form method="post" action="/projects/{{ project.id }}/send-uat" style="margin-top:12px;">
+                    {% csrf_token %}
+                    <div class="form-group" style="margin-bottom:8px;"><label style="font-size:11px;">Client email</label><input type="email" name="email" class="form-control" value="{{ project.client_email }}" required></div>
+                    <div class="form-group" style="margin-bottom:8px;"><label style="font-size:11px;">Message</label><textarea name="message" rows="2" class="form-control" placeholder="Optional note"></textarea></div>
+                    <button class="btn btn-secondary" style="width:100%; justify-content:center;"><i class="fas fa-envelope"></i> Send UAT magic link</button>
+                </form>
+                {% endif %}
+                {% if latest_uat %}
+                <div class="mt-2" style="font-size:11px;" class="text-muted">Last link: {{ latest_uat.created_at|date:"M d H:i" }} &middot; {% if latest_uat.is_active %}active{% elif latest_uat.used_at %}used{% else %}expired{% endif %}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if sla_contract %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-headset"></i> Support mode</span></div>
+            <div style="padding:16px 20px;">
+                <div class="summary-line"><span>Contract</span><span><a href="/projects/sla/contracts/{{ sla_contract.id }}"><strong>{{ sla_contract.contract_number }}</strong></a></span></div>
+                <div class="summary-line"><span>Tier</span><span>{{ sla_contract.get_support_tier_display }}</span></div>
+                <div class="summary-line"><span>Monthly</span><span>{{ currency_symbol }} {{ sla_contract.monthly_value|floatformat:2|intcomma }}</span></div>
+            </div>
+        </div>
+        {% elif can_approve %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-headset"></i> Move to support</span></div>
+            <div style="padding:16px 20px;">
+                <p class="text-muted" style="font-size:12px;">At handover, convert this project into an AMC/SLA contract and carry unresolved tasks into the support queue.</p>
+                <form method="post" action="/projects/sla/convert/{{ project.id }}">{% csrf_token %}<button class="btn btn-secondary" style="width:100%; justify-content:center;"><i class="fas fa-arrows-spin"></i> Convert to SLA</button></form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

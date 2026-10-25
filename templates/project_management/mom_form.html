@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-file-signature"></i> {% if is_edit %}Edit MOM{% else %}New Minutes of Meeting{% endif %}</h1>
+        <p>{{ project.project_code }} &middot; {{ project.project_name }}</p>
+    </div>
+    <div class="page-actions"><a href="{% if is_edit %}/projects/{{ project.id }}/moms/view/{{ mom.id }}{% else %}/projects/{{ project.id }}/moms{% endif %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a></div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="detail-layout">
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-pen"></i> Meeting record</span></div>
+            <div style="padding:20px;">
+                {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+                <div class="form-grid">
+                    <div class="form-group span-2"><label>Title *</label>{{ form.title }}{{ form.title.errors }}</div>
+                    <div class="form-group"><label>Meeting date *</label>{{ form.meeting_date }}{{ form.meeting_date.errors }}</div>
+                </div>
+                <div class="form-group"><label>Attendees</label>{{ form.attendees }}{{ form.attendees.errors }}</div>
+                <div class="form-group"><label>Agenda</label>{{ form.agenda }}{{ form.agenda.errors }}</div>
+                <div class="form-group"><label>Minutes *</label>{{ form.minutes }}{{ form.minutes.errors }}</div>
+                <div class="form-grid">
+                    <div class="form-group"><label>Decisions</label>{{ form.decisions }}{{ form.decisions.errors }}</div>
+                    <div class="form-group"><label>Action items</label>{{ form.action_items }}{{ form.action_items.errors }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="card sticky-summary">
+            <div class="card-header"><span><i class="fas fa-circle-check"></i> Save record</span></div>
+            <div style="padding:20px;">
+                <p class="text-muted" style="font-size:12px;">After saving, issue the MOM to the client for zero-login approval. A signed PDF copy and a single-use 72-hour link are generated automatically.</p>
+                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; margin-top:12px;"><i class="fas fa-save"></i> Save MOM</button>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}

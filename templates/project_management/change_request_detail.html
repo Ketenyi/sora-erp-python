@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-code-pull-request"></i> {{ cr.cr_number }} <span class="badge badge-{{ cr.status|status_class }}" style="font-size:12px; vertical-align:middle;">{{ cr.get_status_display }}</span></h1>
+        <p>{{ cr.title }} &middot; {{ project.project_code }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/{{ project.id }}/change-requests" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> All change requests</a>
+        <a href="/projects/{{ project.id }}" class="btn btn-secondary"><i class="fas fa-folder-open"></i> Project</a>
+    </div>
+</div>
+
+{% if cr.status == 'rejected' %}
+<div class="alert alert-error"><i class="fas fa-circle-xmark"></i> Rejected by {{ cr.decided_by_name }}{% if cr.decision_notes %}: {{ cr.decision_notes }}{% endif %}</div>
+{% elif cr.status == 'approved' %}
+<div class="alert alert-success"><i class="fas fa-circle-check"></i> Approved by {{ cr.decided_by_name }} on {{ cr.decided_at|date:"M d, Y H:i" }}. Linked task is unblocked.</div>
+{% endif %}
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-file-lines"></i> Commercial impact</span></div>
+            <div style="padding:20px;">
+                <div class="stats-row" style="margin-bottom:0;">
+                    <div class="stat-box"><div class="stat-icon"><i class="fas fa-coins"></i></div><div><div class="stat-number">{{ currency_symbol }} {{ cr.cost_impact|floatformat:2|intcomma }}</div><div class="stat-label">Additional cost</div></div></div>
+                    <div class="stat-box"><div class="stat-icon"><i class="fas fa-calendar-plus"></i></div><div><div class="stat-number">+{{ cr.schedule_impact_days }} day{{ cr.schedule_impact_days|pluralize }}</div><div class="stat-label">Schedule impact</div></div></div>
+                    <div class="stat-box"><div class="stat-icon"><i class="fas fa-list-check"></i></div><div><div class="stat-number">{% if task %}#{{ task.id }}{% else %}—{% endif %}</div><div class="stat-label">Linked task</div></div></div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-pen"></i> Description</span></div>
+            <div style="padding:20px; white-space:pre-line;">{{ cr.description }}</div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-scale-balanced"></i> Justification</span></div>
+            <div style="padding:20px; white-space:pre-line;">{{ cr.justification|default:"—" }}</div>
+        </div>
+        {% if task %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-link"></i> Linked task</span></div>
+            <div style="padding:20px;">
+                <div class="summary-line"><span>Task</span><span><a href="/projects/{{ project.id }}/tasks/edit/{{ task.id }}"><strong>{{ task.task_name }}</strong></a></span></div>
+                <div class="summary-line"><span>Status</span><span>{{ task.get_status_display }}</span></div>
+                <div class="summary-line"><span>Assignee</span><span>{{ task.assigned_to|default:"—" }}</span></div>
+                <div class="summary-line"><span>Due</span><span>{{ task.deadline_date|date:"M d, Y"|default:"—" }}</span></div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="sticky-summary">
+        {% if can_approve and cr.status != 'approved' %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-paper-plane"></i> Request client decision</span></div>
+            <div style="padding:18px 20px;">
+                <form method="post" action="/projects/{{ project.id }}/change-requests/{{ cr.id }}/send">
+                    {% csrf_token %}
+                    <div class="form-group"><label>Client email *</label>{{ send_form.email }}</div>
+                    <div class="form-group"><label>Personal message</label>{{ send_form.message }}</div>
+                    <button class="btn btn-primary" style="width:100%; justify-content:center;"><i class="fas fa-envelope"></i> Send magic link</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-link"></i> Approval links</span></div>
+            <div style="padding:10px 20px 16px;">
+                <ul class="timeline">
+                    {% for link in links %}
+                    <li>
+                        <div class="time">{{ link.created_at|date:"M d, Y H:i" }}</div>
+                        <div class="what">{{ link.recipient_email|default:"No recipient" }} &middot; {% if link.is_active %}<span class="badge badge-info">Active</span>{% elif link.used_at %}<span class="badge badge-{{ link.decision|status_class }}">{{ link.decision|title }}</span>{% else %}<span class="badge badge-secondary">Expired</span>{% endif %}</div>
+                        <small class="text-muted">Expires {{ link.expires_at|date:"M d, H:i" }}{% if link.sent_at %} &middot; emailed{% endif %}</small>
+                    </li>
+                    {% empty %}
+                    <li><div class="what">No approval links issued yet.</div></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

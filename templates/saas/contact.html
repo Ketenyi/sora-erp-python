@@ -1,0 +1,108 @@
+{% extends "saas/public_base.html" %}
+
+{% block title %}{{ platform.lead_form_title|default:"Talk to sales" }} — {{ platform.platform_name|default:"SORA ERP" }}{% endblock %}
+
+{% block content %}
+<section class="pub-signup">
+    <div class="pub-shell">
+        <div class="pub-signup-grid">
+            <div class="pub-signup-aside">
+                <span class="pub-eyebrow" style="background:#fffbeb;border-color:#fde68a;color:#92400e;">
+                    <i class="fas fa-comments"></i> {{ platform.lead_aside_eyebrow|default:"Sales & scoping" }}
+                </span>
+                <h1>{{ platform.lead_form_title|default:"Talk to sales" }}</h1>
+                <p>{{ platform.lead_form_intro|default:"Tell us what you need and we will map it to the right modules, plan and rollout." }}</p>
+                <ul class="pub-signup-points">
+                    {% for point in lead_points %}
+                    <li><i class="fas fa-check"></i><span>{{ point }}</span></li>
+                    {% endfor %}
+                </ul>
+                <div class="pub-trust" style="color:#64748b;margin-top:26px;">
+                    {% if platform.sales_email %}<span><i class="fas fa-envelope" style="color:#a16207;"></i> {{ platform.sales_email }}</span>{% endif %}
+                    {% if platform.support_email %}<span><i class="fas fa-headset" style="color:#a16207;"></i> {{ platform.support_email }}</span>{% endif %}
+                </div>
+                <p style="margin-top:22px;font-size:12px;color:#64748b;">
+                    {{ copy.contact_already }} <a href="/signup" style="color:#a16207;font-weight:700;">{{ copy.contact_trial_link }}</a>
+                </p>
+            </div>
+
+            <div class="pub-signup-card">
+                {% if sent %}
+                <div class="pub-success-panel">
+                    <div class="pub-success-icon"><i class="fas fa-paper-plane"></i></div>
+                    <h2>{{ platform.lead_success_title|default:"Request received" }}</h2>
+                    <p>{{ platform.lead_success_message|default:"Thank you — your request is in. Our team will be in touch within one business day." }}</p>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;">
+                        <a href="/" class="pub-btn pub-btn-dark"><i class="fas fa-arrow-left"></i> {{ copy.contact_back_home }}</a>
+                        <a href="/signup" class="pub-btn pub-btn-gold"><i class="fas fa-rocket"></i> {{ copy.contact_start_trial }}</a>
+                    </div>
+                </div>
+                {% else %}
+                <h2>{{ platform.lead_form_heading|default:"Tell us about your operation" }}</h2>
+                <p class="hint">{{ platform.lead_form_hint|default:"Fields marked with an asterisk are required. We will only use your details to answer this request." }}</p>
+
+                {% if form.non_field_errors %}
+                <div class="pub-form-errors">
+                    {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+                </div>
+                {% endif %}
+
+                <form method="post" action="/contact">
+                    {% csrf_token %}
+                    <div style="display:none;" aria-hidden="true">{{ form.website }}</div>
+                    <div class="pub-form-grid">
+                        <div class="pub-field">
+                            <label for="{{ form.name.id_for_label }}">{{ copy.contact_name_label }}</label>
+                            {{ form.name }}{{ form.name.errors }}
+                        </div>
+                        <div class="pub-field">
+                            <label for="{{ form.company.id_for_label }}">{{ copy.contact_company_label }}</label>
+                            {{ form.company }}{{ form.company.errors }}
+                        </div>
+                        <div class="pub-field">
+                            <label for="{{ form.email.id_for_label }}">{{ copy.contact_email_label }}</label>
+                            {{ form.email }}{{ form.email.errors }}
+                        </div>
+                        <div class="pub-field">
+                            <label for="{{ form.phone.id_for_label }}">{{ copy.contact_phone_label }}</label>
+                            {{ form.phone }}{{ form.phone.errors }}
+                        </div>
+                        <div class="pub-field span-2">
+                            <label for="{{ form.country.id_for_label }}">{{ copy.contact_country_label }}</label>
+                            {{ form.country }}{{ form.country.errors }}
+                        </div>
+                    </div>
+
+                    <div class="pub-section-label">{{ copy.contact_modules_label }}</div>
+                    <div class="pub-module-picker">
+                        {% for checkbox in form.modules %}
+                        <label>{{ checkbox.tag }} <span>{{ checkbox.choice_label }}</span></label>
+                        {% endfor %}
+                    </div>
+                    {{ form.modules.errors }}
+
+                    <div class="pub-field" style="margin-top:16px;">
+                        <label for="{{ form.message.id_for_label }}">{{ copy.contact_message_label }}</label>
+                        {{ form.message }}{{ form.message.errors }}
+                    </div>
+
+                    <label class="pub-checkbox-row" for="{{ form.consent.id_for_label }}">
+                        {{ form.consent }}
+                        <span>{{ platform.lead_consent_text|default:"I agree to be contacted about this request." }}</span>
+                    </label>
+                    {{ form.consent.errors }}
+
+                    <button type="submit" class="pub-btn pub-btn-gold pub-btn-block" style="margin-top:20px;">
+                        <i class="fas fa-paper-plane"></i> {{ platform.lead_form_button|default:"Send request" }}
+                    </button>
+                </form>
+                {% endif %}
+
+                <p style="text-align:center;font-size:11.5px;color:#94a3b8;margin-top:16px;">
+                    {{ copy.contact_prefer_email }} <a href="mailto:{{ platform.sales_email|default:'sales@soraerp.com' }}" style="color:#a16207;font-weight:700;">{{ platform.sales_email|default:"sales@soraerp.com" }}</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

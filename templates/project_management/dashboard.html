@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-diagram-project"></i> Project Management</h1>
+        <p>Portfolio delivery, scope control, field financials and support health.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/create" class="btn btn-primary"><i class="fas fa-plus"></i> New Project</a>
+        <a href="/projects/tender" class="btn btn-secondary"><i class="fas fa-chart-gantt"></i> Tenders</a>
+        <a href="/projects/approvals" class="btn btn-secondary"><i class="fas fa-file-signature"></i> Approvals {% if pending_approvals %}<span class="badge badge-warning">{{ pending_approvals }}</span>{% endif %}</a>
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-folder-open"></i></div>
+        <div><div class="stat-number">{{ stats.projects }}</div><div class="stat-label">Projects in portfolio</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-person-running"></i></div>
+        <div><div class="stat-number">{{ stats.active }}</div><div class="stat-label">In execution</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-file-contract"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ stats.contract_value|floatformat:0|intcomma }}</div><div class="stat-label">Contracted value</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ stats.margin|floatformat:0|intcomma }}</div><div class="stat-label">Projected margin</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-receipt"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ stats.expenses|floatformat:0|intcomma }}</div><div class="stat-label">Approved field expenses</div></div>
+    </div>
+</div>
+
+{% if alerts %}
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-triangle-exclamation"></i> Expense burn alerts (80% threshold)</span><a href="/projects/expenses" class="btn btn-sm btn-secondary">All expenses</a></div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Project</th><th>Manager</th><th class="text-right">Allocated budget</th><th class="text-right">Approved</th><th style="width:210px;">Burn</th></tr></thead>
+            <tbody>
+                {% for row in alerts %}
+                <tr>
+                    <td><a href="/projects/{{ row.project.id }}"><strong>{{ row.project.project_code }}</strong></a> &middot; {{ row.project.project_name }}</td>
+                    <td>{{ row.project.manager_name }}</td>
+                    <td class="text-right">{{ currency_symbol }} {{ row.financials.allocated_expense_budget|floatformat:2|intcomma }}</td>
+                    <td class="text-right">{{ currency_symbol }} {{ row.financials.approved_expenses|floatformat:2|intcomma }}</td>
+                    <td>
+                        <div class="budget-bar">
+                            <div class="progress-track {% if row.financials.expense_burn_percent >= 100 %}danger{% else %}warning{% endif %}"><span style="width: {{ row.financials.expense_burn_percent|floatformat:0 }}%;"></span></div>
+                            <strong>{{ row.financials.expense_burn_percent|floatformat:0 }}%</strong>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-folder-tree"></i> Recent projects</span>
+                <a href="/projects/portfolio" class="btn btn-sm btn-secondary">Full portfolio</a>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Project</th><th>Client</th><th>Status</th><th>Health</th><th class="text-right">Contract</th><th style="width:130px;">Delivery</th></tr></thead>
+                    <tbody>
+                        {% for row in recent_rows %}
+                        <tr>
+                            <td><a href="/projects/{{ row.project.id }}"><strong>{{ row.project.project_code }}</strong></a><div class="text-muted" style="font-size:11px;">{{ row.project.project_name }}</div></td>
+                            <td>{{ row.project.client_name|default:"Internal" }}</td>
+                            <td><span class="badge badge-{{ row.project.status|status_class }}">{{ row.project.get_status_display }}</span></td>
+                            <td><span class="health-pill {{ row.health.css }}">{{ row.health.label }}</span></td>
+                            <td class="text-right money">{{ currency_symbol }} {{ row.financials.contract_value|floatformat:0|intcomma }}</td>
+                            <td>
+                                <div class="progress-track"><span style="width: {{ row.summary.completion_percent|floatformat:0 }}%;"></span></div>
+                                <small class="text-muted">{{ row.summary.completion_percent }}% &middot; {{ row.summary.completed }}/{{ row.summary.total }} tasks</small>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6"><div class="empty-state"><i class="fas fa-folder-open"></i><p>No projects yet.</p><a href="/projects/create">Create the first project</a></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-list-check"></i> Upcoming deadlines</span><a href="/projects/tasks/my" class="btn btn-sm btn-secondary">My work</a></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Task</th><th>Project</th><th>Assignee</th><th>Due</th><th>Status</th></tr></thead>
+                    <tbody>
+                        {% for task in upcoming %}
+                        <tr>
+                            <td><strong>{{ task.task_name }}</strong></td>
+                            <td><a href="/projects/{{ task.project_id }}">{{ task.project_code }}</a></td>
+                            <td>{{ task.assignee_name }}</td>
+                            <td>{{ task.deadline_date|date:"M d, Y" }}</td>
+                            <td><span class="badge badge-{{ task.status|status_class }}">{{ task.get_status_display }}</span></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5"><div class="empty-state"><i class="fas fa-calendar-check"></i><p>No deadlines in the next three weeks.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-clock-rotate-left"></i> Latest activity</span><a href="/projects/audit" class="btn btn-sm btn-secondary">Audit trail</a></div>
+            <div style="padding: 8px 20px 16px;">
+                <ul class="activity-list">
+                    {% for log in recent_logs %}
+                    <li>
+                        <div class="activity-icon"><i class="fas fa-pen"></i></div>
+                        <div>
+                            <strong>{{ log.user_name }}</strong> {{ log.action|cut:"_"|title }} on <a href="/projects/{{ log.project_id }}">{{ log.project_label }}</a>
+                            {% if log.field_name %}&middot; {{ log.field_name }}: {{ log.new_value }}{% endif %}
+                            <small>{{ log.created_at|date:"M d, Y H:i" }}{% if log.task_name %} &middot; {{ log.task_name }}{% endif %}</small>
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li><div class="activity-icon"><i class="fas fa-inbox"></i></div><div>No audit activity yet.<small>Every project and task edit will be recorded here.</small></div></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="sticky-summary">
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-headset"></i> SLA snapshot</span><a href="/projects/sla" class="btn btn-sm btn-secondary">Hub</a></div>
+            <div style="padding: 16px 20px;">
+                <div class="summary-line"><span>Open tickets</span><span><strong>{{ ticket_stats.open }}</strong></span></div>
+                <div class="summary-line"><span>Critical</span><span><strong class="text-danger">{{ ticket_stats.critical }}</strong></span></div>
+                <div class="summary-line"><span>Breached</span><span><strong class="text-danger">{{ ticket_stats.breached }}</strong></span></div>
+                <div class="summary-line"><span>Active contracts</span><span><strong>{{ ticket_stats.contracts }}</strong></span></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-screwdriver-wrench"></i> Preventive visits</span><a href="/projects/sla/health-checks" class="btn btn-sm btn-secondary">All</a></div>
+            <div style="padding: 10px 20px 16px;">
+                <ul class="activity-list">
+                    {% for check in upcoming_checks %}
+                    <li>
+                        <div class="activity-icon"><i class="fas fa-calendar-day"></i></div>
+                        <div>{{ check.get_check_type_display }}<small>{{ check.scheduled_date|date:"M d, Y" }} &middot; {{ check.get_status_display }}</small></div>
+                    </li>
+                    {% empty %}
+                    <li><div class="activity-icon"><i class="fas fa-check"></i></div><div>No scheduled visits.</div></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-gauge-high"></i> Task health</span></div>
+            <div style="padding: 16px 20px;">
+                <div class="summary-line"><span>Backlog</span><span>{{ task_counts.backlog|default:0 }}</span></div>
+                <div class="summary-line"><span>In progress</span><span>{{ task_counts.in_progress|default:0 }}</span></div>
+                <div class="summary-line"><span>Blocked</span><span class="text-danger">{{ task_counts.blocked|default:0 }}</span></div>
+                <div class="summary-line"><span>In QA</span><span>{{ task_counts.in_qa|default:0 }}</span></div>
+                <div class="summary-line"><span>Complete</span><span class="text-success">{{ task_counts.complete|default:0 }}</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,468 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Billing & Plan — {{ company_name }}{% endblock %}
+
+{% block content %}
+{% if no_workspace %}
+<div class="card" style="max-width:640px;margin:40px auto;padding:34px;text-align:center;">
+    <div style="width:56px;height:56px;border-radius:16px;background:#fff8cc;color:#a16207;display:grid;place-items:center;font-size:22px;margin:0 auto 16px;">
+        <i class="fas fa-building-circle-exclamation"></i>
+    </div>
+    <h1 style="font-size:20px;margin-bottom:8px;">No workspace linked to this login</h1>
+    <p style="color:#64748b;font-size:13px;line-height:1.7;max-width:440px;margin:0 auto 20px;">
+        Your account is active but it is not a member of any SORA workspace yet. Ask your workspace
+        administrator to invite you, or start a new trial workspace.
+    </p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+        {% if saas.is_platform_admin %}
+        <a href="/cloud/" class="btn btn-primary"><i class="fas fa-cloud"></i> Open SORA Cloud</a>
+        {% endif %}
+        <a href="/signup" class="btn btn-secondary"><i class="fas fa-rocket"></i> Start a new trial</a>
+        <a href="/logout" class="btn btn-secondary"><i class="fas fa-sign-out-alt"></i> Sign out</a>
+    </div>
+</div>
+{% else %}
+
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:18px;">
+    <div>
+        <h1 style="font-size:23px;letter-spacing:-.03em;margin-bottom:4px;">Billing &amp; Plan</h1>
+        <p style="color:#64748b;font-size:12.5px;line-height:1.6;">
+            {{ tenant.display_name }} · manage your subscription, licences and payment history.
+        </p>
+    </div>
+    <a href="/dashboard" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left"></i> Back to workspace</a>
+</div>
+
+{% if locked %}
+<div class="billing-lock">
+    <div class="lock-icon"><i class="fas fa-lock"></i></div>
+    <div>
+        <h2>Your workspace is read-only</h2>
+        <p>
+            {{ tenant.lock_reason|default:"Your subscription has expired." }}
+            Submit renewal details below and our billing team will reactivate your workspace.
+            All of your data, users and settings are preserved.
+            Need help? <a href="mailto:{{ platform.billing_email|default:platform.support_email }}">Contact billing</a>.
+        </p>
+    </div>
+</div>
+{% endif %}
+
+<div class="billing-stats">
+    <div class="billing-stat">
+        <small>Current plan</small>
+        <strong>{{ tenant.plan.name|default:"Trial workspace" }}</strong>
+        <span class="sub">
+            {% if tenant.plan %}{{ tenant.get_billing_cycle_display|default:tenant.billing_cycle|title }} billing{% else %}No plan selected yet{% endif %}
+        </span>
+    </div>
+    <div class="billing-stat">
+        <small>Account status</small>
+        <strong>{{ saas.status_label|default:tenant.effective_status|title }}</strong>
+        <span class="sub">{% if locked %}Write access paused{% else %}Workspace fully active{% endif %}</span>
+    </div>
+    <div class="billing-stat">
+        <small>{% if tenant.status == 'trial' %}Trial ends{% else %}Renews on{% endif %}</small>
+        <strong>
+            {% if tenant.status == 'trial' %}
+                {{ tenant.trial_ends_at|date:"d M Y"|default:"—" }}
+            {% else %}
+                {{ tenant.subscription_ends_at|date:"d M Y"|default:"—" }}
+            {% endif %}
+        </strong>
+        <span class="sub">
+            {% if tenant.status == 'trial' %}{{ tenant.trial_days_left }} day{{ tenant.trial_days_left|pluralize }} remaining{% else %}{{ tenant.plan.name|default:"Custom" }} term{% endif %}
+        </span>
+    </div>
+    <div class="billing-stat">
+        <small>Licensed modules</small>
+        <strong>{{ licence_rows|length }}</strong>
+        <span class="sub">{{ payments_pending }} pending payment{{ payments_pending|pluralize }}</span>
+    </div>
+</div>
+
+<div class="billing-grid">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-layer-group"></i> Plan &amp; licences</span></div>
+            <div class="billing-plan-summary">
+                <div>
+                    <div class="plan-name">{{ tenant.plan.name|default:"Trial workspace" }}</div>
+                    <div style="color:#64748b;font-size:11.5px;margin-top:3px;">
+                        {% if tenant.plan %}{{ tenant.plan.tagline }}{% else %}Choose a plan to continue after your trial.{% endif %}
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    <div class="plan-price">
+                        {% if tenant.plan %}
+                            {{ tenant.currency }} {{ tenant.plan.monthly_price|floatformat:0|intcomma }}<span>/mo</span>
+                        {% else %}
+                            Trial
+                        {% endif %}
+                    </div>
+                    <div style="color:#94a3b8;font-size:10.5px;margin-top:2px;">
+                        {% if tenant.plan.max_users %}{{ tenant.max_users }} seats{% else %}Unlimited seats{% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="billing-module-list">
+                {% for licence in licence_rows %}
+                <span class="billing-module"><i class="fas fa-check"></i> {{ licence.module.brand_name|default:licence.module.name }}</span>
+                {% empty %}
+                <span style="color:#94a3b8;font-size:12px;">No modules are licensed yet. Submit a renewal to choose a plan.</span>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-receipt"></i> Payment history</span></div>
+            {% if payments %}
+            <div class="table-responsive">
+                <table class="table billing-payments">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Status</th>
+                            <th>Receipt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in payments %}
+                        <tr>
+                            <td>{{ payment.created_at|date:"d M Y" }}</td>
+                            <td><strong>{{ payment.currency }} {{ payment.amount|floatformat:2|intcomma }}</strong></td>
+                            <td>{{ payment.get_method_display }}{% if payment.reference %}<div style="color:#94a3b8;font-size:10.5px;">{{ payment.reference }}</div>{% endif %}
+                                {% if payment.gateway_checkout_id %}<div style="color:#94a3b8;font-size:10px;">Gateway {{ payment.gateway_checkout_id }}</div>{% endif %}
+                            </td>
+                            <td>
+                                <span class="badge {% if payment.status == 'completed' %}badge-success{% elif payment.status == 'pending' %}badge-warning{% elif payment.status == 'failed' %}badge-danger{% else %}badge-secondary{% endif %}">
+                                    {{ payment.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <a class="billing-receipt-link" href="/billing/receipts/{{ payment.id }}/">View</a>
+                                {% if payment.status == 'pending' and payment.method == 'stripe' %}
+                                <form method="post" action="/billing/gateway/stripe/start/{{ payment.id }}/" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="billing-receipt-link" style="border:0;background:none;cursor:pointer;font:inherit;">Pay now</button>
+                                </form>
+                                {% elif payment.status == 'pending' and payment.method == 'mpesa' and payment.gateway_checkout_id %}
+                                <form method="post" action="/billing/gateway/mpesa/status/{{ payment.id }}/" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="billing-receipt-link" style="border:0;background:none;cursor:pointer;font:inherit;">Check M-Pesa</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="billing-empty">
+                <i class="fas fa-file-invoice"></i>
+                No payments recorded yet. Your payment history will appear here.
+            </div>
+            {% endif %}
+        </div>
+
+        {% if is_admin %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-palette"></i> Workspace profile</span></div>
+            {% if locked %}
+            <div class="billing-empty" style="padding:20px;">
+                <i class="fas fa-lock"></i>
+                Workspace details are read-only until the subscription is renewed.
+            </div>
+            {% else %}
+            <form method="post" action="/billing/" class="billing-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="profile">
+                {% if profile_form.non_field_errors %}
+                <div class="pub-form-errors">{{ profile_form.non_field_errors }}</div>
+                {% endif %}
+                <div class="pub-form-grid">
+                    <div class="form-group">
+                        <label for="{{ profile_form.company_name.id_for_label }}">Company name</label>
+                        {{ profile_form.company_name }}
+                        {{ profile_form.company_name.errors }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ profile_form.brand_name.id_for_label }}">Display name</label>
+                        {{ profile_form.brand_name }}
+                        {{ profile_form.brand_name.errors }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ profile_form.phone_number.id_for_label }}">Phone number</label>
+                        {{ profile_form.phone_number }}
+                        {{ profile_form.phone_number.errors }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ profile_form.currency.id_for_label }}">Currency</label>
+                        {{ profile_form.currency }}
+                        {{ profile_form.currency.errors }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ profile_form.timezone_name.id_for_label }}">Time zone</label>
+                        {{ profile_form.timezone_name }}
+                        {{ profile_form.timezone_name.errors }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ profile_form.primary_color.id_for_label }}">Accent colour</label>
+                        {{ profile_form.primary_color }}
+                        {{ profile_form.primary_color.errors }}
+                    </div>
+                    <div class="form-group" style="grid-column:span 2;">
+                        <label for="{{ profile_form.logo_url.id_for_label }}">Logo URL</label>
+                        {{ profile_form.logo_url }}
+                        <span class="helptext">Use a hosted image URL or upload your logo in Settings and paste its path.</span>
+                        {{ profile_form.logo_url.errors }}
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm" style="margin-top:6px;">
+                    <i class="fas fa-save"></i> Save profile
+                </button>
+            </form>
+            {% endif %}
+        </div>
+
+        <div class="card" id="domains">
+            <div class="card-header">
+                <span><i class="fas fa-globe"></i> Custom domains</span>
+                <span class="badge badge-secondary">{{ domains|length }} / {{ domain_limit }}</span>
+            </div>
+            <div style="padding:20px;">
+                <p style="color:#64748b;font-size:12px;line-height:1.65;margin-top:0;">
+                    Run this workspace on your own address. Add the hostname, publish the DNS TXT record
+                    below, then check verification. Only domains that prove DNS ownership are routed.
+                </p>
+                {% if locked %}
+                <div class="billing-empty" style="padding:16px;">
+                    <i class="fas fa-lock"></i>
+                    Domain settings are read-only until the subscription is renewed.
+                </div>
+                {% else %}
+                <form method="post" action="/billing/domains/add/" class="billing-form">
+                    {% csrf_token %}
+                    <div class="pub-form-grid" style="align-items:end;">
+                        <div class="form-group" style="grid-column:span 2;">
+                            <label for="{{ domain_form.hostname.id_for_label }}">Domain name</label>
+                            {{ domain_form.hostname }}
+                            <span class="helptext">Use the hostname only — for example <code>erp.yourcompany.com</code>.</span>
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus"></i> Add domain
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                {% endif %}
+
+                {% if domains %}
+                <div class="table-responsive" style="margin-top:14px;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Domain</th>
+                                <th>Status</th>
+                                <th>DNS verification</th>
+                                <th style="text-align:right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for domain in domains %}
+                            <tr>
+                                <td>
+                                    <strong>{{ domain.hostname }}</strong>
+                                    {% if domain.is_primary %}<span class="badge badge-success" style="margin-left:6px;">Primary</span>{% endif %}
+                                    {% if domain.verified_at %}
+                                    <div style="color:#94a3b8;font-size:10.5px;">Verified {{ domain.verified_at|date:"d M Y H:i" }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge badge-{{ domain.status_class }}">{{ domain.get_status_display }}</span>
+                                    {% if domain.last_checked_at %}
+                                    <div style="color:#94a3b8;font-size:10.5px;">Checked {{ domain.last_checked_at|timesince }} ago</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if domain.is_verified %}
+                                    <span style="color:#64748b;font-size:11.5px;">TXT record confirmed.</span>
+                                    {% else %}
+                                    <div style="font-size:10.5px;color:#64748b;margin-bottom:3px;">Add this TXT record at your DNS provider:</div>
+                                    <div class="mono" style="font-size:10.5px;word-break:break-all;">{{ domain.verification_record_name }}</div>
+                                    <div class="mono" style="font-size:10.5px;word-break:break-all;color:#0f172a;">{{ domain.verification_record_value }}</div>
+                                    {% if dns_target %}
+                                    <div style="font-size:10.5px;color:#64748b;margin-top:4px;">Then point the hostname at <span class="mono">{{ dns_target }}</span>.</div>
+                                    {% endif %}
+                                    {% if domain.last_error %}
+                                    <div style="font-size:10.5px;color:#b45309;margin-top:4px;">{{ domain.last_error }}</div>
+                                    {% endif %}
+                                    {% endif %}
+                                </td>
+                                <td style="text-align:right;white-space:nowrap;">
+                                    {% if not locked %}
+                                    <form method="post" action="/billing/domains/{{ domain.id }}/verify/" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-secondary" title="Check DNS">
+                                            <i class="fas fa-rotate"></i> {% if domain.is_verified %}Re-check{% else %}Check DNS{% endif %}
+                                        </button>
+                                    </form>
+                                    {% if domain.is_verified and not domain.is_primary %}
+                                    <form method="post" action="/billing/domains/{{ domain.id }}/primary/" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-secondary" title="Make primary">
+                                            <i class="fas fa-star"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                    <form method="post" action="/billing/domains/{{ domain.id }}/remove/" style="display:inline;" onsubmit="return confirm('Remove {{ domain.hostname }} from this workspace?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-danger" title="Remove">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="billing-empty" style="padding:16px;">
+                    <i class="fas fa-globe"></i>
+                    No custom domains yet. Your workspace stays available on the SORA address.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div>
+        {% if tenant.status == 'trial' and trial %}
+        <div class="billing-trial-card">
+            <h3>Trial period</h3>
+            <div class="days">{{ trial.days_left }}<small> day{{ trial.days_left|pluralize }} left</small></div>
+            <p>Ends {{ tenant.trial_ends_at|date:"d M Y" }}. Upgrade before then to keep uninterrupted access.</p>
+            <div class="billing-progress"><span style="width:{% widthratio trial.days_left 30 100 %}%;"></span></div>
+        </div>
+        {% else %}
+        <div class="billing-trial-card">
+            <h3>{{ tenant.get_billing_cycle_display|title }} subscription</h3>
+            <div class="days">
+                {% if tenant.subscription_ends_at %}{{ tenant.subscription_ends_at|timeuntil }}{% else %}No term yet{% endif %}
+                {% if tenant.subscription_ends_at %}<small> remaining</small>{% endif %}
+            </div>
+            <p>
+                {% if tenant.subscription_ends_at %}
+                    Current term ends {{ tenant.subscription_ends_at|date:"d M Y" }}.
+                {% else %}
+                    Renew to activate a paid term for this workspace.
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
+
+        {% if is_admin %}
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-arrows-rotate"></i> Renew or upgrade</span>
+                {% if gateways.stripe.ready or gateways.mpesa.ready %}<span class="badge badge-success"><i class="fas fa-shield-halved"></i> Instant payment</span>{% elif payments_pending %}<span class="badge badge-warning">{{ payments_pending }} pending</span>{% endif %}
+            </div>
+            <form method="post" action="/billing/" class="billing-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="renewal">
+                {% if renewal_form.non_field_errors %}
+                <div class="pub-form-errors">{{ renewal_form.non_field_errors }}</div>
+                {% endif %}
+                <div class="form-group">
+                    <label for="{{ renewal_form.plan.id_for_label }}">Plan</label>
+                    {{ renewal_form.plan }}
+                    {{ renewal_form.plan.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ renewal_form.billing_cycle.id_for_label }}">Billing cycle</label>
+                    {{ renewal_form.billing_cycle }}
+                    {{ renewal_form.billing_cycle.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ renewal_form.method.id_for_label }}">Payment method</label>
+                    {{ renewal_form.method }}
+                    {{ renewal_form.method.errors }}
+                    {% if gateways.stripe.ready or gateways.mpesa.ready %}
+                    <span class="helptext">
+                        Instant options activate the workspace as soon as the gateway confirms payment.
+                        {% if gateways.stripe.ready %}Card checkout is live.{% endif %}
+                        {% if gateways.mpesa.ready %}M-Pesa STK push is live.{% endif %}
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="{{ renewal_form.phone_number.id_for_label }}">M-Pesa phone number</label>
+                    {{ renewal_form.phone_number }}
+                    <span class="helptext">Only needed for instant STK push; the prompt is sent to this number.</span>
+                    {{ renewal_form.phone_number.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ renewal_form.reference.id_for_label }}">Payment reference</label>
+                    {{ renewal_form.reference }}
+                    <span class="helptext">Required for manual M-Pesa and bank transfers. Leave blank for instant gateways.</span>
+                    {{ renewal_form.reference.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ renewal_form.notes.id_for_label }}">Notes</label>
+                    {{ renewal_form.notes }}
+                    {{ renewal_form.notes.errors }}
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" style="width:100%;">
+                    <i class="fas fa-paper-plane"></i> Continue to payment
+                </button>
+                <p style="color:#94a3b8;font-size:10.5px;line-height:1.6;margin-top:9px;text-align:center;">
+                    Instant gateways confirm automatically. Manual payments are verified by our billing team before activation.
+                </p>
+            </form>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-circle-info"></i> How to pay</span></div>
+            <div class="billing-payment-instructions">
+                {{ platform.payment_instructions|default:"Contact our billing team for payment instructions."|linebreaks }}
+                {% if platform.mpesa_paybill or platform.bank_account_number %}
+                <dl>
+                    {% if platform.mpesa_paybill %}
+                    <dt>M-Pesa paybill</dt><dd>{{ platform.mpesa_paybill }}{% if platform.mpesa_account_name %} · {{ platform.mpesa_account_name }}{% endif %}</dd>
+                    {% endif %}
+                    {% if platform.bank_name %}<dt>Bank</dt><dd>{{ platform.bank_name }}</dd>{% endif %}
+                    {% if platform.bank_account_name %}<dt>Account name</dt><dd>{{ platform.bank_account_name }}</dd>{% endif %}
+                    {% if platform.bank_account_number %}<dt>Account number</dt><dd>{{ platform.bank_account_number }}</dd>{% endif %}
+                    {% if platform.bank_branch %}<dt>Branch</dt><dd>{{ platform.bank_branch }}</dd>{% endif %}
+                </dl>
+                {% endif %}
+                <div style="margin-top:12px;font-size:11px;color:#64748b;line-height:1.7;">
+                    {% if gateways.stripe.ready %}<div><i class="fas fa-check-circle" style="color:#16a34a;"></i> Card checkout is active.</div>{% endif %}
+                    {% if gateways.mpesa.ready %}<div><i class="fas fa-check-circle" style="color:#16a34a;"></i> M-Pesa STK push is active.</div>{% endif %}
+                    {% if saas.is_platform_admin %}
+                    <div style="margin-top:6px;"><a href="/cloud/settings/payments/">Configure payment gateways</a></div>
+                    {% endif %}
+                </div>
+                <p style="margin-top:14px;">
+                    Questions? <a href="mailto:{{ platform.billing_email|default:platform.support_email }}">{{ platform.billing_email|default:platform.support_email }}</a>
+                </p>
+            </div>
+        </div>
+        {% else %}
+        <div class="billing-note">
+            <i class="fas fa-user-shield"></i>
+            <div>Only workspace owners and administrators can change the plan or submit payments. Contact your administrator for billing changes.</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

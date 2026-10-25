@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-file-signature"></i> {{ rfq.rfq_number }}
+            <span class="badge badge-{{ rfq.status|status_class }}" style="font-size:12px; vertical-align:middle;">{{ rfq.get_status_display }}</span>
+        </h1>
+        <p>{{ rfq.title }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/purchasing/rfq" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+        {% if can_send %}
+        <form method="post" action="/purchasing/rfq/send/{{ rfq.id }}" onsubmit="return confirm('Mark this RFQ as sent?');">
+            {% csrf_token %}
+            <button class="btn btn-primary"><i class="fas fa-paper-plane"></i> Mark as Sent</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-list"></i> Requested Items</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>#</th><th>Item</th><th>Description</th><th class="text-right">Quantity</th><th>Unit</th></tr></thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <strong>{{ item.product_label }}</strong>
+                                {% if item.product_code %}<div class="info">{{ item.product_code }}</div>{% endif %}
+                            </td>
+                            <td>{{ item.description|default:"-" }}</td>
+                            <td class="text-right">{{ item.quantity|floatformat:2 }}</td>
+                            <td>{{ item.unit_of_measure|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5"><div class="empty-state"><i class="fas fa-list"></i><p>No items on this RFQ.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-info-circle"></i> RFQ Details</span></div>
+            <div style="padding: 20px;">
+                <div class="summary-box">
+                    <div class="summary-line"><span>RFQ number</span><span class="mono">{{ rfq.rfq_number }}</span></div>
+                    <div class="summary-line"><span>Status</span><span class="badge badge-{{ rfq.status|status_class }}">{{ rfq.get_status_display }}</span></div>
+                    <div class="summary-line"><span>Required by</span><span>{{ rfq.required_date|date:"M d, Y"|default:"-" }}</span></div>
+                    <div class="summary-line"><span>Items</span><span>{{ items|length }}</span></div>
+                </div>
+                {% if rfq.description %}
+                <div style="margin-top:18px;">
+                    <div class="detail-label">Description</div>
+                    <p style="font-size:13px; color:#475569;">{{ rfq.description|linebreaksbr }}</p>
+                </div>
+                {% endif %}
+                <div style="margin-top:18px; font-size:13px;">
+                    <div class="summary-line" style="padding:4px 0;"><span>Created</span><span>{{ rfq.created_at|date:"M d, Y H:i" }}</span></div>
+                    {% if rfq.closed_at %}<div class="summary-line" style="padding:4px 0;"><span>Closed</span><span>{{ rfq.closed_at|date:"M d, Y H:i" }}</span></div>{% endif %}
+                </div>
+                <p class="info" style="margin-top:14px;">Supplier quotations can be managed from the CRM vendor quotation records.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

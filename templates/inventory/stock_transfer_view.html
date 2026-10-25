@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-exchange-alt"></i> {{ transfer.transfer_number }}
+            <span class="badge badge-{{ transfer.status|status_class }}" style="font-size:12px; vertical-align:middle;">{{ transfer.get_status_display }}</span>
+        </h1>
+        <p>{{ transfer.from_location }} &rarr; {{ transfer.to_location }} &middot; {{ transfer.transfer_date|date:"F d, Y" }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/inventory/stock-transfers" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+        {% if can_complete %}
+        <form method="post" action="/inventory/stock-transfers/complete/{{ transfer.id }}" onsubmit="return confirm('Complete this transfer? Stock availability will be checked.');">
+            {% csrf_token %}
+            <button class="btn btn-primary"><i class="fas fa-check"></i> Complete Transfer</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="alert alert-info" style="background:#e0f2fe; color:#075985; border-radius:8px; padding:12px 16px; font-size:13px; margin-bottom:16px;">
+    <i class="fas fa-info-circle"></i> A location transfer records transfer-out and transfer-in movements; total company stock is unchanged.
+</div>
+
+<div class="detail-layout">
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-list"></i> Transfer Items</span></div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead><tr><th>#</th><th>Product</th><th class="text-right">Quantity</th><th class="text-right">Received</th><th class="text-right">Unit Cost</th><th class="text-right">Value</th><th>Notes</th></tr></thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ item.product_label }}</td>
+                        <td class="text-right">{{ item.quantity|floatformat:2 }}</td>
+                        <td class="text-right">{{ item.received_quantity|floatformat:2 }}</td>
+                        <td class="text-right">{{ currency_symbol }} {{ item.unit_price|floatformat:2|intcomma }}</td>
+                        <td class="text-right money">{{ currency_symbol }} {{ item.line_value|floatformat:2|intcomma }}</td>
+                        <td>{{ item.notes|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7"><div class="empty-state"><i class="fas fa-list"></i><p>No items.</p></div></td></tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot><tr><th colspan="5" class="text-right">Total Value</th><th class="text-right">{{ currency_symbol }} {{ total_value|floatformat:2|intcomma }}</th><th></th></tr></tfoot>
+            </table>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-info-circle"></i> Details</span></div>
+            <div style="padding: 20px;">
+                <div class="summary-box">
+                    <div class="summary-line"><span>Transfer</span><span class="mono">{{ transfer.transfer_number }}</span></div>
+                    <div class="summary-line"><span>From</span><span>{{ transfer.from_location|default:"-" }}</span></div>
+                    <div class="summary-line"><span>To</span><span>{{ transfer.to_location|default:"-" }}</span></div>
+                    <div class="summary-line"><span>Date</span><span>{{ transfer.transfer_date|date:"M d, Y" }}</span></div>
+                    <div class="summary-line"><span>Status</span><span><span class="badge badge-{{ transfer.status|status_class }}">{{ transfer.get_status_display }}</span></span></div>
+                </div>
+                <div style="margin-top:16px; font-size:13px;">
+                    <div class="summary-line" style="padding:4px 0;"><span>Created</span><span>{{ transfer.created_at|date:"M d, Y H:i" }}</span></div>
+                    {% if transfer.completed_at %}
+                    <div class="summary-line" style="padding:4px 0;"><span>Completed</span><span>{{ transfer.completed_at|date:"M d, Y H:i" }}</span></div>
+                    {% endif %}
+                </div>
+                {% if transfer.notes %}
+                <div style="margin-top:16px;">
+                    <div class="detail-label">Notes</div>
+                    <p style="font-size:13px; color:#475569;">{{ transfer.notes|linebreaksbr }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

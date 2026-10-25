@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-money-check-dollar"></i> Payroll</h1><p>Run monthly payroll with Kenyan statutory deductions.</p></div>
+    <div class="page-actions">
+        {% if can_manage %}<a href="/hr/payroll/create-period" class="btn btn-primary"><i class="fas fa-plus"></i> New payroll period</a>{% endif %}
+        <a href="/hr/reports/payroll" class="btn btn-secondary"><i class="fas fa-file-csv"></i> Payroll report</a>
+    </div>
+</div>
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-calendar"></i></div><div><div class="stat-number">{{ stats.periods }}</div><div class="stat-label">Payroll periods</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-users"></i></div><div><div class="stat-number">{{ stats.employees }}</div><div class="stat-label">Employees on payroll</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-wallet"></i></div><div><div class="stat-number">{{ currency_symbol }} {{ stats.latest_net|floatformat:0|intcomma }}</div><div class="stat-label">Latest net ({{ stats.latest_label }})</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-check-double"></i></div><div><div class="stat-number">{{ stats.paid }}</div><div class="stat-label">Paid payslips</div></div></div>
+</div>
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-list"></i> Payroll history</span></div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Period</th><th>Date range</th><th>Payment date</th><th class="text-right">Employees</th><th class="text-right">Gross</th><th class="text-right">Deductions</th><th class="text-right">Net</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+            {% for period in periods %}
+                <tr>
+                    <td><strong>{{ period.period_name }}</strong></td>
+                    <td>{{ period.start_date|date:"M d" }} – {{ period.end_date|date:"M d, Y" }}</td>
+                    <td>{{ period.payment_date|date:"M d, Y" }}</td>
+                    <td class="text-right">{{ period.item_count }}</td>
+                    <td class="text-right">{{ currency_symbol }} {{ period.total_gross|floatformat:2|intcomma }}</td>
+                    <td class="text-right">{{ currency_symbol }} {{ period.total_deductions|floatformat:2|intcomma }}</td>
+                    <td class="text-right"><strong>{{ currency_symbol }} {{ period.total_net|floatformat:2|intcomma }}</strong></td>
+                    <td><span class="badge badge-{{ period.status|status_class }}">{{ period.get_status_display }}</span></td>
+                    <td>
+                        {% if period.is_editable and can_manage %}<a href="/hr/payroll/process/{{ period.id }}" class="btn btn-sm btn-primary"><i class="fas fa-play"></i> Process</a>{% else %}<a href="/hr/payroll/view/{{ period.id }}" class="btn btn-sm btn-secondary">View</a>{% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="9"><div class="empty-state"><i class="fas fa-money-check"></i><p>No payroll periods created yet.</p>{% if can_manage %}<a href="/hr/payroll/create-period" class="btn btn-primary btn-sm">Create period</a>{% endif %}</div></td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-circle-info"></i> How payroll is calculated</span></div>
+    <div style="padding:18px; display:grid; grid-template-columns:repeat(3,1fr); gap:18px;">
+        <div><h4><i class="fas fa-user-clock"></i> Attendance</h4><p class="info">Absent days are deducted at the daily rate. Overtime is paid at 1.5× from approved overtime requests.</p></div>
+        <div><h4><i class="fas fa-percent"></i> Statutory</h4><p class="info">PAYE follows KRA bands with personal relief, NSSF is 6% (capped), NHIF uses the legacy bracket table.</p></div>
+        <div><h4><i class="fas fa-list-check"></i> Allowances</h4><p class="info">Each employee's benefits and deductions JSON is applied automatically when payroll is calculated.</p></div>
+    </div>
+</div>
+{% endblock %}

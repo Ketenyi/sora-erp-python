@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-exchange-alt"></i> Stock Movements</h1>
+        <p>{{ page_obj.paginator.count }} movement{{ page_obj.paginator.count|pluralize }} recorded.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/inventory/products" class="btn btn-secondary"><i class="fas fa-boxes"></i> Products</a>
+        <a href="/inventory/reports" class="btn btn-secondary"><i class="fas fa-chart-bar"></i> Reports</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="filter-bar">
+            <div class="form-group">
+                <label>Search</label>
+                <input type="text" name="q" class="form-control" value="{{ search_query }}" placeholder="Product code or name">
+            </div>
+            <div class="form-group">
+                <label>Type</label>
+                <select name="type" class="form-control">
+                    <option value="">All types</option>
+                    {% for value, label in movement_types %}
+                    <option value="{{ value }}" {% if type_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>From</label>
+                <input type="date" name="from" class="form-control" value="{{ date_from }}">
+            </div>
+            <div class="form-group">
+                <label>To</label>
+                <input type="date" name="to" class="form-control" value="{{ date_to }}">
+            </div>
+            <div class="form-group"><button class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button></div>
+            {% if search_query or type_filter or date_from or date_to %}<div class="form-group"><a href="/inventory/stock-movements" class="btn btn-secondary">Reset</a></div>{% endif %}
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Date</th><th>Product</th><th>Type</th><th class="text-right">Qty</th><th class="text-right">Before</th><th class="text-right">After</th><th class="text-right">Value</th><th>Reference</th><th>Location</th></tr></thead>
+            <tbody>
+                {% for movement in movements %}
+                <tr>
+                    <td>{{ movement.created_at|date:"M d, Y H:i" }}</td>
+                    <td>{{ movement.product_label }}</td>
+                    <td><span class="badge badge-{{ movement.movement_type|status_class }}">{{ movement.get_movement_type_display }}</span></td>
+                    <td class="text-right">{{ movement.quantity|floatformat:2 }}</td>
+                    <td class="text-right">{{ movement.quantity_before|floatformat:2 }}</td>
+                    <td class="text-right money">{{ movement.quantity_after|floatformat:2 }}</td>
+                    <td class="text-right">{{ currency_symbol }} {{ movement.total_value|floatformat:2|intcomma }}</td>
+                    <td>{{ movement.reference_number|default:"-" }}</td>
+                    <td>{{ movement.location|default:"-" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="9"><div class="empty-state"><i class="fas fa-exchange-alt"></i><p>No stock movements found.</p></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

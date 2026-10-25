@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-sliders-h"></i> Create Stock Adjustment</h1>
+        <p>Adjust stock for damage, theft, expiry, returns or count corrections.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/inventory/stock-adjustments" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+
+<div class="alert alert-info" style="background:#fef3c7; color:#92400e; border-radius:8px; padding:12px 16px; font-size:13px; margin-bottom:16px;">
+    <i class="fas fa-exclamation-triangle"></i> Stock is updated immediately when the adjustment is saved. It is created as a draft for review, matching the legacy behaviour.
+</div>
+
+<form method="post" action="/inventory/stock-adjustments/store" id="adjustmentForm">
+    {% csrf_token %}
+    {{ formset.management_form }}
+
+    {% if form.errors or formset.non_form_errors or formset.errors %}
+    <div class="alert alert-error">
+        <strong>Please fix the following:</strong>
+        {{ form.non_field_errors }}
+        {{ formset.non_form_errors }}
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-info-circle"></i> Adjustment Details</span></div>
+        <div style="padding: 20px;">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="{{ form.adjustment_date.id_for_label }}">Adjustment date *</label>
+                    {{ form.adjustment_date }}
+                    {{ form.adjustment_date.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.type.id_for_label }}">Adjustment type *</label>
+                    {{ form.type }}
+                    {{ form.type.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.reason.id_for_label }}">Reason *</label>
+                    {{ form.reason }}
+                    {{ form.reason.errors }}
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="{{ form.notes.id_for_label }}">Notes</label>
+                {{ form.notes }}
+                {{ form.notes.errors }}
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span><i class="fas fa-list"></i> Items to Adjust</span>
+            <button type="button" class="btn btn-sm btn-primary" id="addItemBtn"><i class="fas fa-plus"></i> Add item</button>
+        </div>
+        <div class="table-responsive">
+            <table class="data-table item-table">
+                <thead><tr><th style="min-width:220px;">Product</th><th style="width:110px;">Quantity</th><th style="width:140px;">Current</th><th style="width:140px;">New stock</th><th>Notes</th><th style="width:40px;"></th></tr></thead>
+                <tbody id="itemRows">
+                    {% for item_form in formset %}
+                    <tr class="item-row">
+                        <td>{{ item_form.product }}{{ item_form.product.errors }}</td>
+                        <td>{{ item_form.quantity }}{{ item_form.quantity.errors }}</td>
+                        <td class="current-cell"><span class="info">-</span></td>
+                        <td class="new-cell"><span class="info">-</span></td>
+                        <td>{{ item_form.notes }}{{ item_form.notes.errors }}</td>
+                        <td><button type="button" class="btn btn-sm btn-danger remove-row" title="Clear row"><i class="fas fa-times"></i></button></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div style="padding: 10px 20px 18px; color:#64748b; font-size:12px;">
+            Tip: empty rows are ignored. A decrease cannot take stock below zero.
+        </div>
+    </div>
+
+    <div class="page-actions" style="margin-top: 6px;">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Create Adjustment</button>
+        <a href="/inventory/stock-adjustments" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+
+<template id="emptyItemRow">
+    <tr class="item-row">
+        <td>{{ formset.empty_form.product }}{{ formset.empty_form.product.errors }}</td>
+        <td>{{ formset.empty_form.quantity }}{{ formset.empty_form.quantity.errors }}</td>
+        <td class="current-cell"><span class="info">-</span></td>
+        <td class="new-cell"><span class="info">-</span></td>
+        <td>{{ formset.empty_form.notes }}{{ formset.empty_form.notes.errors }}</td>
+        <td><button type="button" class="btn btn-sm btn-danger remove-row" title="Clear row"><i class="fas fa-times"></i></button></td>
+    </tr>
+</template>
+
+{{ products_json|json_script:"products-data" }}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const productMap = {};
+JSON.parse(document.getElementById('products-data').textContent).forEach(product => {
+    productMap[String(product.id)] = product;
+});
+const totalForms = document.getElementById('id_{{ formset.prefix }}-TOTAL_FORMS');
+const itemRows = document.getElementById('itemRows');
+const typeSelect = document.getElementById('id_type');
+
+function updateRow(row) {
+    const select = row.querySelector('select');
+    const qtyInput = row.querySelector('input[type="number"]');
+    const currentCell = row.querySelector('.current-cell');
+    const newCell = row.querySelector('.new-cell');
+    if (!select || !currentCell) return;
+    const product = productMap[String(select.value)];
+    if (!product) {
+        currentCell.innerHTML = '<span class="info">-</span>';
+        newCell.innerHTML = '<span class="info">-</span>';
+        return;
+    }
+    const qty = parseFloat(qtyInput?.value || 0) || 0;
+    let next = product.stock;
+    if (typeSelect.value === 'increase') next = product.stock + qty;
+    else next = Math.max(product.stock - qty, 0);
+    const invalid = typeSelect.value === 'decrease' && qty > product.stock;
+    currentCell.textContent = product.stock.toFixed(2) + ' ' + product.unit;
+    newCell.innerHTML = '<span style="font-weight:600; color:' + (invalid ? '#dc2626' : '#10b981') + ';">' + next.toFixed(2) + ' ' + product.unit + '</span>';
+}
+
+document.getElementById('addItemBtn').addEventListener('click', () => {
+    const index = parseInt(totalForms.value, 10);
+    const html = document.getElementById('emptyItemRow').innerHTML.replace(/__prefix__/g, index);
+    itemRows.insertAdjacentHTML('beforeend', html);
+    totalForms.value = index + 1;
+});
+
+itemRows.addEventListener('change', event => {
+    if (event.target.closest('.item-row')) updateRow(event.target.closest('.item-row'));
+});
+itemRows.addEventListener('input', event => {
+    if (event.target.type === 'number') updateRow(event.target.closest('.item-row'));
+});
+itemRows.addEventListener('click', event => {
+    const button = event.target.closest('.remove-row');
+    if (!button) return;
+    const row = button.closest('tr');
+    row.querySelectorAll('input, select, textarea').forEach(input => { input.value = ''; });
+    row.style.display = 'none';
+});
+typeSelect.addEventListener('change', () => {
+    document.querySelectorAll('#itemRows .item-row').forEach(updateRow);
+});
+
+document.querySelectorAll('#itemRows .item-row').forEach(updateRow);
+</script>
+{% endblock %}

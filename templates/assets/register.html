@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-list"></i> Asset Register</h1>
+        <p>{{ page_obj.paginator.count }} asset{{ page_obj.paginator.count|pluralize }} &middot; codes, custody and book values.</p>
+    </div>
+    <div class="page-actions">
+        {% if can_create %}<a href="/assets/new" class="btn btn-primary"><i class="fas fa-plus"></i> Add Asset</a>{% endif %}
+        <a href="/assets/categories" class="btn btn-secondary"><i class="fas fa-tags"></i> Categories</a>
+        <a href="/assets/register/export{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-secondary"><i class="fas fa-file-csv"></i> Export</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="filter-bar">
+            <div class="form-group">
+                <label>Search</label>
+                <input type="text" name="q" class="form-control" value="{{ filters.q }}" placeholder="Code, name, serial or model">
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <select name="category" class="form-control">
+                    <option value="">All</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if filters.category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.category_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All</option>
+                    {% for key, label in statuses %}
+                    <option value="{{ key }}" {% if filters.status == key %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Condition</label>
+                <select name="condition" class="form-control">
+                    <option value="">All</option>
+                    {% for key, label in conditions %}
+                    <option value="{{ key }}" {% if filters.condition == key %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group"><button class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button></div>
+            {% if filters.q or filters.category or filters.status or filters.condition %}<div class="form-group"><a href="/assets/register" class="btn btn-secondary">Reset</a></div>{% endif %}
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Asset</th>
+                    <th>Category</th>
+                    <th>Serial / location</th>
+                    <th>Custodian</th>
+                    <th class="text-right">Cost</th>
+                    <th class="text-right">Book value</th>
+                    <th>Status</th>
+                    <th>Condition</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for asset in assets %}
+                <tr>
+                    <td>
+                        <a href="/assets/{{ asset.id }}"><strong>{{ asset.name }}</strong></a>
+                        <div class="text-muted" style="font-size:11px;">{{ asset.asset_code }}{% if asset.model_name %} &middot; {{ asset.model_name }}{% endif %}</div>
+                    </td>
+                    <td>{{ asset.category_name }}</td>
+                    <td>{{ asset.serial_number|default:"—" }}{% if asset.location %}<div class="text-muted" style="font-size:11px;">{{ asset.location }}</div>{% endif %}</td>
+                    <td>{{ asset.custodian_name }}{% if asset.return_overdue %}<div><span class="badge badge-danger">Return overdue</span></div>{% endif %}</td>
+                    <td class="text-right">{{ currency_symbol }} {{ asset.purchase_cost|floatformat:2|intcomma }}</td>
+                    <td class="text-right money">{{ currency_symbol }} {{ asset.book_value|floatformat:2|intcomma }}</td>
+                    <td><span class="badge badge-{{ asset.status|status_class }}">{{ asset.get_status_display }}</span></td>
+                    <td><span class="badge badge-{{ asset.condition|status_class }}">{{ asset.get_condition_display }}</span></td>
+                    <td>
+                        <div class="table-actions">
+                            <a href="/assets/{{ asset.id }}" class="btn btn-sm btn-secondary" title="View"><i class="fas fa-eye"></i></a>
+                            {% if can_edit %}<a href="/assets/{{ asset.id }}/edit" class="btn btn-sm btn-secondary" title="Edit"><i class="fas fa-pen"></i></a>{% endif %}
+                            <a href="/assets/{{ asset.id }}/label" class="btn btn-sm btn-secondary" title="QR label"><i class="fas fa-qrcode"></i></a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="9"><div class="empty-state"><i class="fas fa-box-open"></i><p>No assets match this view.</p>{% if can_create %}<a href="/assets/new">Register an asset</a>{% endif %}</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

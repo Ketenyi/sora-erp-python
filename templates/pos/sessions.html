@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-cash-register"></i> Till Sessions</h1>
+        <p>Open a shift, track the expected drawer cash and reconcile it at cash-up.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/pos/" class="btn btn-primary"><i class="fas fa-cash-register"></i> Open Terminal</a>
+        <a href="/pos/sales" class="btn btn-secondary"><i class="fas fa-receipt"></i> Sales History</a>
+        <a href="/pos/dashboard" class="btn btn-secondary"><i class="fas fa-chart-line"></i> Dashboard</a>
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-cash-register"></i></div>
+        <div><div class="stat-number">{{ today.open_sessions }}</div><div class="stat-label">Open tills now</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-coins"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ today.expected_cash|floatformat:0|intcomma }}</div><div class="stat-label">Expected drawer cash</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-receipt"></i></div>
+        <div><div class="stat-number">{{ today.sales }}</div><div class="stat-label">Sales today</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-coins"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ today.net_revenue|floatformat:0|intcomma }}</div><div class="stat-label">Net takings today{% if today.refunds %} &middot; {{ today.refunds|floatformat:0|intcomma }} refunded{% endif %}</div></div>
+    </div>
+</div>
+
+{% if open_sessions %}
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-lock-open"></i> Open tills</span><span class="info">{{ open_sessions|length }} session{{ open_sessions|length|pluralize }} live</span></div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Session</th>
+                    <th>Terminal</th>
+                    <th>Opened by</th>
+                    <th>Opened at</th>
+                    <th class="text-right">Sales</th>
+                    <th class="text-right">Gross</th>
+                    <th class="text-right">Expected cash</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for session in open_sessions %}
+                <tr>
+                    <td class="mono"><a href="/pos/sessions/{{ session.id }}"><strong>{{ session.session_number }}</strong></a></td>
+                    <td>{{ session.terminal_name }}</td>
+                    <td>{{ session.opener_name }}</td>
+                    <td>{{ session.opened_at|date:"M d, Y H:i" }}</td>
+                    <td class="text-right">{{ session.summary.count }}</td>
+                    <td class="text-right money">{{ currency_symbol }} {{ session.summary.gross|floatformat:2|intcomma }}</td>
+                    <td class="text-right money">{{ currency_symbol }} {{ session.summary.expected_cash|floatformat:2|intcomma }}</td>
+                    <td><a href="/pos/sessions/{{ session.id }}" class="btn btn-sm btn-primary"><i class="fas fa-calculator"></i> Cash-up</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-clock-rotate-left"></i> Session history</span><span class="info">Last {{ sessions|length }} session{{ sessions|length|pluralize }}</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Session</th>
+                            <th>Terminal</th>
+                            <th>Shift</th>
+                            <th class="text-right">Sales</th>
+                            <th class="text-right">Gross</th>
+                            <th class="text-right">Expected</th>
+                            <th class="text-right">Counted</th>
+                            <th class="text-right">Variance</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for session in sessions %}
+                        <tr>
+                            <td class="mono"><a href="/pos/sessions/{{ session.id }}"><strong>{{ session.session_number }}</strong></a></td>
+                            <td>{{ session.terminal_name }}</td>
+                            <td>
+                                {{ session.opened_at|date:"M d, H:i" }}
+                                <div class="text-muted" style="font-size:11px;">
+                                    {% if session.closed_at %}to {{ session.closed_at|date:"M d, H:i" }}{% else %}open{% endif %}
+                                    &middot; {{ session.opener_name }}{% if session.closer_name %} / {{ session.closer_name }}{% endif %}
+                                </div>
+                            </td>
+                            <td class="text-right">{{ session.summary.count }}</td>
+                            <td class="text-right money">{{ currency_symbol }} {{ session.summary.gross|floatformat:2|intcomma }}</td>
+                            <td class="text-right">{{ currency_symbol }} {{ session.summary.expected_cash|floatformat:2|intcomma }}</td>
+                            <td class="text-right">
+                                {% if session.closing_float is not None %}{{ currency_symbol }} {{ session.closing_float|floatformat:2|intcomma }}{% else %}<span class="text-muted">-</span>{% endif %}
+                            </td>
+                            <td class="text-right">
+                                {% if session.cash_variance is not None %}
+                                    {% if session.cash_variance %}
+                                    <span class="badge badge-{% if session.cash_variance < 0 %}danger{% else %}warning{% endif %}">{{ currency_symbol }} {{ session.cash_variance|floatformat:2|intcomma }}</span>
+                                    {% else %}
+                                    <span class="badge badge-success">Balanced</span>
+                                    {% endif %}
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td><span class="badge badge-{{ session.status|status_class }}">{{ session.get_status_display }}</span></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="9"><div class="empty-state"><i class="fas fa-cash-register"></i><p>No till sessions yet.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        {% if can_open %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-circle-play"></i> Open a till</span></div>
+            <div style="padding: 18px;">
+                <p class="info" style="margin-bottom: 14px;">Declare the float in the drawer. One open session per user and terminal at a time.</p>
+                <form method="post" action="/pos/sessions/open">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="/pos/">
+                    <div class="form-group">
+                        <label for="{{ open_form.terminal_name.id_for_label }}">Terminal name</label>
+                        {{ open_form.terminal_name }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ open_form.opening_float.id_for_label }}">Opening float</label>
+                        {{ open_form.opening_float }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ open_form.notes.id_for_label }}">Notes</label>
+                        {{ open_form.notes }}
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;"><i class="fas fa-lock-open"></i> Open Till</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-circle-info"></i> Cash-up rules</span></div>
+            <div style="padding: 18px; font-size: 12px; color: #475569; line-height: 1.8;">
+                <div><strong>Expected cash</strong> = opening float + completed cash payments.</div>
+                <div>Card, M-Pesa and bank transfers are reconciled separately.</div>
+                <div>Voided sales and sales from closed shifts never count towards the drawer.</div>
+                <div style="margin-top:8px;"><strong>Tip:</strong> count the full drawer before entering the closing float.</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

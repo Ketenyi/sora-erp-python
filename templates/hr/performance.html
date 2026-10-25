@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load static sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-chart-line"></i> Performance</h1><p>Reviews, ratings and goal performance.</p></div>
+    <div class="page-actions">{% if can_manage %}<a href="/hr/performance/create" class="btn btn-primary"><i class="fas fa-plus"></i> New review</a>{% endif %}<a href="/hr/performance/goals" class="btn btn-secondary"><i class="fas fa-bullseye"></i> Goals</a><a href="/hr/performance/feedback" class="btn btn-secondary"><i class="fas fa-comments"></i> Feedback</a></div>
+</div>
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-clipboard-check"></i></div><div><div class="stat-number">{{ stats.reviews }}</div><div class="stat-label">Reviews</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-star"></i></div><div><div class="stat-number">{{ stats.average|floatformat:2 }}</div><div class="stat-label">Average rating</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-hourglass-half"></i></div><div><div class="stat-number">{{ stats.pending }}</div><div class="stat-label">In progress</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-bullseye"></i></div><div><div class="stat-number">{{ stats.goals_completed }}</div><div class="stat-label">Goals completed</div></div></div>
+</div>
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="filter-bar">
+            {% if not employee_only %}<div class="form-group"><label>Search employee</label><input type="text" name="q" class="form-control" value="{{ search_query }}" placeholder="Name"></div>{% endif %}
+            <div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="">All statuses</option>{% for value, label in status_choices %}<option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+            <div class="form-group"><button class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button></div>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Employee</th><th>Reviewer</th><th>Period</th><th>Type</th><th class="text-right">Rating</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                {% for review in reviews %}
+                <tr>
+                    <td><strong>{{ review.employee_name }}</strong></td>
+                    <td>{{ review.reviewer_name }}</td>
+                    <td>{{ review.review_period_start|date:"M d, Y" }} – {{ review.review_period_end|date:"M d, Y" }}</td>
+                    <td>{{ review.get_review_type_display }}</td>
+                    <td class="text-right">{% if review.overall_rating %}{{ review.overall_rating|floatformat:1 }} / 5{% else %}—{% endif %}</td>
+                    <td><span class="badge badge-{{ review.status|status_class }}">{{ review.get_status_display }}</span></td>
+                    <td><a href="/hr/performance/view/{{ review.id }}" class="btn btn-sm btn-secondary">View</a></td>
+                </tr>
+                {% empty %}<tr><td colspan="7"><div class="empty-state"><i class="fas fa-chart-line"></i><p>No performance reviews found.</p>{% if can_manage %}<a href="/hr/performance/create">Create the first review</a>{% endif %}</div></td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

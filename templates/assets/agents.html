@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-laptop-code"></i> Endpoint Agents</h1>
+        <p>Live hardware and software inventory reported by Windows, Linux and macOS endpoints.</p>
+    </div>
+    <div class="page-actions">
+        {% if can_manage %}<a href="/assets/agents/enrollment" class="btn btn-primary"><i class="fas fa-key"></i> Enrolment Tokens</a>{% endif %}
+        <a href="/assets/register" class="btn btn-secondary"><i class="fas fa-list"></i> Asset Register</a>
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-desktop"></i></div>
+        <div><div class="stat-number">{{ stats.agents }}</div><div class="stat-label">Enrolled endpoints &middot; {{ stats.disabled }} disabled</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-wifi"></i></div>
+        <div><div class="stat-number">{{ stats.online }}</div><div class="stat-label">Online now &middot; {{ stats.stale }} stale &middot; {{ stats.offline }} offline</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-link"></i></div>
+        <div><div class="stat-number">{{ stats.unlinked }}</div><div class="stat-label">Awaiting an asset link</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-window-restore"></i></div>
+        <div><div class="stat-number">{{ stats.software|intcomma }}</div><div class="stat-label">Applications tracked</div></div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="filter-bar">
+            <div class="form-group">
+                <label>Search</label>
+                <input type="text" name="q" class="form-control" value="{{ filters.q }}" placeholder="Host, serial, machine ID, IP or asset">
+            </div>
+            <div class="form-group">
+                <label>Platform</label>
+                <select name="os" class="form-control">
+                    <option value="">All platforms</option>
+                    {% for key, label in os_labels.items %}
+                    <option value="{{ key }}" {% if filters.os == key %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Connectivity</label>
+                <select name="status" class="form-control">
+                    <option value="">Any status</option>
+                    <option value="online" {% if filters.status == "online" %}selected{% endif %}>Online</option>
+                    <option value="stale" {% if filters.status == "stale" %}selected{% endif %}>Stale</option>
+                    <option value="offline" {% if filters.status == "offline" %}selected{% endif %}>Offline</option>
+                    <option value="disabled" {% if filters.status == "disabled" %}selected{% endif %}>Disabled</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Asset link</label>
+                <select name="linked" class="form-control">
+                    <option value="">Any</option>
+                    <option value="yes" {% if filters.linked == "yes" %}selected{% endif %}>Linked</option>
+                    <option value="no" {% if filters.linked == "no" %}selected{% endif %}>Unlinked</option>
+                </select>
+            </div>
+            <div class="form-group"><button class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button></div>
+            {% if filters.q or filters.os or filters.status or filters.linked %}<div class="form-group"><a href="/assets/agents" class="btn btn-secondary">Reset</a></div>{% endif %}
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Endpoint</th>
+                    <th>Platform</th>
+                    <th>Linked asset</th>
+                    <th>Hardware</th>
+                    <th class="text-right">Apps</th>
+                    <th>Last report</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for agent in agents %}
+                <tr>
+                    <td>
+                        <a href="/assets/agents/{{ agent.id }}"><strong>{{ agent.display_name|default:agent.hostname }}</strong></a>
+                        <div class="text-muted" style="font-size:11px;">{{ agent.hostname }}{% if agent.primary_ip %} &middot; {{ agent.primary_ip }}{% endif %}</div>
+                    </td>
+                    <td>
+                        <span class="badge badge-secondary">{{ agent.get_os_family_display }}</span>
+                        <div class="text-muted" style="font-size:11px;">{{ agent.os_name|default:agent.os_version|truncatechars:32 }}</div>
+                    </td>
+                    <td>
+                        {% if agent.asset %}
+                        <a href="/assets/{{ agent.asset.id }}">{{ agent.asset.asset_code }}</a>
+                        <div class="text-muted" style="font-size:11px;">{{ agent.asset.name|truncatechars:34 }}</div>
+                        {% else %}<span class="text-muted">Not linked</span>{% endif %}
+                    </td>
+                    <td>
+                        <div style="font-size:12px;">{{ agent.cpu_model|default:"Unknown CPU"|truncatechars:32 }}</div>
+                        <div class="text-muted" style="font-size:11px;">
+                            {% if agent.memory_total_gb %}{{ agent.memory_total_gb }} GB RAM{% endif %}
+                            {% if agent.disk_total_gb %} &middot; {{ agent.disk_total_gb|floatformat:0 }} GB disk{% endif %}
+                        </div>
+                    </td>
+                    <td class="text-right">{{ agent.software_total|intcomma }}</td>
+                    <td>
+                        {% if agent.last_seen_at %}{{ agent.last_seen_at|date:"M d, H:i" }}
+                        <div class="text-muted" style="font-size:11px;">{{ agent.last_seen_at|timesince }} ago</div>
+                        {% else %}<span class="text-muted">Never</span>{% endif %}
+                    </td>
+                    <td><span class="badge badge-{{ agent.connectivity|status_class }}">{{ agent.connectivity_label }}</span></td>
+                    <td>
+                        <div class="table-actions">
+                            <a href="/assets/agents/{{ agent.id }}" class="btn btn-sm btn-secondary" title="View"><i class="fas fa-eye"></i></a>
+                            {% if can_manage and not agent.asset and agent.is_active %}
+                            <a href="/assets/agents/{{ agent.id }}#link" class="btn btn-sm btn-secondary" title="Link asset"><i class="fas fa-link"></i></a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8">
+                    <div class="empty-state">
+                        <i class="fas fa-laptop-code"></i>
+                        <p>No endpoint agents match this view.</p>
+                        {% if can_manage %}<a href="/assets/agents/enrollment">Issue an enrolment token to get started</a>{% endif %}
+                    </div>
+                </td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

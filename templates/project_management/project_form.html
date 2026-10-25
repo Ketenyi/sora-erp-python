@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-folder-plus"></i> {% if is_edit %}Edit {{ project.project_code }}{% else %}New Project{% endif %}</h1>
+        <p>{% if is_edit %}Update commercial terms, dates and delivery status.{% else %}Set up the engagement, contract value and allocated field-expense budget.{% endif %}</p>
+    </div>
+    <div class="page-actions"><a href="{% if is_edit %}/projects/{{ project.id }}{% else %}/projects/portfolio{% endif %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a></div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="detail-layout">
+        <div>
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-circle-info"></i> Project details</span></div>
+                <div style="padding: 20px;">
+                    {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+                    <div class="form-grid">
+                        <div class="form-group"><label>Project code</label>{{ form.project_code }}{{ form.project_code.errors }}<div class="text-muted" style="font-size:11px;">Leave blank to auto-generate PRJ-0001.</div></div>
+                        <div class="form-group"><label>Project name *</label>{{ form.project_name }}{{ form.project_name.errors }}</div>
+                        <div class="form-group"><label>Project type *</label>{{ form.project_type }}{{ form.project_type.errors }}</div>
+                        <div class="form-group"><label>Project manager</label>{{ form.manager }}{{ form.manager.errors }}</div>
+                        <div class="form-group"><label>Client organisation</label>{{ form.client_name }}{{ form.client_name.errors }}</div>
+                        <div class="form-group"><label>Client email</label>{{ form.client_email }}{{ form.client_email.errors }}<div class="text-muted" style="font-size:11px;">Used for zero-login MOM, change-request and UAT magic links.</div></div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group"><label>Planned start</label>{{ form.start_date }}{{ form.start_date.errors }}</div>
+                        <div class="form-group"><label>Planned end</label>{{ form.end_date }}{{ form.end_date.errors }}</div>
+                        <div class="form-group"><label>Status</label>{{ form.status }}{{ form.status.errors }}</div>
+                        <div class="form-group"><label>Priority</label>{{ form.priority }}{{ form.priority.errors }}</div>
+                    </div>
+                    <div class="form-group"><label>Description</label>{{ form.description }}{{ form.description.errors }}</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><span><i class="fas fa-coins"></i> Commercials &amp; budget</span></div>
+                <div style="padding: 20px;">
+                    <div class="form-grid">
+                        <div class="form-group"><label>Contract value *</label>{{ form.contract_value }}{{ form.contract_value.errors }}</div>
+                        <div class="form-group"><label>Allocated expense budget</label>{{ form.allocated_expense_budget }}{{ form.allocated_expense_budget.errors }}<div class="text-muted" style="font-size:11px;">Approved field expenses trigger a Finance alert at 80% of this amount.</div></div>
+                    </div>
+                    <div class="alert alert-success" style="margin-bottom:0;"><i class="fas fa-lock"></i> Locking the baseline freezes the planned dates and moves the project into execution. After that, deviations are measured against the baseline.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card sticky-summary">
+            <div class="card-header"><span><i class="fas fa-circle-check"></i> Save project</span></div>
+            <div style="padding: 20px;">
+                {% if is_edit %}
+                <div class="summary-line"><span>Code</span><span><strong>{{ project.project_code }}</strong></span></div>
+                <div class="summary-line"><span>Baseline</span><span>{% if project.baseline_locked_at %}Locked{% else %}Not locked{% endif %}</span></div>
+                {% endif %}
+                <p class="text-muted" style="font-size:12px;">Fields marked * are required. External-client projects must include a client name.</p>
+                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; margin-top:14px;"><i class="fas fa-save"></i> {% if is_edit %}Save changes{% else %}Create project{% endif %}</button>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}

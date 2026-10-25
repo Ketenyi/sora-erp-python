@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-tags"></i> Asset Categories</h1>
+        <p>Default useful lives and depreciation rates for each class of asset.</p>
+    </div>
+    <div class="page-actions">
+        {% if can_create %}<a href="/assets/categories/new" class="btn btn-primary"><i class="fas fa-plus"></i> Add Category</a>{% endif %}
+        <a href="/assets/register" class="btn btn-secondary"><i class="fas fa-list"></i> Asset Register</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Code</th><th>Category</th><th class="text-right">Useful life</th><th class="text-right">Rate</th><th class="text-right">Assets</th><th class="text-right">Total cost</th><th class="text-right">Book value</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                {% for category in categories %}
+                <tr>
+                    <td class="mono"><strong>{{ category.category_code }}</strong></td>
+                    <td><strong>{{ category.category_name }}</strong>{% if category.description %}<div class="text-muted" style="font-size:11px;">{{ category.description|truncatechars:70 }}</div>{% endif %}</td>
+                    <td class="text-right">{{ category.useful_life_years }} yr{{ category.useful_life_years|pluralize }}</td>
+                    <td class="text-right">{{ category.depreciation_rate|floatformat:2 }}%</td>
+                    <td class="text-right">{{ category.asset_count }}</td>
+                    <td class="text-right">{{ currency_symbol }} {{ category.total_cost|floatformat:2|intcomma }}</td>
+                    <td class="text-right money">{{ currency_symbol }} {{ category.book_value|floatformat:2|intcomma }}</td>
+                    <td><span class="badge badge-{{ category.status|status_class }}">{{ category.get_status_display }}</span></td>
+                    <td>
+                        <div class="table-actions">
+                            <a href="/assets/register?category={{ category.id }}" class="btn btn-sm btn-secondary" title="View assets"><i class="fas fa-eye"></i></a>
+                            {% if can_edit %}<a href="/assets/categories/{{ category.id }}/edit" class="btn btn-sm btn-secondary" title="Edit"><i class="fas fa-pen"></i></a>{% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="9"><div class="empty-state"><i class="fas fa-tags"></i><p>No asset categories yet.</p>{% if can_create %}<a href="/assets/categories/new">Create the first category</a>{% endif %}</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

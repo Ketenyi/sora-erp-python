@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-chart-bar"></i> CRM Reports</h1>
+        <p>Relationship health and revenue concentration.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/crm/clients/export" class="btn btn-secondary"><i class="fas fa-download"></i> Clients CSV</a>
+        <a href="/crm/vendors/export" class="btn btn-secondary"><i class="fas fa-download"></i> Vendors CSV</a>
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-users"></i></div>
+        <div><div class="stat-number">{{ stats.clients|intcomma }}</div><div class="stat-label">Clients</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-truck"></i></div>
+        <div><div class="stat-number">{{ stats.vendors|intcomma }}</div><div class="stat-label">Vendors</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-file-invoice"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ stats.invoiced|floatformat:0|intcomma }}</div><div class="stat-label">Invoiced</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-hourglass-half"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ stats.outstanding|floatformat:0|intcomma }}</div><div class="stat-label">Outstanding</div></div>
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-trophy"></i> Top Clients by Invoiced Value</span></div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead><tr><th>#</th><th>Client</th><th>Code</th><th class="text-right">Invoices</th><th class="text-right">Invoiced</th></tr></thead>
+                <tbody>
+                    {% for row in top_clients %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                            {% if row.client %}
+                            <a href="/crm/clients/view/{{ row.client.id }}"><strong>{{ row.client.company_name }}</strong></a>
+                            {% else %}<span class="info">Unknown client</span>{% endif %}
+                        </td>
+                        <td>{{ row.client.client_code|default:"-" }}</td>
+                        <td class="text-right">{{ row.invoices }}</td>
+                        <td class="text-right money">{{ currency_symbol }} {{ row.invoiced|floatformat:2|intcomma }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5"><div class="empty-state"><i class="fas fa-chart-bar"></i><p>No invoiced revenue yet.</p></div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="sticky-summary">
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-chart-pie"></i> Receivables Health</span></div>
+            <div style="padding: 16px 20px;">
+                <div class="summary-box">
+                    <div class="summary-line"><span>Invoiced</span><span class="money">{{ currency_symbol }} {{ stats.invoiced|floatformat:2|intcomma }}</span></div>
+                    <div class="summary-line"><span>Collected</span><span class="money">{{ currency_symbol }} {{ stats.paid|floatformat:2|intcomma }}</span></div>
+                    <div class="summary-line total"><span>Outstanding</span><span>{{ currency_symbol }} {{ stats.outstanding|floatformat:2|intcomma }}</span></div>
+                </div>
+                <div style="margin-top: 16px;">
+                    <div class="summary-line"><span>Collection rate</span><span><strong>{{ stats.paid|percentage:stats.invoiced }}%</strong></span></div>
+                    <div style="height: 8px; background: #e2e8f0; border-radius: 4px; margin-top: 8px; overflow: hidden;">
+                        <div style="height: 100%; width: {{ stats.paid|percentage:stats.invoiced }}%; background: #10b981;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-link"></i> Related Reports</span></div>
+            <div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 8px;">
+                <a href="/sales/reports" class="btn btn-secondary btn-block"><i class="fas fa-chart-line"></i> Sales Reports</a>
+                <a href="/crm/clients" class="btn btn-secondary btn-block"><i class="fas fa-users"></i> Client Register</a>
+                <a href="/crm/vendors" class="btn btn-secondary btn-block"><i class="fas fa-truck"></i> Vendor Register</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

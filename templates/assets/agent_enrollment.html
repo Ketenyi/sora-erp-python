@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-key"></i> Agent Enrolment</h1>
+        <p>Issue short-lived tokens, deploy the agent, then link each endpoint to its asset.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/settings/agents" class="btn btn-secondary"><i class="fas fa-sliders-h"></i> Agent Policy</a>
+        <a href="/onboard-device" class="btn btn-secondary"><i class="fas fa-laptop-medical"></i> Onboarding Portal</a>
+        <a href="/assets/agents" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Endpoint Agents</a>
+        <a href="/assets/agents/download" class="btn btn-secondary"><i class="fas fa-download"></i> Agent Script</a>
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-key"></i></div>
+        <div><div class="stat-number">{{ stats.active_tokens }}</div><div class="stat-label">Usable tokens &middot; {{ stats.expiring }} expiring in 48h</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-right-to-bracket"></i></div>
+        <div><div class="stat-number">{{ stats.uses }}</div><div class="stat-label">Enrolments in this view</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-desktop"></i></div>
+        <div><div class="stat-number">{{ stats.agents }}</div><div class="stat-label">Agents in the workspace</div></div>
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-ticket"></i> Recent tokens</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Label</th><th>Token</th><th>Expires</th><th class="text-right">Uses</th><th>Status</th><th></th></tr></thead>
+                    <tbody>
+                        {% for token in tokens %}
+                        <tr>
+                            <td>
+                                <strong>{{ token.label }}</strong>
+                                <div class="text-muted" style="font-size:11px;">{{ token.agent_count }} agent{{ token.agent_count|pluralize }}{% if token.notes %} &middot; {{ token.notes|truncatechars:40 }}{% endif %}</div>
+                            </td>
+                            <td><span class="mono">{{ token.token_prefix }}…</span></td>
+                            <td>
+                                {{ token.expires_at|date:"M d, Y H:i" }}
+                                <div class="text-muted" style="font-size:11px;">{{ token.expires_at|timeuntil }}</div>
+                            </td>
+                            <td class="text-right">{{ token.use_count }} / {{ token.max_uses }}</td>
+                            <td>
+                                <span class="badge badge-{{ token.status|status_class }}">{{ token.status_label }}</span>
+                                {% if token.is_usable %}<div class="text-muted" style="font-size:11px;">{{ token.uses_remaining }} use{{ token.uses_remaining|pluralize }} left</div>{% endif %}
+                            </td>
+                            <td>
+                                {% if can_manage and token.status == "active" %}
+                                <form method="post" action="/assets/agents/enrollment/{{ token.id }}/revoke" onsubmit="return confirm('Revoke this enrolment token?');">
+                                    {% csrf_token %}
+                                    <button class="btn btn-sm btn-danger" title="Revoke"><i class="fas fa-ban"></i></button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6"><div class="empty-state"><i class="fas fa-key"></i><p>No enrolment tokens have been issued yet.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-circle-info"></i> How enrolment works</span></div>
+            <div style="padding: 20px; font-size: 13px; color:#475569; line-height:1.7;">
+                <ol style="margin: 0 0 0 18px; padding: 0;">
+                    <li>Issue a token below. The full token is shown <strong>once</strong> — only its hash is stored.</li>
+                    <li>Download the agent script and run it on the endpoint with the token.</li>
+                    <li>The agent exchanges the token for its own key, then reports inventory on a schedule.</li>
+                    <li>Link the enrolled endpoint to an asset in the register to keep custody and warranty data together.</li>
+                </ol>
+                <div class="summary-box" style="margin-top: 16px;">
+                    <div class="summary-line"><span>Endpoints talk to</span><span class="mono">/api/assets/agent/</span></div>
+                    <div class="summary-line"><span>Authentication</span><span>Bearer agent key (hashed at rest)</span></div>
+                    <div class="summary-line"><span>Recommended interval</span><span>300 seconds</span></div>
+                </div>
+                <p class="info" style="margin-top: 12px;"><i class="fas fa-lock"></i> Serve the ERP over HTTPS. Agent keys are bearer credentials and should never be copied between machines.</p>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-plus"></i> Issue a token</span></div>
+            <div style="padding: 20px;">
+                {% if can_manage %}
+                <form method="post" action="/assets/agents/enrollment">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="{{ form.label.id_for_label }}">{{ form.label.label }}</label>
+                        {{ form.label }}
+                        {{ form.label.errors }}
+                        <div class="text-muted" style="font-size:11px; margin-top:4px;">{{ form.label.help_text }}</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.expires_days.id_for_label }}">{{ form.expires_days.label }}</label>
+                        {{ form.expires_days }}
+                        {{ form.expires_days.errors }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.max_uses.id_for_label }}">{{ form.max_uses.label }}</label>
+                        {{ form.max_uses }}
+                        {{ form.max_uses.errors }}
+                        <div class="text-muted" style="font-size:11px; margin-top:4px;">Use the same token for a batch rollout, or one per machine.</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+                        {{ form.notes }}
+                        {{ form.notes.errors }}
+                    </div>
+                    <button class="btn btn-primary" style="width:100%;"><i class="fas fa-key"></i> Generate token</button>
+                </form>
+                {% else %}
+                <p class="info">You can review tokens, but issuing one requires asset edit permission.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-shield-halved"></i> Security</span></div>
+            <div style="padding: 18px 20px; font-size: 13px; color:#475569; line-height:1.7;">
+                <div class="summary-line"><span>Token storage</span><span>SHA-256 hash</span></div>
+                <div class="summary-line"><span>Agent key storage</span><span>SHA-256 hash</span></div>
+                <div class="summary-line"><span>Transport</span><span>TLS recommended</span></div>
+                <div class="summary-line"><span>Audit</span><span>Every enrolment and report</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

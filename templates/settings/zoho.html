@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-cloud"></i> Zoho Presence</h1><p>Use Zoho Mail presence to enrich attendance and availability tracking.</p></div>
+    <div class="page-actions"><a href="/settings" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Settings</a></div>
+</div>
+{% include "settings/_nav.html" %}
+{% include "settings/_integration_form.html" with title="Zoho Presence" icon="cloud" enabled=settings.zoho_presence_enabled description="Presence sync requires a Zoho OAuth client, its secret and a refresh token. The client ID and secret are used to authorise requests; the refresh token keeps the connection alive. Presence polling is performed by the attendance dashboard when the integration is enabled." %}
+{% endblock %}

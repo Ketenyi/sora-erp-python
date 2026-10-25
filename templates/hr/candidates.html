@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-users"></i> Candidates</h1><p>Review applications and move candidates through the funnel.</p></div>
+    <div class="page-actions">
+        <a href="/hr/recruitment/jobs" class="btn btn-secondary"><i class="fas fa-briefcase"></i> Openings</a>
+        {% if can_manage %}<a href="/hr/recruitment/create-candidate" class="btn btn-primary"><i class="fas fa-user-plus"></i> Add candidate</a>{% endif %}
+    </div>
+</div>
+<div class="stats-row">
+    {% for value, label in status_choices %}
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-user-tag"></i></div><div><div class="stat-number">{{ funnel|get_item:value }}</div><div class="stat-label">{{ label }}</div></div></div>
+    {% endfor %}
+</div>
+<div class="card">
+    <form method="get" class="filter-bar">
+        <div class="form-group"><label>Search</label><input type="text" name="q" class="form-control" value="{{ search_query }}" placeholder="Name or email"></div>
+        <div class="form-group"><label>Opening</label><select name="job" class="form-control"><option value="">All openings</option>{% for job in jobs %}<option value="{{ job.id }}" {% if job_filter == job.id|stringformat:"s" %}selected{% endif %}>{{ job.job_title }}</option>{% endfor %}</select></div>
+        <div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="">All statuses</option>{% for value, label in status_choices %}<option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="form-group" style="align-self:flex-end;"><button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Filter</button> <a href="/hr/recruitment/candidates" class="btn btn-secondary">Reset</a></div>
+    </form>
+</div>
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-list"></i> Applications</span><span class="badge badge-info">{{ page_obj.paginator.count }} total</span></div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Candidate</th><th>Opening</th><th>Contact</th><th>Source</th><th class="text-right">Expected salary</th><th>Applied</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+            {% for candidate in candidates %}
+                <tr>
+                    <td><strong>{{ candidate.first_name }} {{ candidate.last_name }}</strong>{% if candidate.ai_score %}<div class="info" style="font-size:12px;"><i class="fas fa-robot"></i> AI score {{ candidate.ai_score|floatformat:0 }}%</div>{% endif %}</td>
+                    <td>{{ candidate.job_title }}</td>
+                    <td>{{ candidate.email }}{% if candidate.phone %}<div class="info" style="font-size:12px;">{{ candidate.phone }}</div>{% endif %}</td>
+                    <td>{{ candidate.source|default:"—" }}</td>
+                    <td class="text-right">{% if candidate.expected_salary %}{{ currency_symbol }} {{ candidate.expected_salary|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
+                    <td>{{ candidate.created_at|date:"M d, Y" }}</td>
+                    <td><span class="badge badge-{{ candidate.status|status_class }}">{{ candidate.get_status_display }}</span></td>
+                    <td><a href="/hr/recruitment/candidate/{{ candidate.id }}" class="btn btn-sm btn-secondary">View</a></td>
+                </tr>
+            {% empty %}<tr><td colspan="8"><div class="empty-state"><i class="fas fa-user-slash"></i><p>No candidates match these filters.</p></div></td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

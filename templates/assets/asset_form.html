@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-barcode"></i> {% if is_edit %}Edit Asset{% else %}Register Asset{% endif %}</h1>
+        <p>{% if is_edit %}{{ asset.asset_code }} &middot; {{ asset.name }}{% else %}Capture identification, acquisition cost and the depreciation policy.{% endif %}</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% if is_edit %}/assets/{{ asset.id }}{% else %}/assets/register{% endif %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div class="alert alert-error"><strong>Please fix the following:</strong> {{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-circle-info"></i> Asset identification</span></div>
+        <div style="padding: 20px;">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="{{ form.asset_code.id_for_label }}">Asset code</label>
+                    {{ form.asset_code }}
+                    {{ form.asset_code.errors }}
+                    <span class="info">Leave blank to generate the next AST-#### code.</span>
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.name.id_for_label }}">Asset name *</label>
+                    {{ form.name }}
+                    {{ form.name.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.category.id_for_label }}">Category</label>
+                    {{ form.category }}
+                    {{ form.category.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.serial_number.id_for_label }}">Serial number</label>
+                    {{ form.serial_number }}
+                    {{ form.serial_number.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.model_name.id_for_label }}">Model</label>
+                    {{ form.model_name }}
+                    {{ form.model_name.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.manufacturer.id_for_label }}">Manufacturer</label>
+                    {{ form.manufacturer }}
+                    {{ form.manufacturer.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.location.id_for_label }}">Location / site</label>
+                    {{ form.location }}
+                    {{ form.location.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.status.id_for_label }}">Status</label>
+                    {{ form.status }}
+                    {{ form.status.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.condition.id_for_label }}">Condition</label>
+                    {{ form.condition }}
+                    {{ form.condition.errors }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-coins"></i> Acquisition &amp; depreciation</span></div>
+        <div style="padding: 20px;">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="{{ form.purchase_date.id_for_label }}">Purchase date</label>
+                    {{ form.purchase_date }}
+                    {{ form.purchase_date.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.purchase_cost.id_for_label }}">Purchase cost</label>
+                    {{ form.purchase_cost }}
+                    {{ form.purchase_cost.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.salvage_value.id_for_label }}">Salvage value</label>
+                    {{ form.salvage_value }}
+                    {{ form.salvage_value.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.useful_life_years.id_for_label }}">Useful life (years)</label>
+                    {{ form.useful_life_years }}
+                    {{ form.useful_life_years.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.depreciation_method.id_for_label }}">Depreciation method</label>
+                    {{ form.depreciation_method }}
+                    {{ form.depreciation_method.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.depreciation_rate.id_for_label }}">Annual rate (%)</label>
+                    {{ form.depreciation_rate }}
+                    {{ form.depreciation_rate.errors }}
+                    <span class="info">Used for the declining-balance method.</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="{{ form.notes.id_for_label }}">Notes</label>
+                {{ form.notes }}
+                {{ form.notes.errors }}
+            </div>
+        </div>
+    </div>
+
+    <div class="page-actions" style="margin-top: 6px;">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> {% if is_edit %}Save Changes{% else %}Register Asset{% endif %}</button>
+        <a href="{% if is_edit %}/assets/{{ asset.id }}{% else %}/assets/register{% endif %}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}

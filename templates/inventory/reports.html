@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-chart-bar"></i> Inventory Reports</h1>
+        <p>Stock levels, valuation and reorder alerts.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/inventory/dashboard" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Dashboard</a>
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-box"></i></div>
+        <div><div class="stat-number">{{ product_count }}</div><div class="stat-label">Active products</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+        <div><div class="stat-number">{{ low_count }}</div><div class="stat-label">Low stock</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-ban"></i></div>
+        <div><div class="stat-number">{{ out_count }}</div><div class="stat-label">Out of stock</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-coins"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ total_value|floatformat:0|intcomma }}</div><div class="stat-label">Stock value at cost</div></div>
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-book"></i> Available Reports</span></div>
+        <div style="padding: 8px 18px 18px;">
+            <div style="padding: 14px 0; border-bottom: 1px solid #eef2f6; display:flex; justify-content:space-between; gap:12px; align-items:center;">
+                <div>
+                    <a href="/inventory/reports/stock-levels" style="font-weight:600; color:inherit;">Stock Levels</a>
+                    <div class="info">Current quantity, pricing and status for every active product.</div>
+                </div>
+                <a href="/inventory/reports/stock-levels" class="btn btn-sm btn-secondary">Open</a>
+            </div>
+            <div style="padding: 14px 0; border-bottom: 1px solid #eef2f6; display:flex; justify-content:space-between; gap:12px; align-items:center;">
+                <div>
+                    <a href="/inventory/reports/stock-value" style="font-weight:600; color:inherit;">Stock Value</a>
+                    <div class="info">Inventory cost and retail value grouped by category.</div>
+                </div>
+                <a href="/inventory/reports/stock-value" class="btn btn-sm btn-secondary">Open</a>
+            </div>
+            <div style="padding: 14px 0; display:flex; justify-content:space-between; gap:12px; align-items:center;">
+                <div>
+                    <a href="/inventory/reports/low-stock" style="font-weight:600; color:inherit;">Low Stock Alerts</a>
+                    <div class="info">Products at or below their reorder level, with shortage quantity.</div>
+                </div>
+                <a href="/inventory/reports/low-stock" class="btn btn-sm btn-secondary">Open</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-download"></i> Exports</span></div>
+        <div style="padding: 16px 18px; display:flex; flex-direction:column; gap:10px;">
+            <a href="/inventory/reports/export?report=stock_levels" class="btn btn-secondary" style="justify-content:flex-start;"><i class="fas fa-file-csv"></i> Stock levels CSV</a>
+            <a href="/inventory/reports/export?report=stock_value" class="btn btn-secondary" style="justify-content:flex-start;"><i class="fas fa-file-csv"></i> Stock value CSV</a>
+            <a href="/inventory/reports/export?report=low_stock" class="btn btn-secondary" style="justify-content:flex-start;"><i class="fas fa-file-csv"></i> Low stock CSV</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

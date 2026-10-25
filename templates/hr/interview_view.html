@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Interview <span class="badge badge-{{ interview.status|status_class }}">{{ interview.get_status_display }}</span></h1>
+        <p>{% if candidate %}{{ candidate.first_name }} {{ candidate.last_name }}{% else %}Candidate{% endif %}{% if posting %} &middot; {{ posting.job_title }}{% endif %}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/hr/recruitment/interviews" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Interviews</a>
+        {% if candidate %}<a href="/hr/recruitment/candidate/{{ candidate.id }}" class="btn btn-secondary"><i class="fas fa-user"></i> Candidate record</a>{% endif %}
+    </div>
+</div>
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-circle-info"></i> Interview details</span></div>
+            <div style="padding:18px;">
+                <div class="detail-grid">
+                    <div><span class="label">Date and time</span><strong>{{ interview.scheduled_date|date:"l, M d, Y H:i" }}</strong></div>
+                    <div><span class="label">Duration</span><strong>{{ interview.duration_minutes }} minutes</strong></div>
+                    <div><span class="label">Type</span><strong>{{ interview.get_interview_type_display|default:interview.interview_type }}</strong></div>
+                    <div><span class="label">Interviewer</span><strong>{% if interviewer %}{{ interviewer.first_name }} {{ interviewer.last_name }}{% else %}—{% endif %}</strong></div>
+                    <div><span class="label">Location</span><strong>{{ interview.location|default:"—" }}</strong></div>
+                    <div><span class="label">Rating</span><strong>{% if interview.rating %}{{ interview.rating|floatformat:1 }}/5{% else %}Not rated{% endif %}</strong></div>
+                </div>
+                {% if interview.meeting_link %}<p style="margin-top:14px;"><a class="btn btn-secondary btn-sm" href="{{ interview.meeting_link }}" target="_blank" rel="noopener"><i class="fas fa-video"></i> Open meeting link</a></p>{% endif %}
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-clipboard-check"></i> Feedback</span></div>
+            <div style="padding:18px;">
+                {% if interview.feedback %}<p>{{ interview.feedback|linebreaks }}</p>{% else %}<p class="info">No feedback recorded yet.</p>{% endif %}
+                {% if interview.ai_sentiment %}<p class="info" style="font-size:12px;"><i class="fas fa-robot"></i> AI sentiment: {{ interview.ai_sentiment }}</p>{% endif %}
+            </div>
+        </div>
+    </div>
+    <div>
+        {% if can_manage %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-pen"></i> Record feedback</span></div>
+            <form method="post" style="padding:18px;">
+                {% csrf_token %}
+                {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+                <div class="form-group"><label>Feedback</label>{{ form.feedback }}{% for error in form.feedback.errors %}<div class="error">{{ error }}</div>{% endfor %}</div>
+                <div class="form-group"><label>Rating (1–5)</label>{{ form.rating }}{% for error in form.rating.errors %}<div class="error">{{ error }}</div>{% endfor %}</div>
+                <div class="form-group"><label>Status</label>{{ form.status }}{% for error in form.status.errors %}<div class="error">{{ error }}</div>{% endfor %}</div>
+                <button type="submit" class="btn btn-primary" style="width:100%;"><i class="fas fa-save"></i> Save feedback</button>
+            </form>
+        </div>
+        {% endif %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-user"></i> Candidate</span></div>
+            <div style="padding:18px;">
+                {% if candidate %}
+                <div class="detail-grid">
+                    <div><span class="label">Name</span><strong>{{ candidate.first_name }} {{ candidate.last_name }}</strong></div>
+                    <div><span class="label">Email</span><strong>{{ candidate.email }}</strong></div>
+                    <div><span class="label">Phone</span><strong>{{ candidate.phone|default:"—" }}</strong></div>
+                    <div><span class="label">Status</span><span class="badge badge-{{ candidate.status|status_class }}">{{ candidate.get_status_display }}</span></div>
+                </div>
+                {% else %}<p class="info">Candidate record not found.</p>{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-people-arrows"></i> Handover #{{ handover.id }}</h1>
+        <p><a href="/projects/{{ project.id }}">{{ project.project_code }} &middot; {{ project.project_name }}</a> &middot; {{ departing_name }} &rarr; {{ incoming_name }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/handovers" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> All handovers</a>
+        <a href="/projects/{{ project.id }}/team" class="btn btn-secondary"><i class="fas fa-users"></i> Team</a>
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-circle-info"></i> Handover summary</span></div>
+            <div style="padding:20px;">
+                <div class="detail-grid">
+                    <div class="detail-item"><div class="detail-label">Project</div><div class="detail-value"><a href="/projects/{{ project.id }}">{{ project.project_code }}</a></div></div>
+                    <div class="detail-item"><div class="detail-label">Status</div><div class="detail-value"><span class="badge badge-{% if handover.status == 'completed' %}success{% else %}warning{% endif %}">{{ handover.get_status_display }}</span></div></div>
+                    <div class="detail-item"><div class="detail-label">Departing</div><div class="detail-value">{{ departing_name }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Incoming</div><div class="detail-value">{{ incoming_name }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Initiated</div><div class="detail-value">{{ handover.initiated_at|date:"M d, Y H:i"|default:"—" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Completed</div><div class="detail-value">{{ handover.completed_at|date:"M d, Y H:i"|default:"—" }}</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-file-lines"></i> State of play memo</span></div>
+            <div style="padding:20px; white-space:pre-line;">{{ handover.state_of_play|default:"—" }}</div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-box-archive"></i> Asset / repository notes</span></div>
+            <div style="padding:20px; white-space:pre-line;">{{ handover.asset_notes|default:"—" }}</div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-list-check"></i> Handover items</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Type</th><th>Reference</th><th>Notes</th><th>Assigned to</th></tr></thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td><span class="badge badge-secondary">{{ item.get_item_type_display|default:item.item_type|title }}</span></td>
+                            <td>{{ item.reference }}</td>
+                            <td>{{ item.notes|default:"—" }}</td>
+                            <td>{{ item.to_name }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4"><div class="empty-state"><i class="fas fa-box-open"></i><p>No handover items recorded.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="sticky-summary">
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-shield-halved"></i> Audit evidence</span></div>
+            <div style="padding:14px 20px; font-size:12px; line-height:1.7;">
+                <p>This handover is logged in the immutable audit trail with the departing and incoming team members.</p>
+                <a href="/projects/{{ project.id }}/audit" class="btn btn-secondary" style="width:100%; justify-content:center;"><i class="fas fa-shield-halved"></i> View audit trail</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

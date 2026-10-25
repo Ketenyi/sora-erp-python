@@ -1,0 +1,171 @@
+{% extends "saas/cloud/base.html" %}
+{% load humanize %}
+
+{% block title %}Billing & MRR — SORA Cloud{% endblock %}
+{% block crumb %}Billing &amp; MRR{% endblock %}
+
+{% block topbar_actions %}
+<a href="/cloud/tenants/" class="cloud-btn"><i class="fas fa-building"></i> Tenants</a>
+{% endblock %}
+
+{% block content %}
+<div class="cloud-page-head">
+    <h1>Billing &amp; revenue</h1>
+    <p>Recurring revenue, payment verification and collection mix across all tenants.</p>
+</div>
+
+<div class="cloud-kpis">
+    <div class="cloud-kpi">
+        <div class="kpi-icon"><i class="fas fa-arrow-trend-up"></i></div>
+        <div class="kpi-label">Monthly recurring revenue</div>
+        <div class="kpi-value">{{ platform.default_currency|default:"KES" }} {{ metrics.mrr|floatformat:0|intcomma }}</div>
+        <div class="kpi-sub">Active paid subscriptions</div>
+    </div>
+    <div class="cloud-kpi">
+        <div class="kpi-icon"><i class="fas fa-chart-line"></i></div>
+        <div class="kpi-label">Annual run rate</div>
+        <div class="kpi-value">{{ platform.default_currency|default:"KES" }} {{ metrics.arr|floatformat:0|intcomma }}</div>
+        <div class="kpi-sub">MRR × 12</div>
+    </div>
+    <div class="cloud-kpi">
+        <div class="kpi-icon"><i class="fas fa-sack-dollar"></i></div>
+        <div class="kpi-label">Collected this month</div>
+        <div class="kpi-value">{{ platform.default_currency|default:"KES" }} {{ totals.this_month|floatformat:0|intcomma }}</div>
+        <div class="kpi-sub">{{ metrics.new_this_month }} new tenant{{ metrics.new_this_month|pluralize }} this month</div>
+    </div>
+    <div class="cloud-kpi">
+        <div class="kpi-icon"><i class="fas fa-hourglass-half"></i></div>
+        <div class="kpi-label">Awaiting verification</div>
+        <div class="kpi-value">{{ platform.default_currency|default:"KES" }} {{ totals.pending|floatformat:0|intcomma }}</div>
+        <div class="kpi-sub">Pending manual payments</div>
+    </div>
+</div>
+
+<div class="cloud-filter-chips" style="margin-bottom:12px;">
+    <a href="/cloud/billing/" class="{% if not status %}active{% endif %}">All payments</a>
+    {% for value, label in status_choices %}
+    <a href="/cloud/billing/?status={{ value }}" class="{% if status == value %}active{% endif %}">{{ label }}</a>
+    {% endfor %}
+</div>
+
+<div class="cloud-grid">
+    <div class="cloud-card">
+        <div class="cloud-card-head">
+            <h2><i class="fas fa-receipt"></i> Payment ledger</h2>
+            <span class="cloud-muted">{{ page_obj.paginator.count }} record{{ page_obj.paginator.count|pluralize }}</span>
+        </div>
+        {% if payments %}
+        <div class="cloud-card-body flush">
+            <table class="cloud-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Tenant</th>
+                        <th>Amount</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in payments %}
+                    <tr>
+                        <td>{{ payment.created_at|date:"d M Y" }}</td>
+                        <td>
+                            <a href="/cloud/tenants/{{ payment.tenant_id }}/" class="cloud-tenant-name">
+                                {{ payment.tenant.display_name }}
+                                <small>{{ payment.plan.name|default:"No plan" }} · {{ payment.get_billing_cycle_display }}</small>
+                            </a>
+                        </td>
+                        <td>
+                            <strong>{{ payment.currency }} {{ payment.amount|floatformat:0|intcomma }}</strong>
+                            {% if payment.reference %}<div class="cloud-muted">{{ payment.reference }}</div>{% endif %}
+                        </td>
+                        <td>{{ payment.get_method_display }}</td>
+                        <td><span class="cloud-pill {{ payment.status }}">{{ payment.get_status_display }}</span></td>
+                        <td style="text-align:right;">
+                            {% if payment.status == 'pending' %}
+                            <form method="post" action="/cloud/payments/{{ payment.id }}/confirm/">
+                                {% csrf_token %}
+                                <button type="submit" class="cloud-btn gold"><i class="fas fa-check"></i> Confirm</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="cloud-empty"><i class="fas fa-file-invoice"></i> No payments match this filter.</div>
+        {% endif %}
+    </div>
+
+    <div>
+        <div class="cloud-card" style="margin-bottom:15px;">
+            <div class="cloud-card-head"><h2><i class="fas fa-wallet"></i> Collection mix</h2></div>
+            <div class="cloud-card-body">
+                {% for row in by_method %}
+                <div class="cloud-usage-row">
+                    <span class="name">{{ row.label }}</span>
+                    <span class="cloud-usage-track">
+                        <span style="width:{% widthratio row.total totals.all_time 100 %}%;"></span>
+                    </span>
+                    <span class="count" style="width:auto;white-space:nowrap;">{{ row.count }}×</span>
+                </div>
+                <div style="text-align:right;font-size:10px;color:#94a3b8;margin:-6px 0 9px;">
+                    {{ platform.default_currency|default:"KES" }} {{ row.total|floatformat:0|intcomma }}
+                </div>
+                {% empty %}
+                <div class="cloud-empty" style="padding:16px;"><i class="fas fa-wallet"></i> No completed payments yet.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="cloud-card">
+            <div class="cloud-card-head"><h2><i class="fas fa-circle-info"></i> Revenue summary</h2></div>
+            <div class="cloud-card-body">
+                <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:11.5px;color:#475569;">
+                    <span>All-time collected</span>
+                    <strong>{{ platform.default_currency|default:"KES" }} {{ totals.all_time|floatformat:0|intcomma }}</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:11.5px;color:#475569;">
+                    <span>Collected this month</span>
+                    <strong>{{ platform.default_currency|default:"KES" }} {{ totals.this_month|floatformat:0|intcomma }}</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:11.5px;color:#475569;">
+                    <span>Pending verification</span>
+                    <strong>{{ platform.default_currency|default:"KES" }} {{ totals.pending|floatformat:0|intcomma }}</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:11.5px;color:#475569;">
+                    <span>Active subscriptions</span>
+                    <strong>{{ metrics.active }}</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:11.5px;color:#475569;">
+                    <span>Churn rate</span>
+                    <strong>{{ metrics.churn_rate|floatformat:1 }}%</strong>
+                </div>
+                <p class="cloud-muted" style="margin-top:10px;">
+                    Manual payments stay pending until verified. Confirming a payment activates the tenant and extends
+                    the subscription immediately.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if page_obj.has_other_pages %}
+<div class="cloud-pagination">
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    <div class="links">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if status %}&status={{ status }}{% endif %}">Previous</a>
+        {% endif %}
+        <span class="current">{{ page_obj.number }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if status %}&status={{ status }}{% endif %}">Next</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

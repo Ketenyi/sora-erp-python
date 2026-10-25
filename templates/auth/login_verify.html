@@ -1,0 +1,41 @@
+{% extends "auth/base_auth.html" %}
+
+{% block title %}{{ mfa_title }} — {{ platform_name }}{% endblock %}
+{% block brand_kicker %}{{ mfa_kicker }}{% endblock %}
+{% block brand_title %}{{ verify_brand_title|safe }}{% endblock %}
+
+{% block card %}
+<span class="auth-card-kicker"><i class="fas fa-fingerprint"></i> {{ mfa_kicker }}</span>
+<h2>{{ mfa_title }}</h2>
+<p class="auth-lead">{{ mfa_lead }}</p>
+
+{% if error %}
+<div class="auth-flash error"><i class="fas fa-circle-exclamation"></i><span>{{ error }}</span></div>
+{% endif %}
+
+<form method="post" action="/login/verify" class="auth-form" data-guard>
+    {% csrf_token %}
+    <div class="auth-field">
+        <label for="code">{{ verify_code_label }}</label>
+        <div class="auth-input">
+            <i class="fas fa-shield-halved"></i>
+            <input type="text" id="code" name="code" class="auth-code" placeholder="000000"
+                   autocomplete="one-time-code" inputmode="numeric" maxlength="12" required autofocus
+                   spellcheck="false">
+        </div>
+    </div>
+    <button type="submit" class="auth-submit">
+        <i class="fas fa-check"></i> {{ verify_submit }}
+    </button>
+</form>
+
+{% if mfa_help %}
+<div class="auth-notice" style="margin-top:18px;margin-bottom:0;">
+    <i class="fas fa-circle-info"></i><span>{{ mfa_help }}</span>
+</div>
+{% endif %}
+
+<a class="auth-back" href="/login"><i class="fas fa-arrow-left"></i> {{ verify_back }}</a>
+{% endblock %}
+
+{% block footnote %}{{ login_support_note }}{% endblock %}

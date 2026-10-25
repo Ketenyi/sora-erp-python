@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-file-lines"></i> HR Reports</h1><p>Operational reports with CSV export.</p></div>
+    <div class="page-actions"><a href="/hr/analytics" class="btn btn-secondary"><i class="fas fa-chart-pie"></i> HR analytics</a></div>
+</div>
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-users"></i></div><div><div class="stat-number">{{ stats.employees }}</div><div class="stat-label">Employee records</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-calendar-alt"></i></div><div><div class="stat-number">{{ stats.leave_requests }}</div><div class="stat-label">Leave requests this year</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-clock"></i></div><div><div class="stat-number">{{ stats.attendance }}</div><div class="stat-label">Attendance records this month</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-star"></i></div><div><div class="stat-number">{{ stats.reviews }}</div><div class="stat-label">Performance reviews this year</div></div></div>
+</div>
+<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px;">
+    {% for key, label in types.items %}
+    <div class="card" style="margin:0;">
+        <div style="padding:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="width:44px; height:44px; border-radius:12px; background:#FFF8DC; display:flex; align-items:center; justify-content:center;">
+                    {% if key == "employees" %}<i class="fas fa-users" style="color:#b8860b;"></i>{% elif key == "leave" %}<i class="fas fa-calendar-alt" style="color:#b8860b;"></i>{% elif key == "attendance" %}<i class="fas fa-clock" style="color:#b8860b;"></i>{% elif key == "performance" %}<i class="fas fa-star" style="color:#b8860b;"></i>{% elif key == "recruitment" %}<i class="fas fa-briefcase" style="color:#b8860b;"></i>{% else %}<i class="fas fa-money-check-dollar" style="color:#b8860b;"></i>{% endif %}
+                </div>
+                <span class="badge badge-secondary">CSV</span>
+            </div>
+            <h3 style="margin:14px 0 4px;">{{ label }} report</h3>
+            <p class="info" style="font-size:13px;">Filter and review {{ label|lower }} data, then export the results.</p>
+            <div style="display:flex; gap:8px; margin-top:12px;">
+                <a href="/hr/reports/{{ key }}" class="btn btn-primary btn-sm">Open report</a>
+                <a href="/hr/reports/export?type={{ key }}" class="btn btn-secondary btn-sm"><i class="fas fa-download"></i> Export</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+<div class="card" style="margin-top:16px;">
+    <div class="card-header"><span><i class="fas fa-circle-info"></i> Reporting notes</span></div>
+    <div style="padding:18px;">
+        <p class="info"><i class="fas fa-check"></i> Exports reflect the filters applied on each report page.</p>
+        <p class="info"><i class="fas fa-shield"></i> Reports are restricted to HR administrators and viewers.</p>
+    </div>
+</div>
+{% endblock %}

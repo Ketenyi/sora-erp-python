@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-table-columns"></i> {{ dashboard.title }}{% if dashboard.is_default %} <span class="badge badge-primary" style="font-size:11px; vertical-align:middle;">Default</span>{% endif %}</h1>
+        <p>Last updated {{ dashboard.updated_at|date:"M d, Y H:i" }} &middot; {{ widgets|length }} widget{{ widgets|length|pluralize }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/dashboards/{{ dashboard.id }}/edit" class="btn btn-secondary"><i class="fas fa-pen"></i> Edit</a>
+        <form method="post" action="/projects/dashboards/{{ dashboard.id }}/delete" onsubmit="return confirm('Delete this dashboard?');">{% csrf_token %}<button class="btn btn-danger"><i class="fas fa-trash"></i> Delete</button></form>
+        <a href="/projects/dashboards" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Dashboards</a>
+    </div>
+</div>
+
+<div class="widget-grid">
+    {% for widget in widgets %}
+    <div class="widget">
+        <h3>
+            {% if widget.key == 'portfolio_summary' %}<i class="fas fa-folder-open"></i>
+            {% elif widget.key == 'financial_health' %}<i class="fas fa-sack-dollar"></i>
+            {% elif widget.key == 'expense_burn' %}<i class="fas fa-fire"></i>
+            {% elif widget.key == 'project_status' %}<i class="fas fa-diagram-project"></i>
+            {% elif widget.key == 'task_status' %}<i class="fas fa-list-check"></i>
+            {% elif widget.key == 'upcoming_deadlines' %}<i class="fas fa-calendar-day"></i>
+            {% elif widget.key == 'sla_snapshot' %}<i class="fas fa-headset"></i>
+            {% elif widget.key == 'team_workload' %}<i class="fas fa-users"></i>
+            {% else %}<i class="fas fa-clock-rotate-left"></i>{% endif %}
+            {{ widget.label }}
+        </h3>
+
+        {% if widget.key == 'portfolio_summary' %}
+        <div class="stats-row" style="margin-bottom:0;">
+            <div><div class="big-number">{{ widget.projects }}</div><div class="widget-label">Projects</div></div>
+            <div><div class="big-number">{{ widget.active }}</div><div class="widget-label">Active</div></div>
+            <div><div class="big-number" style="font-size:16px;">{{ widget.contract }}</div><div class="widget-label">Contracted</div></div>
+            <div><div class="big-number" style="font-size:16px;">{{ widget.cost }}</div><div class="widget-label">Cost</div></div>
+        </div>
+
+        {% elif widget.key == 'financial_health' %}
+        <div class="stats-row" style="margin-bottom:0;">
+            <div><div class="big-number" style="font-size:18px;">{{ widget.contract }}</div><div class="widget-label">Contract value</div></div>
+            <div><div class="big-number" style="font-size:18px;">{{ widget.total_cost }}</div><div class="widget-label">Total cost</div></div>
+            <div><div class="big-number" style="font-size:18px;">{{ widget.margin }}</div><div class="widget-label">Margin &middot; {{ widget.margin_percent }}%</div></div>
+        </div>
+
+        {% elif widget.key == 'expense_burn' %}
+            {% if widget.alerts %}
+            <ul class="timeline">
+                {% for alert in widget.alerts %}
+                <li>
+                    <div class="what"><a href="/projects/{{ alert.project.id }}">{{ alert.project.project_code }}</a> &middot; {{ alert.financials.expense_burn_percent }}% burned</div>
+                    <small class="text-muted">{{ currency_symbol }} {{ alert.financials.approved_expenses|floatformat:0|intcomma }} of {{ currency_symbol }} {{ alert.financials.allocated_expense_budget|floatformat:0|intcomma }}</small>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-muted" style="font-size:12px;">No projects above the 80% expense-burn threshold.</p>
+            {% endif %}
+
+        {% elif widget.key == 'project_status' or widget.key == 'task_status' %}
+            <div class="chart-bars">
+                {% for row in widget.rows %}
+                <div class="chart-bar-row">
+                    <span>{{ row.label }}</span>
+                    <div class="bar"><span style="width: {% widthratio row.value widget.rows.0.value 100 %}%;"></span></div>
+                    <span class="value">{{ row.value }}</span>
+                </div>
+                {% empty %}
+                <p class="text-muted" style="font-size:12px;">No data yet.</p>
+                {% endfor %}
+            </div>
+
+        {% elif widget.key == 'upcoming_deadlines' %}
+            <ul class="timeline">
+                {% for row in widget.rows %}
+                <li>
+                    <div class="what"><a href="/projects/{{ row.task.project_id }}/tasks">{{ row.task.task_name }}</a> <span class="badge badge-secondary">{{ row.project_code }}</span></div>
+                    <small class="text-muted">Due {{ row.task.deadline_date|date:"M d, Y" }} &middot; {{ row.assignee }}{% if row.overdue %} &middot; <span class="text-danger">overdue</span>{% endif %}</small>
+                </li>
+                {% empty %}
+                <li><div class="what">No deadlines in the next 14 days.</div></li>
+                {% endfor %}
+            </ul>
+
+        {% elif widget.key == 'sla_snapshot' %}
+        <div class="stats-row" style="margin-bottom:0;">
+            <div><div class="big-number">{{ widget.open }}</div><div class="widget-label">Open tickets</div></div>
+            <div><div class="big-number">{{ widget.breached }}</div><div class="widget-label">Breached</div></div>
+            <div><div class="big-number">{{ widget.critical }}</div><div class="widget-label">Critical</div></div>
+            <div><div class="big-number">{{ widget.contracts }}</div><div class="widget-label">Active contracts</div></div>
+        </div>
+
+        {% elif widget.key == 'team_workload' %}
+            <div class="chart-bars">
+                {% for row in widget.rows %}
+                <div class="chart-bar-row">
+                    <span>{{ row.name }}</span>
+                    <div class="bar"><span style="width: {% widthratio row.open_tasks widget.rows.0.open_tasks 100 %}%;"></span></div>
+                    <span class="value">{{ row.open_tasks }}</span>
+                </div>
+                {% empty %}
+                <p class="text-muted" style="font-size:12px;">No open work assigned.</p>
+                {% endfor %}
+            </div>
+
+        {% elif widget.key == 'recent_activity' %}
+            <ul class="timeline">
+                {% for row in widget.rows %}
+                <li>
+                    <div class="time">{{ row.created_at|date:"M d, H:i" }} &middot; {{ row.user_name }}</div>
+                    <div class="what">{{ row.action|title }}{% if row.project_label %} &middot; {{ row.project_label }}{% endif %}</div>
+                    <small class="text-muted">{{ row.note|default:""|truncatechars:70 }}</small>
+                </li>
+                {% empty %}
+                <li><div class="what">No activity recorded.</div></li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
+    {% empty %}
+    <div class="widget" style="grid-column:1/-1;">
+        <div class="empty-state"><i class="fas fa-table-columns"></i><p>This dashboard has no widgets. Edit it to add some.</p><a href="/projects/dashboards/{{ dashboard.id }}/edit">Edit widgets</a></div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

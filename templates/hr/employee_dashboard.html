@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+{% if not employee %}
+<div class="card"><div class="empty-state"><i class="fas fa-user-slash"></i><p>Your user account is not linked to an employee record. Contact HR.</p></div></div>
+{% else %}
+<div class="page-head">
+    <div><h1>Hello, {{ employee.first_name }}</h1><p>{{ employee.job_title|default:"Employee" }} &middot; {{ employee.employee_code }} &middot; {{ year }}</p></div>
+    <div class="page-actions"><a href="/hr/leave/request" class="btn btn-primary"><i class="fas fa-calendar-plus"></i> Request leave</a><a href="/hr/leave/my-requests" class="btn btn-secondary"><i class="fas fa-list"></i> My leave</a></div>
+</div>
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-hourglass-half"></i></div><div><div class="stat-number">{{ pending_count }}</div><div class="stat-label">Pending leave requests</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-calendar-check"></i></div><div><div class="stat-number">{{ approved_days|floatformat:1 }}</div><div class="stat-label">Approved days this year</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-clock"></i></div><div><div class="stat-number">{% if today_record and today_record.clock_in %}{{ today_record.clock_in|time:"H:i" }}{% else %}—{% endif %}</div><div class="stat-label">Clock-in today</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-bullseye"></i></div><div><div class="stat-number">{{ goals|length }}</div><div class="stat-label">Active goals</div></div></div>
+</div>
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-calendar-alt"></i> Leave balances</span><a href="/hr/leave/balance" class="btn btn-sm btn-secondary">View all</a></div>
+            <div style="padding:20px; display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px;">
+                {% for balance in balances %}
+                <div class="summary-box"><div class="info" style="font-size:12px;">{{ balance.type_name }}</div><div class="stat-number" style="font-size:26px; color:{{ balance.color }};">{{ balance.remaining_days|floatformat:1 }}</div><div class="info" style="font-size:12px;">of {{ balance.total_days|floatformat:1 }} days</div></div>
+                {% empty %}<p class="info">No leave balances initialised.</p>{% endfor %}
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-history"></i> Recent leave requests</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Type</th><th>Dates</th><th>Days</th><th>Status</th><th></th></tr></thead>
+                    <tbody>
+                        {% for leave in recent_leave %}
+                        <tr><td>{{ leave.type_name }}</td><td>{{ leave.start_date|date:"M d" }} – {{ leave.end_date|date:"M d, Y" }}</td><td>{{ leave.duration_days|floatformat:1 }}</td><td><span class="badge badge-{{ leave.status|status_class }}">{{ leave.get_status_display }}</span></td><td><a class="btn btn-sm btn-secondary" href="/hr/leave/view/{{ leave.id }}">View</a></td></tr>
+                        {% empty %}<tr><td colspan="5"><div class="empty-state"><p>No leave requests yet.</p><a href="/hr/leave/request">Request leave</a></div></td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-clock"></i> Today's attendance</span></div>
+            <div style="padding:18px;">
+                {% if today_record %}
+                <div class="detail-grid">
+                    <div><div class="info">Clock in</div><strong>{{ today_record.clock_in|time:"H:i"|default:"—" }}</strong></div>
+                    <div><div class="info">Clock out</div><strong>{{ today_record.clock_out|time:"H:i"|default:"—" }}</strong></div>
+                    <div><div class="info">Status</div><span class="badge badge-{{ today_record.status|status_class }}">{{ today_record.get_status_display }}</span></div>
+                    <div><div class="info">Hours</div><strong>{{ today_record.total_hours|default:"—" }}</strong></div>
+                </div>
+                {% else %}<p class="info">You have not clocked in today.</p>{% endif %}
+                <div style="display:flex; gap:8px; margin-top:14px;">
+                    {% if not today_record or not today_record.clock_in %}<form method="post" action="/hr/attendance/clock-in">{% csrf_token %}<input type="hidden" name="next" value="/hr/employee/dashboard"><button class="btn btn-primary btn-sm"><i class="fas fa-sign-in-alt"></i> Clock in</button></form>{% elif not today_record.clock_out %}<form method="post" action="/hr/attendance/clock-out">{% csrf_token %}<input type="hidden" name="next" value="/hr/employee/dashboard"><button class="btn btn-danger btn-sm"><i class="fas fa-sign-out-alt"></i> Clock out</button></form>{% endif %}
+                    <a href="/hr/attendance/my-time" class="btn btn-secondary btn-sm">My time</a>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-bullseye"></i> Goals</span><a href="/hr/performance/goals" class="btn btn-sm btn-secondary">All goals</a></div>
+            <div style="padding:16px 18px;">
+                {% for goal in goals %}
+                <div style="padding:8px 0; border-bottom:1px solid #f1f5f9;"><div style="display:flex; justify-content:space-between;"><strong>{{ goal.goal_name }}</strong><span class="badge badge-{{ goal.status|status_class }}">{{ goal.get_status_display }}</span></div><div class="info" style="font-size:12px;">Due {{ goal.target_date|date:"M d, Y" }}</div><div style="height:6px;background:#eef2f6;border-radius:99px;margin-top:6px;"><div style="height:100%;width:{{ goal.progress|floatformat:0 }}%;background:#3b82f6;border-radius:99px;"></div></div></div>
+                {% empty %}<p class="info">No active goals.</p>{% endfor %}
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-graduation-cap"></i> Training</span><a href="/hr/training/my-trainings" class="btn btn-sm btn-secondary">All</a></div>
+            <div style="padding:16px 18px;">
+                {% for training in trainings %}<div style="padding:7px 0; border-bottom:1px solid #f1f5f9;"><strong>{{ training.program_name }}</strong><div class="info" style="font-size:12px;">{{ training.get_status_display }}</div></div>{% empty %}<p class="info">No active training.</p>{% endfor %}
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-heart"></i> Wellbeing</span></div>
+            <div style="padding:18px;"><a href="/hr/wellness/checkin" class="btn btn-secondary btn-sm"><i class="fas fa-heart"></i> Daily check-in</a></div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

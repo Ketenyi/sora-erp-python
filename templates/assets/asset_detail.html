@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-barcode"></i> {{ asset.name }}
+            <span class="badge badge-{{ asset.status|status_class }}" style="font-size:12px; vertical-align:middle;">{{ asset.get_status_display }}</span>
+        </h1>
+        <p>{{ asset.asset_code }} &middot; {{ category.category_name|default:"Uncategorised" }}{% if asset.location %} &middot; {{ asset.location }}{% endif %}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/assets/register" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Register</a>
+        <a href="/assets/{{ asset.id }}/label" class="btn btn-secondary"><i class="fas fa-qrcode"></i> QR Label</a>
+        {% if can_edit %}<a href="/assets/{{ asset.id }}/edit" class="btn btn-primary"><i class="fas fa-pen"></i> Edit</a>{% endif %}
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-receipt"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ asset.purchase_cost|floatformat:0|intcomma }}</div><div class="stat-label">Purchase cost</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-scale-balanced"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ asset.book_value|floatformat:0|intcomma }}</div><div class="stat-label">Net book value &middot; {{ currency_symbol }} {{ asset.accumulated_depreciation|floatformat:0|intcomma }} depreciated</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-arrow-trend-down"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ monthly_depreciation|floatformat:2|intcomma }}</div><div class="stat-label">Monthly depreciation</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-screwdriver-wrench"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ maintenance_cost|floatformat:0|intcomma }}</div><div class="stat-label">Maintenance logged</div></div>
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-circle-info"></i> Asset information</span><span class="badge badge-{{ asset.condition|status_class }}">{{ asset.get_condition_display }}</span></div>
+            <div style="padding: 22px;">
+                <div class="detail-grid">
+                    <div class="detail-item"><div class="detail-label">Asset code</div><div class="detail-value mono">{{ asset.asset_code }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Category</div><div class="detail-value">{{ category.category_name|default:"—" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Serial number</div><div class="detail-value">{{ asset.serial_number|default:"—" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Model</div><div class="detail-value">{{ asset.model_name|default:"—" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Manufacturer</div><div class="detail-value">{{ asset.manufacturer|default:"—" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Location</div><div class="detail-value">{{ asset.location|default:"—" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Purchase date</div><div class="detail-value">{{ asset.purchase_date|date:"M d, Y"|default:"—" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Useful life</div><div class="detail-value">{{ asset.useful_life_years }} year{{ asset.useful_life_years|pluralize }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Depreciation method</div><div class="detail-value">{{ asset.get_depreciation_method_display }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Annual rate</div><div class="detail-value">{{ asset.depreciation_rate|floatformat:2 }}%</div></div>
+                    <div class="detail-item"><div class="detail-label">Salvage value</div><div class="detail-value">{{ currency_symbol }} {{ asset.salvage_value|floatformat:2|intcomma }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Registered</div><div class="detail-value">{{ asset.created_at|date:"M d, Y" }}</div></div>
+                </div>
+                {% if asset.notes %}
+                <div style="margin-top: 18px;">
+                    <div class="detail-label">Notes</div>
+                    <p style="font-size: 13px; color:#475569; line-height:1.6;">{{ asset.notes|linebreaksbr }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-user-clock"></i> Custody history</span>
+                {% if can_edit and not is_closed and not open_assignment %}<a href="#custody" class="btn btn-sm btn-primary"><i class="fas fa-hand-holding"></i> Check out</a>{% endif %}
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Holder</th><th>Checked out</th><th>Expected back</th><th>Returned</th><th>Condition</th><th>Notes</th></tr></thead>
+                    <tbody>
+                        {% for assignment in assignments %}
+                        <tr>
+                            <td><strong>{{ assignment.holder_name }}</strong>{% if assignment.employee_id %}<div class="text-muted" style="font-size:11px;">{{ assignment.employee.employee_code }}</div>{% else %}<div class="text-muted" style="font-size:11px;">External custodian</div>{% endif %}</td>
+                            <td>{{ assignment.assigned_at|date:"M d, Y" }}</td>
+                            <td>{{ assignment.expected_return_date|date:"M d, Y"|default:"—" }}</td>
+                            <td>{{ assignment.returned_at|date:"M d, Y"|default:"Open" }}</td>
+                            <td>{{ assignment.get_condition_out_display }}{% if assignment.condition_in %} &rarr; <span class="badge badge-{{ assignment.condition_in|status_class }}">{{ assignment.get_condition_in_display }}</span>{% endif %}</td>
+                            <td>{{ assignment.notes|default:"—"|truncatechars:60 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6"><div class="empty-state"><i class="fas fa-user-clock"></i><p>This asset has never been checked out.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-screwdriver-wrench"></i> Maintenance history</span>
+                {% if can_create %}<a href="/assets/maintenance/new?asset={{ asset.id }}" class="btn btn-sm btn-primary"><i class="fas fa-plus"></i> Schedule</a>{% endif %}
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Scheduled</th><th>Job</th><th>Vendor</th><th class="text-right">Cost</th><th>Status</th><th>Completed</th></tr></thead>
+                    <tbody>
+                        {% for job in maintenance_rows %}
+                        <tr>
+                            <td>{{ job.scheduled_date|date:"M d, Y" }}</td>
+                            <td><strong>{{ job.title }}</strong><div class="text-muted" style="font-size:11px;">{{ job.get_maintenance_type_display }}{% if job.performed_by %} &middot; {{ job.performed_by.first_name }} {{ job.performed_by.last_name }}{% endif %}</div></td>
+                            <td>{{ job.vendor|default:"—" }}</td>
+                            <td class="text-right">{{ currency_symbol }} {{ job.cost|floatformat:2|intcomma }}</td>
+                            <td><span class="badge badge-{{ job.status|status_class }}">{{ job.get_status_display }}</span></td>
+                            <td>{{ job.completed_date|date:"M d, Y"|default:"—" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6"><div class="empty-state"><i class="fas fa-screwdriver-wrench"></i><p>No maintenance recorded for this asset.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-chart-line"></i> Depreciation ledger</span>
+                <a href="/assets/depreciation" class="btn btn-sm btn-secondary">Run depreciation</a>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Period</th><th>Posted</th><th class="text-right">Charge</th><th class="text-right">Accumulated</th><th class="text-right">Book value</th></tr></thead>
+                    <tbody>
+                        {% for entry in depreciation_rows %}
+                        <tr>
+                            <td>{{ entry.period_label }}</td>
+                            <td>{{ entry.created_at|date:"M d, Y" }}</td>
+                            <td class="text-right">{{ currency_symbol }} {{ entry.amount|floatformat:2|intcomma }}</td>
+                            <td class="text-right">{{ currency_symbol }} {{ entry.accumulated_total|floatformat:2|intcomma }}</td>
+                            <td class="text-right money">{{ currency_symbol }} {{ entry.book_value|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5"><div class="empty-state"><i class="fas fa-chart-line"></i><p>No depreciation has been posted yet.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card" id="custody">
+            <div class="card-header"><span><i class="fas fa-hand-holding"></i> Custody</span></div>
+            <div style="padding: 20px;">
+                {% if open_assignment %}
+                <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
+                    <div>
+                        <div style="font-size:16px; font-weight:700;">{{ open_assignment.holder_name }}</div>
+                        <div class="info">{% if open_assignment.employee %}{{ open_assignment.employee.first_name }} {{ open_assignment.employee.last_name }} &middot; {% endif %}since {{ open_assignment.assigned_at|date:"M d, Y" }}</div>
+                    </div>
+                    {% if open_assignment.return_overdue %}<span class="badge badge-danger">Return overdue</span>{% endif %}
+                </div>
+                <div class="summary-box" style="margin-top: 14px;">
+                    <div class="summary-line"><span>Expected return</span><span>{{ open_assignment.expected_return_date|date:"M d, Y"|default:"Not set" }}</span></div>
+                    <div class="summary-line"><span>Condition out</span><span>{{ open_assignment.get_condition_out_display }}</span></div>
+                </div>
+                {% if open_assignment.notes %}<p class="info" style="margin-top: 10px;">{{ open_assignment.notes }}</p>{% endif %}
+
+                {% if can_edit %}
+                <form method="post" action="/assets/{{ asset.id }}/check-in" style="margin-top: 16px; border-top: 1px solid #eef2f6; padding-top: 16px;">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="{{ check_in_form.condition_in.id_for_label }}">Condition at check-in</label>
+                        {{ check_in_form.condition_in }}
+                        {{ check_in_form.condition_in.errors }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ check_in_form.notes.id_for_label }}">Return notes</label>
+                        {{ check_in_form.notes }}
+                        {{ check_in_form.notes.errors }}
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;"><i class="fas fa-right-to-bracket"></i> Check In</button>
+                </form>
+                {% endif %}
+                {% elif is_closed %}
+                <p class="info">This asset is {{ asset.get_status_display|lower }} and is no longer in circulation.</p>
+                {% else %}
+                <p class="info" style="margin-bottom: 14px;">This asset is available. Assign it to an employee or an external custodian.</p>
+                {% if can_edit %}
+                <form method="post" action="/assets/{{ asset.id }}/check-out">
+                    {% csrf_token %}
+                    {% for field in check_out_form %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {{ field.errors }}
+                    </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;"><i class="fas fa-hand-holding"></i> Check Out</button>
+                </form>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-laptop-code"></i> Endpoint agent</span>
+                {% if linked_agent %}<a href="/assets/agents/{{ linked_agent.id }}" class="btn btn-sm btn-secondary">Open</a>{% endif %}
+            </div>
+            <div style="padding: 20px;">
+                {% if linked_agent %}
+                <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
+                    <div>
+                        <div style="font-size:15px; font-weight:700;">{{ linked_agent.hostname }}</div>
+                        <div class="info">{{ linked_agent.get_os_family_display }}{% if linked_agent.os_name %} &middot; {{ linked_agent.os_name|truncatechars:34 }}{% endif %}</div>
+                    </div>
+                    <span class="badge badge-{{ linked_agent.connectivity|status_class }}">{{ linked_agent.connectivity|title }}</span>
+                </div>
+                <div class="summary-box" style="margin-top:14px;">
+                    <div class="summary-line"><span>Last report</span><span>{% if linked_agent.last_inventory_at %}{{ linked_agent.last_inventory_at|date:"M d, H:i" }}{% else %}Never{% endif %}</span></div>
+                    <div class="summary-line"><span>Primary IP</span><span class="mono">{{ linked_agent.primary_ip|default:"—" }}</span></div>
+                    <div class="summary-line"><span>Agent version</span><span>{{ linked_agent.agent_version|default:"—" }}</span></div>
+                </div>
+                {% else %}
+                <p class="info">No inventory agent is linked to this asset.</p>
+                <a href="/assets/agents" class="btn btn-secondary" style="width:100%; justify-content:center;"><i class="fas fa-laptop-code"></i> Manage endpoint agents</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-scale-balanced"></i> Depreciation position</span></div>            <div style="padding: 20px;">
+                <div style="font-size: 30px; font-weight: 800; line-height: 1.1;">{{ currency_symbol }} {{ asset.book_value|floatformat:2|intcomma }}</div>
+                <p class="info" style="margin-top: 4px;">net book value</p>
+                <div style="height: 8px; background: #eef2f6; border-radius: 999px; margin-top: 16px; overflow: hidden;">
+                    <div style="height: 100%; width: {{ asset.depreciation_percent }}%; background: #6366f1;"></div>
+                </div>
+                <div class="info" style="display:flex; justify-content:space-between; margin-top:6px;">
+                    <span>{{ asset.depreciation_percent }}% depreciated</span>
+                    <span>{{ asset.get_depreciation_method_display }}</span>
+                </div>
+                <div class="summary-box" style="margin-top: 16px;">
+                    <div class="summary-line"><span>Purchase cost</span><span>{{ currency_symbol }} {{ asset.purchase_cost|floatformat:2|intcomma }}</span></div>
+                    <div class="summary-line"><span>Accumulated</span><span>{{ currency_symbol }} {{ asset.accumulated_depreciation|floatformat:2|intcomma }}</span></div>
+                    <div class="summary-line"><span>Monthly charge</span><span>{{ currency_symbol }} {{ monthly_depreciation|floatformat:2|intcomma }}</span></div>
+                    <div class="summary-line total"><span>Book value</span><span>{{ currency_symbol }} {{ asset.book_value|floatformat:2|intcomma }}</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-calendar-check"></i> Next maintenance</span></div>
+            <div style="padding: 18px;">
+                {% if next_maintenance %}
+                <div style="font-weight:600;">{{ next_maintenance.title }}</div>
+                <div class="info">{{ next_maintenance.scheduled_date|date:"M d, Y" }} &middot; {{ next_maintenance.get_maintenance_type_display }}</div>
+                <div style="margin-top:10px;"><span class="badge badge-{{ next_maintenance.status|status_class }}">{{ next_maintenance.get_status_display }}</span></div>
+                <a href="/assets/maintenance" class="btn btn-secondary" style="width:100%; justify-content:center; margin-top:14px;">Manage jobs</a>
+                {% else %}
+                <p class="info">No maintenance is scheduled.</p>
+                {% if can_create %}<a href="/assets/maintenance/new?asset={{ asset.id }}" class="btn btn-secondary" style="width:100%; justify-content:center;"><i class="fas fa-plus"></i> Schedule maintenance</a>{% endif %}
+                {% endif %}
+            </div>
+        </div>
+
+        {% if can_edit and not is_closed %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-triangle-exclamation"></i> Lifecycle</span></div>
+            <div style="padding: 20px;">
+                <p class="info" style="margin-bottom: 12px;">Retiring or disposing of an asset removes it from depreciation. Check it in first.</p>
+                <div style="display:flex; gap:8px; flex-direction:column;">
+                    <a href="/assets/{{ asset.id }}/status?status=retired" class="btn btn-secondary" style="justify-content:center;"><i class="fas fa-box-archive"></i> Retire asset</a>
+                    {% if can_delete %}<a href="/assets/{{ asset.id }}/status?status=disposed" class="btn btn-danger" style="justify-content:center;"><i class="fas fa-trash-can"></i> Dispose asset</a>{% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

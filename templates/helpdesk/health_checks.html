@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<style>
+    .visit-row { border-bottom: 1px solid #eef2f6; padding: 14px 20px; }
+    .visit-row:last-child { border-bottom: 0; }
+    .visit-main { display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; align-items:center; }
+    .visit-meta { font-size: 12px; color:#64748b; margin-top: 4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-calendar-check"></i> Health Checks</h1>
+        <p>Preventive maintenance and inspections scheduled against active SLA policies.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/helpdesk/contracts" class="btn btn-secondary"><i class="fas fa-file-contract"></i> Policies</a>
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header">
+                <form method="get" class="filter-bar">
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select name="status" class="form-control">
+                            <option value="">All statuses</option>
+                            {% for value, label in status_choices %}<option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group"><button class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button></div>
+                    {% if status_filter %}<div class="form-group"><a href="/helpdesk/health-checks" class="btn btn-secondary">Reset</a></div>{% endif %}
+                </form>
+            </div>
+            <div>
+                {% for check in checks %}
+                <div class="visit-row">
+                    <div class="visit-main">
+                        <div>
+                            <strong>{{ check.scheduled_date|date:"M d, Y" }}</strong>
+                            {% if check.is_overdue %}<span class="badge badge-danger">Overdue</span>{% endif %}
+                            <span class="badge badge-{{ check.status|status_class }}">{{ check.get_status_display }}</span>
+                            <div class="visit-meta">{{ check.get_check_type_display }} &middot; <a href="/helpdesk/contracts/{{ check.contract_id }}">{{ check.contract_number }}</a>{% if check.performed_name %} &middot; {{ check.performed_name }}{% endif %}</div>
+                            {% if check.findings %}<div style="margin-top:8px; font-size:13px; white-space:pre-line;">{{ check.findings }}</div>{% endif %}
+                        </div>
+                        {% if can_edit and check.status == "scheduled" %}
+                        <details>
+                            <summary class="btn btn-sm btn-secondary" style="list-style:none; cursor:pointer;"><i class="fas fa-check"></i> Complete</summary>
+                            <form method="post" action="/helpdesk/health-checks/{{ check.id }}/complete" style="margin-top:12px; min-width:280px;">
+                                {% csrf_token %}
+                                <div class="form-group">
+                                    <label>Findings</label>
+                                    <textarea name="findings" class="form-control" rows="4" required placeholder="Checks performed, issues found and follow-up actions"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label>Performed by</label>
+                                    <select name="performed_by" class="form-control">
+                                        <option value="">Select employee</option>
+                                        {% for agent in agents %}<option value="{{ agent.id }}">{{ agent.first_name }} {{ agent.last_name }}</option>{% endfor %}
+                                    </select>
+                                </div>
+                                <button class="btn btn-primary"><i class="fas fa-check"></i> Mark completed</button>
+                            </form>
+                        </details>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="empty-state"><i class="fas fa-calendar"></i><p>No health checks scheduled.</p></div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="sticky-summary">
+        {% if can_create %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-calendar-plus"></i> Schedule a visit</span></div>
+            <div style="padding:18px 20px;">
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {{ field.errors }}
+                    </div>
+                    {% endfor %}
+                    <button class="btn btn-primary" style="width:100%; justify-content:center;"><i class="fas fa-calendar-check"></i> Schedule</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-lightbulb"></i> How visits work</span></div>
+            <div style="padding:14px 20px; font-size:12px; line-height:1.7; color:#64748b;">
+                <p>Preventive visits inherit the contract and project, so findings flow into the same audit trail as tickets.</p>
+                <p>Complete a visit to record findings and the engineer who performed it. Overdue visits stay visible until they are completed or rescheduled.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

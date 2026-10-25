@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-chart-bar"></i> Purchase Summary {{ year }}</h1>
+        <p>Purchase order volume and value by month.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/purchasing/reports" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Reports</a>
+        {% if can_export %}<a href="/purchasing/reports/export?type=purchase_summary&year={{ year }}" class="btn btn-primary"><i class="fas fa-download"></i> Export CSV</a>{% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-calendar"></i> Year</span>
+        <form method="get" class="filter-bar">
+            <div class="form-group">
+                <select name="year" class="form-control">
+                    {% for option in years %}
+                    <option value="{{ option }}" {% if option == year %}selected{% endif %}>{{ option }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group"><button class="btn btn-primary"><i class="fas fa-sync-alt"></i> Apply</button></div>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Month</th><th class="text-right">PO count</th><th class="text-right">Total amount</th><th style="min-width:240px;">Share of year</th></tr></thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td>{{ row.month }}</td>
+                    <td class="text-right">{{ row.count }}</td>
+                    <td class="text-right money">{{ currency_symbol }} {{ row.amount|floatformat:2|intcomma }}</td>
+                    <td>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div style="flex:1; height:7px; background:#eef2f6; border-radius:99px; overflow:hidden;">
+                                <div style="height:100%; width:{{ row.percent }}%; background:#3b82f6;"></div>
+                            </div>
+                            <span class="info" style="min-width:42px; text-align:right;">{{ row.percent }}%</span>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot><tr><th>Total</th><th class="text-right">{{ rows|length }} months</th><th class="text-right money">{{ currency_symbol }} {{ total|floatformat:2|intcomma }}</th><th></th></tr></tfoot>
+        </table>
+    </div>
+</div>
+{% endblock %}

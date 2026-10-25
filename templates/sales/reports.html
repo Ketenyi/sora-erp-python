@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-chart-bar"></i> Sales Reports</h1>
+        <p>Quote conversion, sales performance and exports.</p>
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
+        <div><div class="stat-number">{{ stats.quotes|intcomma }}</div><div class="stat-label">Quotes</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-check"></i></div>
+        <div><div class="stat-number">{{ stats.approved|intcomma }}</div><div class="stat-label">Approved</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-file-invoice"></i></div>
+        <div><div class="stat-number">{{ stats.converted|intcomma }}</div><div class="stat-label">Converted</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-coins"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ stats.value|floatformat:0|intcomma }}</div><div class="stat-label">Total quoted</div></div>
+    </div>
+</div>
+
+<div class="report-links">
+    <a href="/sales/reports/sales" class="report-link">
+        <i class="fas fa-chart-line"></i>
+        <strong>Sales Performance</strong>
+        <span>Monthly invoiced value and collections.</span>
+    </a>
+    <a href="/sales/reports/quotes" class="report-link">
+        <i class="fas fa-file-alt"></i>
+        <strong>Quote Conversion</strong>
+        <span>Status breakdown and top clients by quoted value.</span>
+    </a>
+    <a href="/sales/reports/export" class="report-link">
+        <i class="fas fa-download"></i>
+        <strong>Export Quotes</strong>
+        <span>Download all visible quotes as CSV.</span>
+    </a>
+    <a href="/sales/pipeline" class="report-link">
+        <i class="fas fa-columns"></i>
+        <strong>Pipeline</strong>
+        <span>Visual stages for every open quote.</span>
+    </a>
+</div>
+{% endblock %}

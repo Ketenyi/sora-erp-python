@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-chart-line"></i> Sales Performance</h1>
+        <p>Invoice-based sales for the last 12 months.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/sales/reports" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Reports</a>
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-file-invoice"></i></div>
+        <div><div class="stat-number">{{ txn_count|intcomma }}</div><div class="stat-label">Invoices</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-coins"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ total|floatformat:0|intcomma }}</div><div class="stat-label">Invoiced value</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-hand-holding-usd"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ paid|floatformat:0|intcomma }}</div><div class="stat-label">Collected</div></div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-calendar"></i> Monthly Breakdown</span></div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th class="text-right">Invoices</th>
+                    <th class="text-right">Invoiced</th>
+                    <th class="text-right">Paid</th>
+                    <th class="text-right">Outstanding</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in monthly %}
+                <tr>
+                    <td>{{ row.month|date:"F Y" }}</td>
+                    <td class="text-right">{{ row.count }}</td>
+                    <td class="text-right money">{{ currency_symbol }} {{ row.total|floatformat:2|intcomma }}</td>
+                    <td class="text-right">{{ currency_symbol }} {{ row.paid|floatformat:2|intcomma }}</td>
+                    <td class="text-right">{{ currency_symbol }} {{ row.outstanding|floatformat:2|intcomma }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5"><div class="empty-state"><i class="fas fa-chart-line"></i><p>No invoice data yet.</p></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

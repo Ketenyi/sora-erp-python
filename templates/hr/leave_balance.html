@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-chart-line"></i> Leave Balance</h1><p>{{ employee.first_name }} {{ employee.last_name }} &middot; {{ year }}.</p></div>
+    <div class="page-actions"><a href="/hr/leave" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Leave home</a><a href="/hr/leave/request" class="btn btn-primary"><i class="fas fa-plus"></i> Request leave</a></div>
+</div>
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="filter-bar">
+            {% if can_select_employee %}<div class="form-group"><label>Employee</label><select name="employee" class="form-control"><option value="">Select employee</option>{% for person in employees %}<option value="{{ person.id }}" {% if person.id == employee.id %}selected{% endif %}>{{ person.first_name }} {{ person.last_name }}</option>{% endfor %}</select></div>{% endif %}
+            <div class="form-group"><label>Year</label><select name="year" class="form-control">{% for option in years %}<option value="{{ option }}" {% if option == year %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div class="form-group"><button class="btn btn-primary"><i class="fas fa-filter"></i> Show</button></div>
+        </form>
+    </div>
+    <div style="padding:20px; display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px;">
+        {% for balance in balances %}
+        <div class="summary-box">
+            <div style="display:flex; justify-content:space-between; align-items:center;"><strong>{{ balance.type_name }}</strong><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{{ balance.color }};"></span></div>
+            <div class="stat-number" style="font-size:32px; margin-top:8px;">{{ balance.remaining_days|floatformat:1 }}</div>
+            <div class="info" style="font-size:12px;">days remaining of {{ balance.total_days|floatformat:1 }}</div>
+            <div style="height:7px; background:#eef2f6; border-radius:99px; margin:10px 0;">
+                <div style="height:100%; width:{% if balance.total_days %}{{ balance.used|percentage:balance.total_days }}{% else %}0{% endif %}%; background:{{ balance.color }}; border-radius:99px;"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:11px;" class="info"><span>Used {{ balance.used_days|floatformat:1 }}</span><span>Pending {{ balance.pending_days|floatformat:1 }}</span></div>
+        </div>
+        {% empty %}<div class="empty-state" style="grid-column:1/-1;"><i class="fas fa-calendar"></i><p>No leave balances for {{ year }}.</p></div>{% endfor %}
+    </div>
+</div>
+{% endblock %}

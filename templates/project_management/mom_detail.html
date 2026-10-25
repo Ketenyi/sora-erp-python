@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-file-signature"></i> {{ mom.title }} <span class="badge badge-{{ mom.status|status_class }}" style="font-size:12px; vertical-align:middle;">{{ mom.get_status_display }}</span></h1>
+        <p>{{ project.project_code }} &middot; {{ mom.meeting_date|date:"F d, Y" }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/{{ project.id }}/moms" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> All MOMs</a>
+        <a href="/projects/{{ project.id }}/moms/view/{{ mom.id }}/pdf" class="btn btn-secondary"><i class="fas fa-file-pdf"></i> PDF</a>
+        <a href="/projects/{{ project.id }}/moms/edit/{{ mom.id }}" class="btn btn-secondary"><i class="fas fa-pen"></i> Edit</a>
+    </div>
+</div>
+
+{% if mom.status == 'rejected' %}
+<div class="alert alert-error"><i class="fas fa-circle-xmark"></i> Rejected by {{ mom.approved_by_name }}: {{ mom.rejection_reason }}</div>
+{% elif mom.status == 'approved' %}
+<div class="alert alert-success"><i class="fas fa-circle-check"></i> Approved by {{ mom.approved_by_name }} on {{ mom.approved_at|date:"M d, Y H:i" }}. This decision is locked in the audit trail.</div>
+{% endif %}
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-users"></i> Meeting details</span></div>
+            <div style="padding:20px;">
+                <div class="detail-grid">
+                    <div class="detail-item"><div class="detail-label">Meeting date</div><div class="detail-value">{{ mom.meeting_date|date:"F d, Y" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Prepared</div><div class="detail-value">{{ mom.created_at|date:"M d, Y H:i" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Status</div><div class="detail-value">{{ mom.get_status_display }}</div></div>
+                </div>
+                <div class="mt-3"><div class="detail-label">Attendees</div><div style="white-space:pre-line;">{{ mom.attendees|default:"—" }}</div></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-list"></i> Agenda</span></div>
+            <div style="padding:20px; white-space:pre-line;">{{ mom.agenda|default:"—" }}</div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-file-lines"></i> Minutes</span></div>
+            <div style="padding:20px; white-space:pre-line;">{{ mom.minutes }}</div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-gavel"></i> Decisions &amp; actions</span></div>
+            <div style="padding:20px; display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+                <div><div class="detail-label">Decisions</div><div style="white-space:pre-line;">{{ mom.decisions|default:"—" }}</div></div>
+                <div><div class="detail-label">Action items</div><div style="white-space:pre-line;">{{ mom.action_items|default:"—" }}</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sticky-summary">
+        {% if can_approve and mom.status != 'approved' %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-paper-plane"></i> Request approval</span></div>
+            <div style="padding:18px 20px;">
+                <form method="post" action="/projects/{{ project.id }}/moms/{{ mom.id }}/send">
+                    {% csrf_token %}
+                    <div class="form-group"><label>Client email *</label>{{ send_form.email }}</div>
+                    <div class="form-group"><label>Personal message</label>{{ send_form.message }}</div>
+                    <button class="btn btn-primary" style="width:100%; justify-content:center;"><i class="fas fa-envelope"></i> Send magic link</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-link"></i> Approval links</span></div>
+            <div style="padding:10px 20px 16px;">
+                <ul class="timeline">
+                    {% for link in links %}
+                    <li>
+                        <div class="time">{{ link.created_at|date:"M d, Y H:i" }}</div>
+                        <div class="what">
+                            {{ link.recipient_email|default:"No recipient" }} &middot;
+                            {% if link.is_active %}<span class="badge badge-info">Active</span>{% elif link.used_at %}<span class="badge badge-{{ link.decision|status_class }}">{{ link.decision|title }}</span>{% else %}<span class="badge badge-secondary">Expired</span>{% endif %}
+                        </div>
+                        <small class="text-muted">Expires {{ link.expires_at|date:"M d, H:i" }}{% if link.sent_at %} &middot; emailed{% endif %}{% if link.decided_ip %} &middot; IP {{ link.decided_ip }}{% endif %}</small>
+                    </li>
+                    {% empty %}
+                    <li><div class="what">No approval links issued yet.</div></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

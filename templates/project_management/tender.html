@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-chart-gantt"></i> Tenders &amp; Gantt</h1>
+        <p>Bidding-stage engagements worth {{ currency_symbol }} {{ pipeline|floatformat:0|intcomma }}. Lock a baseline to move a project into execution.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/portfolio" class="btn btn-secondary"><i class="fas fa-folder-open"></i> Portfolio</a>
+        <a href="/projects/create" class="btn btn-primary"><i class="fas fa-plus"></i> New Project</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-file-contract"></i> Bidding pipeline</span></div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Tender</th><th>Client</th><th>Manager</th><th>Timeline</th><th class="text-right">Contract</th><th>Health</th><th></th></tr></thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td><a href="/projects/{{ row.project.id }}"><strong>{{ row.project.project_code }}</strong></a><div class="text-muted" style="font-size:11px;">{{ row.project.project_name }}</div></td>
+                    <td>{{ row.project.client_name|default:"Internal" }}</td>
+                    <td>{{ row.project.manager_name }}</td>
+                    <td>{{ row.project.start_date|date:"M d"|default:"—" }} → {{ row.project.end_date|date:"M d, Y"|default:"—" }}</td>
+                    <td class="text-right money">{{ currency_symbol }} {{ row.financials.contract_value|floatformat:0|intcomma }}</td>
+                    <td><span class="health-pill {{ row.health.css }}">{{ row.health.label }}</span></td>
+                    <td>
+                        <div class="table-actions">
+                            <a href="/projects/gantt/{{ row.project.id }}" class="btn btn-sm btn-secondary" title="Gantt"><i class="fas fa-chart-gantt"></i></a>
+                            {% if can_approve and row.project.start_date and row.project.end_date %}
+                            <form method="post" action="/projects/{{ row.project.id }}/lock-baseline">{% csrf_token %}<button class="btn btn-sm btn-primary" title="Lock baseline"><i class="fas fa-lock"></i></button></form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7"><div class="empty-state"><i class="fas fa-chart-gantt"></i><p>No tenders in bidding stage.</p><a href="/projects/create">Create a bid</a></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

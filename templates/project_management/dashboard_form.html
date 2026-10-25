@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-table-columns"></i> {% if is_edit %}Edit {{ dashboard.title }}{% else %}New Dashboard{% endif %}</h1>
+        <p>Pick the widgets you want. The order below is the order they render on the dashboard.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/dashboards" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Dashboards</a>
+    </div>
+</div>
+
+<div class="card" style="max-width:860px;">
+    <div class="card-header"><span><i class="fas fa-pen"></i> Dashboard definition</span></div>
+    <div style="padding:20px;">
+        <form method="post" id="dashboard-form">
+            {% csrf_token %}
+            <div class="form-grid">
+                <div class="form-group"><label for="{{ form.title.id_for_label }}">{{ form.title.label }} *</label>{{ form.title }}{{ form.title.errors }}</div>
+                <div class="form-group checkbox-row"><label for="{{ form.is_default.id_for_label }}">{{ form.is_default }} {{ form.is_default.label }}</label>{{ form.is_default.errors }}</div>
+            </div>
+            {{ form.widget_order }}
+            <div class="form-group">
+                <label>{{ form.widgets.label }} *</label>
+                <div class="widget-choice-grid">
+                    {% for choice in form.widgets %}
+                    <label class="widget-choice">{{ choice.tag }} <span>{{ choice.choice_label }}</span></label>
+                    {% endfor %}
+                </div>
+                {{ form.widgets.errors }}
+            </div>
+            {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+            <div class="page-actions" style="margin-top:10px;">
+                <button class="btn btn-primary"><i class="fas fa-check"></i> {% if is_edit %}Save dashboard{% else %}Create dashboard{% endif %}</button>
+                <a href="/projects/dashboards" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+.widget-choice-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px; }
+.widget-choice { display:flex; align-items:center; gap:8px; padding:10px 12px; border:1px solid #e2e8f0; border-radius:10px; font-size:13px; cursor:pointer; }
+body[data-theme="dark"] .widget-choice { border-color:#334155; }
+.widget-choice input { accent-color:#b8860b; }
+</style>
+<script>
+(function () {
+    const form = document.getElementById("dashboard-form");
+    const orderInput = document.getElementById("{{ form.widget_order.id_for_label }}");
+    form.addEventListener("submit", function () {
+        const checked = Array.prototype.slice.call(form.querySelectorAll('input[name="widgets"]:checked'));
+        orderInput.value = checked.map(function (box) { return box.value; }).join(",");
+    });
+})();
+</script>
+{% endblock %}

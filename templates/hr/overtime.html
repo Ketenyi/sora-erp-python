@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load static sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-clock"></i> Overtime</h1><p>Log overtime and track approval status.</p></div>
+    <div class="page-actions">{% if can_manage %}<a href="/hr/leave/pending-overtime" class="btn btn-secondary"><i class="fas fa-hourglass-half"></i> Pending approvals</a>{% endif %}</div>
+</div>
+<div class="detail-layout">
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-list"></i> Overtime records</span></div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead><tr><th>{% if can_manage %}Employee{% else %}Date{% endif %}</th><th>Date</th><th class="text-right">Hours</th><th>Reason</th><th>Status</th></tr></thead>
+                <tbody>
+                    {% for request in requests %}
+                    <tr>
+                        <td>{% if can_manage %}<strong>{{ request.employee_name }}</strong>{% else %}{{ request.overtime_date|date:"M d, Y" }}{% endif %}</td>
+                        <td>{% if can_manage %}{{ request.overtime_date|date:"M d, Y" }}{% else %}{{ request.created_at|date:"M d, Y" }}{% endif %}</td>
+                        <td class="text-right">{{ request.hours }}</td>
+                        <td>{{ request.reason|default:"—"|truncatechars:50 }}</td>
+                        <td><span class="badge badge-{{ request.status|status_class }}">{{ request.get_status_display }}</span>{% if request.converted_to_leave %} <span class="badge badge-info">Converted</span>{% endif %}</td>
+                    </tr>
+                    {% empty %}<tr><td colspan="5"><div class="empty-state"><i class="fas fa-clock"></i><p>No overtime logged.</p></div></td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% include "partials/pagination.html" %}
+    </div>
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-plus"></i> Log overtime</span></div>
+        <div style="padding:18px;">
+            <form method="post" action="/hr/leave/overtime/store">
+                {% csrf_token %}
+                {% for field in form %}
+                <div class="form-group" {% if field.name == "employee" and not can_select_employee %}style="display:none;"{% endif %}>
+                    <label>{{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}</label>
+                    {{ field }}
+                    {% for error in field.errors %}<div class="error-text" style="color:#dc2626;font-size:12px;">{{ error }}</div>{% endfor %}
+                </div>
+                {% endfor %}
+                <button class="btn btn-primary" style="width:100%;"><i class="fas fa-paper-plane"></i> Submit overtime</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

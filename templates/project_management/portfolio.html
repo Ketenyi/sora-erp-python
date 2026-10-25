@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-folder-open"></i> Project Portfolio</h1>
+        <p>{{ page_obj.paginator.count }} project{{ page_obj.paginator.count|pluralize }} &middot; {{ currency_symbol }} {{ total_contract|floatformat:0|intcomma }} contracted on this view.</p>
+    </div>
+    <div class="page-actions">
+        {% if can_create %}<a href="/projects/create" class="btn btn-primary"><i class="fas fa-plus"></i> New Project</a>{% endif %}
+        <a href="/projects/tender" class="btn btn-secondary"><i class="fas fa-chart-gantt"></i> Tender pipeline</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="filter-bar">
+            <div class="form-group"><label>Search</label><input type="text" name="q" class="form-control" value="{{ search_query }}" placeholder="Code, name or client"></div>
+            <div class="form-group">
+                <label>Status</label>
+                <select name="status" class="form-control"><option value="">All statuses</option>
+                    {% for value, label in status_choices %}<option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Type</label>
+                <select name="type" class="form-control"><option value="">All types</option>
+                    {% for value, label in type_choices %}<option value="{{ value }}" {% if type_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Priority</label>
+                <select name="priority" class="form-control"><option value="">All priorities</option>
+                    {% for value, label in priority_choices %}<option value="{{ value }}" {% if priority_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group"><button class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button></div>
+            {% if search_query or status_filter or type_filter or priority_filter %}<div class="form-group"><a href="/projects/portfolio" class="btn btn-secondary">Reset</a></div>{% endif %}
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr><th>Project</th><th>Client</th><th>Type</th><th>Status</th><th>Health</th><th class="text-right">Contract</th><th class="text-right">Cost</th><th class="text-right">Margin</th><th style="width:120px;">Delivery</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td><a href="/projects/{{ row.project.id }}"><strong>{{ row.project.project_code }}</strong></a><div class="text-muted" style="font-size:11px;">{{ row.project.project_name }}</div></td>
+                    <td>{{ row.project.client_name|default:"Internal" }}</td>
+                    <td>{{ row.project.get_project_type_display }}</td>
+                    <td><span class="badge badge-{{ row.project.status|status_class }}">{{ row.project.get_status_display }}</span></td>
+                    <td><span class="health-pill {{ row.health.css }}">{{ row.health.label }}</span></td>
+                    <td class="text-right money">{{ currency_symbol }} {{ row.financials.contract_value|floatformat:0|intcomma }}</td>
+                    <td class="text-right">{{ currency_symbol }} {{ row.financials.total_cost|floatformat:0|intcomma }}</td>
+                    <td class="text-right {% if row.financials.margin < 0 %}text-danger{% else %}text-success{% endif %}">{{ currency_symbol }} {{ row.financials.margin|floatformat:0|intcomma }}</td>
+                    <td>
+                        <div class="progress-track"><span style="width: {{ row.summary.completion_percent|floatformat:0 }}%;"></span></div>
+                        <small class="text-muted">{{ row.summary.completion_percent }}% &middot; {{ row.summary.open }} open</small>
+                    </td>
+                    <td><div class="table-actions"><a href="/projects/{{ row.project.id }}" class="btn btn-sm btn-secondary" title="View"><i class="fas fa-eye"></i></a><a href="/projects/gantt/{{ row.project.id }}" class="btn btn-sm btn-secondary" title="Gantt"><i class="fas fa-chart-gantt"></i></a></div></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="10"><div class="empty-state"><i class="fas fa-folder-open"></i><p>No projects match the current filters.</p>{% if can_create %}<a href="/projects/create">Create a project</a>{% endif %}</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

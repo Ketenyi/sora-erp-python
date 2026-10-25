@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-file-lines"></i> {{ report_title }} Report</h1><p>{{ rows|length }} row{{ rows|length|pluralize }} &middot; generated {{ today|date:"M d, Y" }}</p></div>
+    <div class="page-actions">
+        <a href="/hr/reports" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> All reports</a>
+        <a href="/hr/reports/export?{{ export_query }}" class="btn btn-primary"><i class="fas fa-download"></i> Export CSV</a>
+    </div>
+</div>
+<div class="card">
+    <form method="get" class="filter-bar">
+        {% if show_department %}
+        <div class="form-group"><label>Department</label><select name="department" class="form-control"><option value="">All departments</option>{% for department in filter_options.departments %}<option value="{{ department.id }}" {% if selected.department == department.id|stringformat:"s" %}selected{% endif %}>{{ department.department_name }}</option>{% endfor %}</select></div>
+        {% endif %}
+        {% if show_status %}
+        <div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="">All statuses</option>{% if report_type == "leave" %}{% for value, label in filter_options.leave_statuses %}<option value="{{ value }}" {% if selected.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}{% else %}{% for value, label in filter_options.employee_statuses %}<option value="{{ value }}" {% if selected.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}{% endif %}</select></div>
+        {% endif %}
+        {% if show_year %}
+        <div class="form-group"><label>Year</label><input type="number" name="year" class="form-control" value="{{ selected.year }}" min="2000" max="2100"></div>
+        {% endif %}
+        {% if show_month %}
+        <div class="form-group"><label>Month</label><select name="month" class="form-control"><option value="1" {% if selected.month == 1 or selected.month == "1" %}selected{% endif %}>January</option><option value="2" {% if selected.month == 2 or selected.month == "2" %}selected{% endif %}>February</option><option value="3" {% if selected.month == 3 or selected.month == "3" %}selected{% endif %}>March</option><option value="4" {% if selected.month == 4 or selected.month == "4" %}selected{% endif %}>April</option><option value="5" {% if selected.month == 5 or selected.month == "5" %}selected{% endif %}>May</option><option value="6" {% if selected.month == 6 or selected.month == "6" %}selected{% endif %}>June</option><option value="7" {% if selected.month == 7 or selected.month == "7" %}selected{% endif %}>July</option><option value="8" {% if selected.month == 8 or selected.month == "8" %}selected{% endif %}>August</option><option value="9" {% if selected.month == 9 or selected.month == "9" %}selected{% endif %}>September</option><option value="10" {% if selected.month == 10 or selected.month == "10" %}selected{% endif %}>October</option><option value="11" {% if selected.month == 11 or selected.month == "11" %}selected{% endif %}>November</option><option value="12" {% if selected.month == 12 or selected.month == "12" %}selected{% endif %}>December</option></select></div>
+        {% endif %}
+        {% if show_period %}
+        <div class="form-group"><label>Payroll period</label><select name="period" class="form-control"><option value="">Latest period</option>{% for period in filter_options.periods %}<option value="{{ period.id }}" {% if selected.period == period.id|stringformat:"s" %}selected{% endif %}>{{ period.period_name }}</option>{% endfor %}</select></div>
+        {% endif %}
+        <div class="form-group" style="align-self:flex-end;"><button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Apply filters</button> <a href="/hr/reports/{{ report_type }}" class="btn btn-secondary">Reset</a></div>
+    </form>
+</div>
+<div class="stats-row">
+    {% for item in summary %}
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-chart-simple"></i></div><div><div class="stat-number">{{ item.value }}</div><div class="stat-label">{{ item.label }}</div></div></div>
+    {% endfor %}
+</div>
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-table"></i> {{ report_title }} data</span><span class="badge badge-info">{{ rows|length }} rows</span></div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr>{% for header in headers %}<th>{{ header }}</th>{% endfor %}</tr></thead>
+            <tbody>
+            {% for row in rows %}
+                <tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+            {% empty %}<tr><td colspan="{{ headers|length }}"><div class="empty-state"><i class="fas fa-table"></i><p>No records match the selected filters.</p></div></td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

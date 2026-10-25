@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-id-card"></i> Single Sign-On</h1><p>Configure OAuth identity providers for your organisation.</p></div>
+    <div class="page-actions"><a href="/settings" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Settings</a></div>
+</div>
+{% include "settings/_nav.html" %}
+<form method="post">
+    {% csrf_token %}
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:16px;">
+        {% for provider in providers %}
+        <div class="card" style="margin-bottom:0;">
+            <div class="card-header">
+                <span><i class="fas fa-{% if provider.provider == 'google' %}google{% elif provider.provider == 'microsoft' %}microsoft{% else %}id-card{% endif %}"></i> {{ provider.provider|capfirst }}</span>
+                <span class="badge {% if provider.enabled %}badge-success{% else %}badge-secondary{% endif %}">{% if provider.enabled %}Enabled{% else %}Disabled{% endif %}</span>
+            </div>
+            <div style="padding:16px 18px;">
+                <div class="form-group" style="display:flex; align-items:center; gap:10px; padding:9px 12px; border:1px solid #e2e8f0; border-radius:10px;">
+                    <input type="checkbox" name="enabled_{{ provider.provider }}" value="1" {% if provider.enabled %}checked{% endif %}>
+                    <label style="margin:0;">Enable {{ provider.provider|capfirst }} sign-in</label>
+                </div>
+                <div class="form-group"><label>Client ID</label><input type="text" class="form-control" name="client_id_{{ provider.provider }}" value="{{ provider.client_id|default:'' }}"></div>
+                <div class="form-group"><label>Client secret</label><input type="password" class="form-control" name="client_secret_{{ provider.provider }}" value="" placeholder="{% if provider.client_secret %}Stored - leave blank to keep{% else %}Not set{% endif %}" autocomplete="new-password"></div>
+                <div class="form-group"><label>Redirect URI</label><input type="text" class="form-control" name="redirect_uri_{{ provider.provider }}" value="{{ provider.redirect_uri|default:'' }}"></div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="card"><div class="empty-state"><i class="fas fa-id-card"></i><p>No SSO providers configured.</p><p class="info">Add a provider below or run <code>manage.py seed_settings</code>.</p></div></div>
+        {% endfor %}
+    </div>
+    {% if providers %}
+    <div style="display:flex; gap:10px; margin-top:18px;">
+        <button type="submit" name="action" value="save" class="btn btn-primary"><i class="fas fa-save"></i> Save providers</button>
+        <button type="submit" name="action" value="test" class="btn btn-secondary"><i class="fas fa-vial"></i> Save &amp; validate</button>
+    </div>
+    {% endif %}
+</form>
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-plus"></i> Add provider</span></div>
+    <div style="padding:16px 18px;">
+        <form method="post" class="filter-bar">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add">
+            <div class="form-group"><label>Provider key</label><input type="text" name="new_provider" class="form-control" placeholder="e.g. github"></div>
+            <div class="form-group"><button type="submit" class="btn btn-secondary"><i class="fas fa-plus"></i> Add provider</button></div>
+        </form>
+        <p class="info" style="font-size:12px; color:#64748b; margin-top:8px;">OAuth login is not enabled in this build; configuration is stored for future use.</p>
+    </div>
+</div>
+{% endblock %}

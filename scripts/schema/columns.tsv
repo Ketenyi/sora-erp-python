@@ -1,0 +1,1633 @@
+admin_users	id	int(11)	NO	NULL	PRI	auto_increment
+admin_users	username	varchar(50)	NO	NULL	UNI	
+admin_users	email	varchar(100)	NO	NULL	UNI	
+admin_users	password	varchar(255)	NO	NULL		
+admin_users	full_name	varchar(100)	YES	NULL		
+admin_users	role	enum('super_admin','admin')	YES	'admin'		
+admin_users	is_active	tinyint(1)	YES	1		
+admin_users	created_at	datetime	YES	current_timestamp()		
+admin_users	last_login	datetime	YES	NULL		
+admin_users	created_by	int(11)	YES	NULL		
+ai_anomaly_detection	id	int(11)	NO	NULL	PRI	auto_increment
+ai_anomaly_detection	transaction_type	varchar(50)	YES	NULL		
+ai_anomaly_detection	transaction_id	int(11)	YES	NULL		
+ai_anomaly_detection	anomaly_score	decimal(5,2)	YES	NULL		
+ai_anomaly_detection	reason	text	YES	NULL		
+ai_anomaly_detection	is_reviewed	tinyint(4)	YES	0		
+ai_anomaly_detection	detected_at	datetime	YES	NULL		
+ai_transaction_categories	id	int(11)	NO	NULL	PRI	auto_increment
+ai_transaction_categories	description_pattern	varchar(255)	YES	NULL		
+ai_transaction_categories	predicted_account_id	int(11)	YES	NULL	MUL	
+ai_transaction_categories	confidence	decimal(5,2)	YES	NULL		
+ai_transaction_categories	times_used	int(11)	YES	0		
+ai_transaction_categories	created_at	datetime	YES	NULL		
+api_keys	id	int(11)	NO	NULL	PRI	auto_increment
+api_keys	user_id	int(11)	NO	NULL	MUL	
+api_keys	name	varchar(100)	NO	NULL		
+api_keys	api_key	varchar(64)	NO	NULL	UNI	
+api_keys	api_secret	varchar(255)	YES	NULL		
+api_keys	permissions	longtext	YES	NULL		
+api_keys	last_used	datetime	YES	NULL		
+api_keys	expires_at	datetime	YES	NULL		
+api_keys	status	enum('active','revoked','expired')	YES	'active'		
+api_keys	created_at	datetime	YES	NULL		
+approval_rules	id	int(11)	NO	NULL	PRI	
+approval_rules	rule_name	varchar(100)	YES	NULL		
+approval_rules	applies_to	enum('invoice','expense','journal')	YES	NULL		
+approval_rules	min_amount	decimal(15,2)	YES	NULL		
+approval_rules	approval_levels	int(11)	YES	1		
+approval_tracking	id	int(11)	NO	NULL	PRI	auto_increment
+approval_tracking	request_type	enum('leave','overtime')	NO	NULL	MUL	
+approval_tracking	request_id	int(11)	NO	NULL		
+approval_tracking	approver_id	int(11)	NO	NULL	MUL	
+approval_tracking	approval_level	int(11)	NO	NULL		
+approval_tracking	status	enum('pending','approved','rejected')	YES	'pending'		
+approval_tracking	comments	text	YES	NULL		
+approval_tracking	approved_at	datetime	YES	NULL		
+approval_tracking	created_at	datetime	NO	NULL		
+approval_workflows	id	int(11)	NO	NULL	PRI	auto_increment
+approval_workflows	workflow_type	enum('leave','overtime')	NO	NULL	MUL	
+approval_workflows	approver_level	int(11)	NO	1		
+approval_workflows	approver_role	varchar(50)	NO	NULL		
+approval_workflows	department_id	int(11)	YES	NULL	MUL	
+approval_workflows	created_at	datetime	NO	NULL		
+approval_workflows	updated_at	datetime	YES	NULL		
+approvers	id	int(11)	NO	NULL	PRI	auto_increment
+approvers	employee_id	int(11)	NO	NULL	MUL	
+approvers	approver_type	enum('leave','overtime','all')	YES	'leave'	MUL	
+approvers	department_id	int(11)	YES	NULL	MUL	
+approvers	priority	int(11)	YES	1		
+approvers	approval_level	int(11)	YES	2		
+approvers	is_required	tinyint(4)	YES	1		
+approvers	status	enum('active','inactive')	YES	'active'		
+approvers	created_at	datetime	NO	NULL		
+approvers	updated_at	datetime	YES	NULL		
+attachments	id	int(11)	NO	NULL	PRI	auto_increment
+attachments	reference_type	varchar(50)	NO	NULL	MUL	
+attachments	reference_id	int(11)	NO	NULL		
+attachments	file_name	varchar(255)	NO	NULL		
+attachments	file_path	varchar(500)	NO	NULL		
+attachments	file_size	int(11)	YES	NULL		
+attachments	mime_type	varchar(100)	YES	NULL		
+attachments	ocr_text	text	YES	NULL		
+attachments	uploaded_by	int(11)	YES	NULL	MUL	
+attachments	uploaded_at	datetime	YES	NULL	MUL	
+attachments	expiry_date	date	YES	NULL		
+attachments	reminder_days	int(11)	YES	7		
+attachments	version_number	int(11)	YES	1		
+attachments	extracted_text	longtext	YES	NULL		
+attachments	ai_summary	text	YES	NULL		
+attachments	ai_category_id	int(11)	YES	NULL		
+attachments	workflow_id	int(11)	YES	NULL		
+attachments	approval_status	varchar(30)	YES	'none'		
+attendance	id	int(11)	NO	NULL	PRI	auto_increment
+attendance	employee_id	int(11)	NO	NULL	MUL	
+attendance	date	date	NO	NULL	MUL	
+attendance	clock_in	time	YES	NULL		
+attendance	clock_out	time	YES	NULL		
+attendance	break_start	time	YES	NULL		
+attendance	break_end	time	YES	NULL		
+attendance	total_break	int(11)	YES	0		
+attendance	total_hours	decimal(5,2)	YES	NULL		
+attendance	overtime_hours	decimal(5,2)	YES	NULL		
+attendance	status	enum('present','absent','late','half_day','holiday','weekend')	YES	'present'	MUL	
+attendance	late_minutes	int(11)	YES	0		
+attendance	early_departure_minutes	int(11)	YES	0		
+attendance	location_check_in	point	YES	NULL		
+attendance	location_check_out	point	YES	NULL		
+attendance	check_in_method	enum('biometric','mobile','web','manual')	YES	NULL		
+attendance	check_out_method	enum('biometric','mobile','web','manual')	YES	NULL		
+attendance	notes	text	YES	NULL		
+attendance	created_at	datetime	NO	NULL	MUL	
+attendance	updated_at	datetime	YES	NULL		
+attendance	total_seconds	int(11)	YES	0		
+attendance	source	varchar(50)	YES	'manual'		
+audit_details	id	int(11)	NO	NULL	PRI	
+audit_details	audit_id	int(11)	YES	NULL		
+audit_details	field_name	varchar(100)	YES	NULL		
+audit_details	old_value	text	YES	NULL		
+audit_details	new_value	text	YES	NULL		
+audit_log	id	int(11)	NO	NULL	PRI	auto_increment
+audit_log	user_id	int(11)	NO	NULL	MUL	
+audit_log	action	varchar(50)	NO	NULL		
+audit_log	table_name	varchar(50)	YES	NULL	MUL	
+audit_log	record_id	int(11)	YES	NULL		
+audit_log	old_data	longtext	YES	NULL		
+audit_log	new_data	longtext	YES	NULL		
+audit_log	ip_address	varchar(45)	YES	NULL		
+audit_log	user_agent	text	YES	NULL		
+audit_log	created_at	datetime	NO	NULL		
+bank_accounts	id	int(11)	NO	NULL	PRI	auto_increment
+bank_accounts	bank_name	varchar(255)	NO	NULL		
+bank_accounts	branch	varchar(255)	YES	NULL		
+bank_accounts	account_name	varchar(255)	NO	NULL		
+bank_accounts	account_number	varchar(100)	NO	NULL		
+bank_accounts	swift_code	varchar(50)	YES	NULL		
+bank_accounts	currency	varchar(10)	YES	'KES'		
+bank_accounts	is_default	tinyint(4)	YES	0		
+bank_accounts	status	enum('active','inactive')	YES	'active'		
+bank_accounts	created_at	timestamp	NO	current_timestamp()		
+bank_accounts	updated_at	timestamp	NO	current_timestamp()		on update current_timestamp()
+bank_accounts	account_currency	varchar(3)	YES	'KES'		
+bank_accounts	opening_balance	decimal(15,2)	YES	0.00		
+bank_rules	id	int(11)	NO	NULL	PRI	auto_increment
+bank_rules	bank_account_id	int(11)	YES	NULL	MUL	
+bank_rules	rule_name	varchar(100)	YES	NULL		
+bank_rules	description_contains	varchar(255)	YES	NULL		
+bank_rules	amount_min	decimal(15,2)	YES	NULL		
+bank_rules	amount_max	decimal(15,2)	YES	NULL		
+bank_rules	transaction_type	enum('debit','credit','both')	YES	NULL		
+bank_rules	action_type	enum('categorize','match','ignore')	YES	NULL		
+bank_rules	action_value	varchar(100)	YES	NULL		
+bank_rules	priority	int(11)	YES	0		
+bank_rules	status	enum('active','inactive')	YES	'active'		
+bank_rules	created_at	datetime	YES	NULL		
+bank_statements	id	int(11)	NO	NULL	PRI	auto_increment
+bank_statements	bank_account_id	int(11)	NO	NULL	MUL	
+bank_statements	statement_date	date	NO	NULL	MUL	
+bank_statements	opening_balance	decimal(15,2)	YES	0.00		
+bank_statements	closing_balance	decimal(15,2)	YES	0.00		
+bank_statements	uploaded_at	datetime	YES	current_timestamp()		
+bank_statements	reconciled_at	datetime	YES	NULL		
+bank_statements	status	enum('pending','reconciled','completed')	YES	'pending'		
+bank_statement_lines	id	int(11)	NO	NULL	PRI	auto_increment
+bank_statement_lines	statement_id	int(11)	NO	NULL	MUL	
+bank_statement_lines	transaction_date	date	NO	NULL	MUL	
+bank_statement_lines	description	text	YES	NULL		
+bank_statement_lines	debit	decimal(15,2)	YES	0.00		
+bank_statement_lines	credit	decimal(15,2)	YES	0.00		
+bank_statement_lines	reference	varchar(100)	YES	NULL		
+bank_statement_lines	journal_entry_id	int(11)	YES	NULL		
+bank_statement_lines	is_reconciled	tinyint(4)	YES	0	MUL	
+budgets	id	int(11)	NO	NULL	PRI	auto_increment
+budgets	budget_name	varchar(100)	NO	NULL		
+budgets	fiscal_year_id	int(11)	NO	NULL	MUL	
+budgets	description	text	YES	NULL		
+budgets	status	enum('draft','active','archived')	YES	'draft'		
+budgets	created_by	int(11)	NO	NULL		
+budgets	created_at	datetime	NO	NULL		
+budgets	account_id	int(11)	YES	NULL		
+budgets	amount	decimal(15,2)	YES	0.00		
+budgets	fiscal_year	int(11)	YES	NULL		
+budgets	updated_at	datetime	YES	NULL		on update current_timestamp()
+budget_lines	id	int(11)	NO	NULL	PRI	auto_increment
+budget_lines	budget_id	int(11)	NO	NULL	MUL	
+budget_lines	account_id	int(11)	NO	NULL	MUL	
+budget_lines	period_id	int(11)	NO	NULL	MUL	
+budget_lines	budget_amount	decimal(15,2)	NO	NULL		
+budget_lines	actual_amount	decimal(15,2)	YES	0.00		
+budget_lines	variance	decimal(15,2)	YES	0.00		
+budget_lines	created_at	datetime	YES	current_timestamp()		
+candidates	id	int(11)	NO	NULL	PRI	auto_increment
+candidates	first_name	varchar(100)	NO	NULL		
+candidates	last_name	varchar(100)	NO	NULL		
+candidates	email	varchar(100)	NO	NULL	MUL	
+candidates	phone	varchar(20)	YES	NULL		
+candidates	resume_path	varchar(255)	YES	NULL		
+candidates	resume_text	longtext	YES	NULL		
+candidates	cover_letter	text	YES	NULL		
+candidates	linkedin_url	varchar(255)	YES	NULL		
+candidates	portfolio_url	varchar(255)	YES	NULL		
+candidates	source	varchar(50)	YES	NULL		
+candidates	job_posting_id	int(11)	YES	NULL		
+candidates	expected_salary	decimal(15,2)	YES	NULL		
+candidates	notice_period	int(11)	YES	NULL		
+candidates	ai_score	decimal(5,2)	YES	NULL		
+candidates	ai_insights	longtext	YES	NULL		
+candidates	skills_match	longtext	YES	NULL		
+candidates	status	enum('new','screening','interview','assessment','offered','hired','rejected','withdrawn')	YES	'new'	MUL	
+candidates	created_at	datetime	NO	NULL		
+cash_flow_forecasts	id	int(11)	NO	NULL	PRI	auto_increment
+cash_flow_forecasts	forecast_date	date	NO	NULL		
+cash_flow_forecasts	opening_balance	decimal(15,2)	YES	NULL		
+cash_flow_forecasts	projected_inflows	decimal(15,2)	YES	NULL		
+cash_flow_forecasts	projected_outflows	decimal(15,2)	YES	NULL		
+cash_flow_forecasts	closing_balance	decimal(15,2)	YES	NULL		
+cash_flow_forecasts	confidence_level	decimal(5,2)	YES	70.00		
+cash_flow_forecasts	created_by	int(11)	YES	NULL		
+cash_flow_forecasts	created_at	datetime	YES	NULL		
+cash_flow_scenarios	id	int(11)	NO	NULL	PRI	auto_increment
+cash_flow_scenarios	name	varchar(100)	YES	NULL		
+cash_flow_scenarios	description	text	YES	NULL		
+cash_flow_scenarios	adjustments	longtext	YES	NULL		
+cash_flow_scenarios	created_at	datetime	YES	NULL		
+chart_of_accounts	id	int(11)	NO	NULL	PRI	auto_increment
+chart_of_accounts	account_code	varchar(20)	NO	NULL	UNI	
+chart_of_accounts	account_name	varchar(100)	NO	NULL		
+chart_of_accounts	account_type	enum('asset','liability','equity','revenue','expense')	NO	NULL	MUL	
+chart_of_accounts	normal_balance	enum('debit','credit')	NO	NULL		
+chart_of_accounts	description	text	YES	NULL		
+chart_of_accounts	parent_account_id	int(11)	YES	NULL	MUL	
+chart_of_accounts	status	enum('active','inactive','deleted')	YES	'active'		
+chart_of_accounts	created_by	int(11)	NO	NULL		
+chart_of_accounts	created_at	datetime	NO	NULL		
+chart_of_accounts	updated_at	datetime	YES	NULL		
+chart_of_accounts	level	int(11)	YES	1		
+chart_of_accounts	is_header	tinyint(4)	YES	0		
+chart_of_accounts	opening_balance	decimal(15,2)	YES	0.00		
+chart_of_accounts	current_balance	decimal(15,2)	YES	0.00		
+chart_of_accounts	parent_id	int(11)	YES	NULL		
+chart_of_accounts	hierarchy_level	int(11)	YES	0		
+chart_of_accounts	is_active	tinyint(4)	YES	1		
+clients	id	int(11)	NO	NULL	PRI	auto_increment
+clients	client_code	varchar(50)	NO	NULL	UNI	
+clients	company_name	varchar(255)	NO	NULL		
+clients	contact_person	varchar(255)	YES	NULL		
+clients	email	varchar(255)	NO	NULL	MUL	
+clients	phone	varchar(50)	YES	NULL		
+clients	address	text	YES	NULL		
+clients	city	varchar(100)	YES	NULL		
+clients	country	varchar(100)	YES	NULL		
+clients	tax_id	varchar(100)	YES	NULL		
+clients	status	enum('active','inactive')	YES	'active'	MUL	
+clients	created_at	timestamp	NO	current_timestamp()		
+clients	updated_at	timestamp	NO	current_timestamp()		on update current_timestamp()
+clients	deleted_at	timestamp	YES	NULL		
+companies	id	int(11)	NO	NULL	PRI	auto_increment
+companies	company_code	varchar(50)	NO	NULL	UNI	
+companies	company_name	varchar(255)	NO	NULL		
+companies	company_email	varchar(255)	YES	NULL		
+companies	company_phone	varchar(50)	YES	NULL		
+companies	company_address	text	YES	NULL		
+companies	database_name	varchar(100)	NO	NULL	UNI	
+companies	subscription_plan	enum('starter','business','enterprise')	YES	'starter'		
+companies	max_users	int(11)	YES	5		
+companies	max_storage_mb	int(11)	YES	1024		
+companies	status	enum('active','suspended','expired')	YES	'active'	MUL	
+companies	subscription_expires	date	YES	NULL		
+companies	database_created	tinyint(4)	YES	0		
+companies	created_at	datetime	YES	current_timestamp()		
+companies	updated_at	datetime	YES	NULL		
+company_modules	id	int(11)	NO	NULL	PRI	auto_increment
+company_modules	company_id	int(11)	NO	NULL	MUL	
+company_modules	module_id	int(11)	NO	NULL	MUL	
+company_modules	is_active	tinyint(1)	YES	1		
+company_modules	activated_at	datetime	YES	current_timestamp()		
+company_modules	expires_at	date	YES	NULL		
+company_settings	id	int(11)	NO	NULL	PRI	auto_increment
+company_settings	setting_key	varchar(100)	NO	NULL	UNI	
+company_settings	setting_value	text	YES	NULL		
+company_settings	setting_type	varchar(50)	YES	'text'		
+company_settings	created_at	timestamp	NO	current_timestamp()		
+company_settings	updated_at	timestamp	NO	current_timestamp()		on update current_timestamp()
+currencies	id	int(11)	NO	NULL	PRI	auto_increment
+currencies	code	varchar(3)	YES	NULL		
+currencies	name	varchar(50)	YES	NULL		
+currencies	symbol	varchar(5)	YES	NULL		
+currencies	decimal_places	int(11)	YES	2		
+currencies	is_base	tinyint(4)	YES	0		
+custom_licenses	id	int(11)	NO	NULL	PRI	auto_increment
+custom_licenses	company_id	int(11)	NO	NULL	MUL	
+custom_licenses	license_key	varchar(100)	NO	NULL	UNI	
+custom_licenses	license_type	enum('custom','promo','lifetime','enterprise')	YES	'custom'		
+custom_licenses	modules_allowed	longtext	YES	NULL		
+custom_licenses	max_users	int(11)	YES	0		
+custom_licenses	price	decimal(10,2)	YES	NULL		
+custom_licenses	discount_percent	int(11)	YES	0		
+custom_licenses	valid_from	date	YES	NULL		
+custom_licenses	valid_until	date	YES	NULL		
+custom_licenses	is_active	tinyint(1)	YES	1		
+custom_licenses	created_at	datetime	YES	current_timestamp()		
+departments	id	int(11)	NO	NULL	PRI	auto_increment
+departments	department_code	varchar(20)	NO	NULL	UNI	
+departments	department_name	varchar(100)	NO	NULL		
+departments	description	text	YES	NULL		
+departments	manager_id	int(11)	YES	NULL	MUL	
+departments	parent_department_id	int(11)	YES	NULL	MUL	
+departments	budget	decimal(15,2)	YES	NULL		
+departments	cost_center	varchar(50)	YES	NULL		
+departments	status	enum('active','inactive')	YES	'active'		
+departments	created_at	datetime	NO	NULL		
+departments	updated_at	datetime	YES	NULL		
+depreciation_entries	id	int(11)	NO	NULL	PRI	auto_increment
+depreciation_entries	asset_id	int(11)	NO	NULL	MUL	
+depreciation_entries	period_id	int(11)	NO	NULL	MUL	
+depreciation_entries	depreciation_amount	decimal(15,2)	NO	NULL		
+depreciation_entries	journal_entry_id	int(11)	YES	NULL	MUL	
+depreciation_entries	created_at	datetime	NO	NULL		
+document_ai_categories	id	int(11)	NO	NULL	PRI	auto_increment
+document_ai_categories	category_name	varchar(100)	NO	NULL		
+document_ai_categories	created_at	datetime	NO	current_timestamp()		
+document_approvals	id	int(11)	NO	NULL	PRI	auto_increment
+document_approvals	workflow_instance_id	int(11)	NO	NULL	MUL	
+document_approvals	step_number	int(11)	NO	NULL		
+document_approvals	approver_id	int(11)	NO	NULL	MUL	
+document_approvals	status	varchar(30)	YES	'pending'		
+document_approvals	comments	text	YES	NULL		
+document_approvals	created_at	datetime	NO	current_timestamp()		
+document_approvals	approved_at	datetime	YES	NULL		
+document_approvals	rejected_at	datetime	YES	NULL		
+document_audit_log	id	int(11)	NO	NULL	PRI	auto_increment
+document_audit_log	document_id	int(11)	NO	NULL	MUL	
+document_audit_log	action	varchar(50)	NO	NULL		
+document_audit_log	details	longtext	YES	NULL		
+document_audit_log	user_id	int(11)	YES	NULL		
+document_audit_log	created_at	datetime	NO	current_timestamp()		
+document_categories	id	int(11)	NO	NULL	PRI	auto_increment
+document_categories	name	varchar(100)	YES	NULL		
+document_categories	parent_id	int(11)	YES	NULL		
+document_categories	color	varchar(7)	YES	NULL		
+document_shares	id	int(11)	NO	NULL	PRI	auto_increment
+document_shares	document_id	int(11)	NO	NULL	MUL	
+document_shares	share_token	varchar(100)	NO	NULL	UNI	
+document_shares	shared_with_type	varchar(50)	YES	NULL		
+document_shares	shared_with_id	int(11)	YES	NULL		
+document_shares	permission	varchar(30)	YES	'view'		
+document_shares	expires_at	datetime	NO	NULL		
+document_shares	revoked	tinyint(1)	YES	0		
+document_shares	created_by	int(11)	YES	NULL		
+document_shares	created_at	datetime	NO	current_timestamp()		
+document_shares	revoked_at	datetime	YES	NULL		
+document_tags	id	int(11)	NO	NULL	PRI	auto_increment
+document_tags	document_id	int(11)	NO	NULL	MUL	
+document_tags	tag_name	varchar(100)	NO	NULL		
+document_tags	confidence	decimal(5,2)	YES	0.00		
+document_tags	created_at	datetime	NO	current_timestamp()		
+document_templates	id	int(11)	NO	NULL	PRI	auto_increment
+document_templates	name	varchar(150)	NO	NULL		
+document_templates	template_type	varchar(50)	YES	'contract'		
+document_templates	content	longtext	YES	NULL		
+document_templates	variables	longtext	YES	NULL		
+document_templates	is_active	tinyint(1)	YES	1		
+document_templates	created_by	int(11)	YES	NULL		
+document_templates	created_at	datetime	NO	current_timestamp()		
+document_versions	id	int(11)	NO	NULL	PRI	auto_increment
+document_versions	document_id	int(11)	NO	NULL	MUL	
+document_versions	file_name	varchar(255)	NO	NULL		
+document_versions	file_path	varchar(500)	NO	NULL		
+document_versions	file_size	int(11)	YES	NULL		
+document_versions	mime_type	varchar(100)	YES	NULL		
+document_versions	version_number	int(11)	NO	1		
+document_versions	version_note	text	YES	NULL		
+document_versions	uploaded_by	int(11)	YES	NULL		
+document_versions	created_at	datetime	NO	current_timestamp()		
+document_workflows	id	int(11)	NO	NULL	PRI	auto_increment
+document_workflows	name	varchar(150)	NO	NULL		
+document_workflows	description	text	YES	NULL		
+document_workflows	steps	longtext	YES	NULL		
+document_workflows	created_by	int(11)	YES	NULL		
+document_workflows	created_at	datetime	NO	current_timestamp()		
+document_workflow_instances	id	int(11)	NO	NULL	PRI	auto_increment
+document_workflow_instances	document_id	int(11)	NO	NULL	MUL	
+document_workflow_instances	workflow_id	int(11)	NO	NULL		
+document_workflow_instances	current_step	int(11)	YES	0		
+document_workflow_instances	status	varchar(30)	YES	'in_progress'		
+document_workflow_instances	initiated_by	int(11)	YES	NULL		
+document_workflow_instances	initiated_at	datetime	YES	NULL		
+document_workflow_instances	completed_at	datetime	YES	NULL		
+email_report_logs	id	int(11)	NO	NULL	PRI	auto_increment
+email_report_logs	report_id	int(11)	NO	NULL	MUL	
+email_report_logs	sent_at	datetime	YES	NULL		
+email_report_logs	recipients	longtext	YES	NULL		
+email_report_logs	status	enum('sent','failed','pending')	YES	'pending'		
+email_report_logs	error_message	text	YES	NULL		
+email_report_logs	created_at	datetime	YES	current_timestamp()		
+email_templates	id	int(11)	NO	NULL	PRI	auto_increment
+email_templates	template_key	varchar(50)	NO	NULL	UNI	
+email_templates	name	varchar(100)	NO	NULL		
+email_templates	subject	varchar(255)	NO	NULL		
+email_templates	body	text	NO	NULL		
+email_templates	variables	text	YES	NULL		
+email_templates	status	enum('active','inactive')	YES	'active'		
+email_templates	created_at	datetime	NO	NULL		
+email_templates	updated_at	datetime	YES	NULL		
+employees	id	int(11)	NO	NULL	PRI	auto_increment
+employees	employee_code	varchar(50)	NO	NULL	UNI	
+employees	national_id	varchar(20)	YES	NULL		
+employees	first_name	varchar(100)	NO	NULL		
+employees	last_name	varchar(100)	NO	NULL		
+employees	middle_name	varchar(100)	YES	NULL		
+employees	email	varchar(100)	NO	NULL	UNI	
+employees	personal_email	varchar(100)	YES	NULL		
+employees	phone	varchar(20)	YES	NULL		
+employees	alternative_phone	varchar(20)	YES	NULL		
+employees	date_of_birth	date	YES	NULL		
+employees	gender	enum('male','female','other')	YES	NULL		
+employees	marital_status	enum('single','married','divorced','widowed')	YES	NULL		
+employees	nationality	varchar(50)	YES	NULL		
+employees	address	text	YES	NULL		
+employees	city	varchar(100)	YES	NULL		
+employees	state	varchar(100)	YES	NULL		
+employees	postal_code	varchar(20)	YES	NULL		
+employees	country	varchar(100)	YES	'Kenya'		
+employees	hire_date	date	NO	NULL	MUL	
+employees	confirmation_date	date	YES	NULL		
+employees	termination_date	date	YES	NULL		
+employees	employment_status	enum('active','probation','terminated','resigned','retired','on_leave')	YES	'probation'	MUL	
+employees	employee_type	enum('full_time','part_time','contract','intern','temporary')	YES	'full_time'		
+employees	work_shift	varchar(50)	YES	NULL		
+employees	work_location	varchar(100)	YES	NULL		
+employees	department_id	int(11)	YES	NULL	MUL	
+employees	position_id	int(11)	YES	NULL		
+employees	job_title	varchar(100)	YES	NULL		
+employees	reports_to	int(11)	YES	NULL	MUL	
+employees	supervisor_id	int(11)	YES	NULL	MUL	
+employees	level	varchar(50)	YES	NULL		
+employees	grade	varchar(20)	YES	NULL		
+employees	bank_name	varchar(100)	YES	NULL		
+employees	bank_account	varchar(50)	YES	NULL		
+employees	bank_branch	varchar(100)	YES	NULL		
+employees	salary	decimal(15,2)	YES	NULL		
+employees	salary_currency	varchar(3)	YES	'KES'		
+employees	payment_method	enum('bank','mobile_money','cash','cheque')	YES	'bank'		
+employees	mobile_money_number	varchar(20)	YES	NULL		
+employees	kra_pin	varchar(20)	YES	NULL		
+employees	nssf_number	varchar(20)	YES	NULL		
+employees	nhif_number	varchar(20)	YES	NULL		
+employees	tax_identification	varchar(50)	YES	NULL		
+employees	benefits	longtext	YES	NULL		
+employees	deductions	longtext	YES	NULL		
+employees	emergency_contact_name	varchar(100)	YES	NULL		
+employees	emergency_contact_phone	varchar(20)	YES	NULL		
+employees	emergency_contact_relationship	varchar(50)	YES	NULL		
+employees	profile_picture	varchar(255)	YES	NULL		
+employees	status	enum('active','inactive','suspended')	YES	'active'	MUL	
+employees	created_by	int(11)	NO	NULL		
+employees	created_at	datetime	NO	NULL		
+employees	updated_at	datetime	YES	NULL		
+employees	last_login	datetime	YES	NULL		
+employees	zoho_user_id	varchar(100)	YES	NULL		
+employee_documents	id	int(11)	NO	NULL	PRI	auto_increment
+employee_documents	employee_id	int(11)	NO	NULL	MUL	
+employee_documents	document_type	varchar(50)	NO	NULL	MUL	
+employee_documents	document_name	varchar(200)	NO	NULL		
+employee_documents	file_path	varchar(255)	NO	NULL		
+employee_documents	file_size	int(11)	YES	NULL		
+employee_documents	mime_type	varchar(100)	YES	NULL		
+employee_documents	expiry_date	date	YES	NULL		
+employee_documents	notes	text	YES	NULL		
+employee_documents	uploaded_by	int(11)	NO	NULL		
+employee_documents	created_at	datetime	NO	NULL		
+employee_feedback	id	int(11)	NO	NULL	PRI	auto_increment
+employee_feedback	from_employee_id	int(11)	NO	NULL	MUL	
+employee_feedback	to_employee_id	int(11)	NO	NULL	MUL	
+employee_feedback	feedback_type	enum('praise','constructive','anonymous')	NO	NULL		
+employee_feedback	message	text	NO	NULL		
+employee_feedback	ai_analysis	longtext	YES	NULL		
+employee_feedback	is_public	tinyint(4)	YES	0		
+employee_feedback	created_at	datetime	NO	NULL		
+employee_kpi_contract	id	int(11)	NO	NULL	PRI	
+employee_kpi_contract	employee_id	int(11)	NO	NULL		
+employee_kpi_contract	kpi_item	varchar(255)	YES	NULL		
+employee_kpi_contract	weight	decimal(5,2)	YES	NULL		
+employee_kpi_contract	target	decimal(10,2)	YES	NULL		
+employee_kpi_contract	measurement_type	enum('auto','manual','task_count')	YES	NULL		
+employee_kpi_contract	source_table	varchar(50)	YES	NULL		
+employee_kpi_contract	created_at	datetime	YES	NULL		
+employee_movements	id	int(11)	NO	NULL	PRI	auto_increment
+employee_movements	employee_id	int(11)	NO	NULL	MUL	
+employee_movements	movement_type	enum('promotion','transfer','demotion','department_change','location_change')	NO	NULL		
+employee_movements	from_position	varchar(100)	YES	NULL		
+employee_movements	to_position	varchar(100)	YES	NULL		
+employee_movements	from_department	varchar(100)	YES	NULL		
+employee_movements	to_department	varchar(100)	YES	NULL		
+employee_movements	from_salary	decimal(15,2)	YES	NULL		
+employee_movements	to_salary	decimal(15,2)	YES	NULL		
+employee_movements	effective_date	date	NO	NULL		
+employee_movements	reason	text	YES	NULL		
+employee_movements	approved_by	int(11)	YES	NULL		
+employee_movements	created_at	datetime	NO	NULL		
+employee_performance	id	int(11)	NO	NULL	PRI	auto_increment
+employee_performance	employee_id	int(11)	NO	NULL	MUL	
+employee_performance	period_start	date	NO	NULL		
+employee_performance	period_end	date	NO	NULL		
+employee_performance	period_type	enum('weekly','monthly','quarterly')	YES	'monthly'		
+employee_performance	total_tasks	int(11)	YES	0		
+employee_performance	completed_tasks	int(11)	YES	0		
+employee_performance	excellent_tasks	int(11)	YES	0		
+employee_performance	average_tasks	int(11)	YES	0		
+employee_performance	poor_tasks	int(11)	YES	0		
+employee_performance	average_score	decimal(5,2)	YES	0.00		
+employee_performance	created_at	datetime	YES	current_timestamp()		
+employee_performance	updated_at	datetime	YES	NULL		on update current_timestamp()
+employee_recognition	id	int(11)	NO	NULL	PRI	auto_increment
+employee_recognition	employee_id	int(11)	NO	NULL	MUL	
+employee_recognition	badge_id	int(11)	NO	NULL	MUL	
+employee_recognition	given_by	int(11)	NO	NULL	MUL	
+employee_recognition	reason	text	YES	NULL		
+employee_recognition	message	text	YES	NULL		
+employee_recognition	points_earned	int(11)	YES	0		
+employee_recognition	created_at	datetime	NO	NULL		
+employee_skills	id	int(11)	NO	NULL	PRI	auto_increment
+employee_skills	employee_id	int(11)	NO	NULL	MUL	
+employee_skills	skill_id	int(11)	NO	NULL	MUL	
+employee_skills	proficiency	enum('beginner','intermediate','advanced','expert')	YES	'beginner'		
+employee_skills	years_of_experience	decimal(3,1)	YES	NULL		
+employee_skills	certified	tinyint(4)	YES	0		
+employee_skills	certification_date	date	YES	NULL		
+employee_skills	certification_expiry	date	YES	NULL		
+employee_skills	assessed_by	int(11)	YES	NULL		
+employee_skills	assessment_date	date	YES	NULL		
+employee_skills	notes	text	YES	NULL		
+employee_skills	created_at	datetime	NO	NULL		
+employee_training	id	int(11)	NO	NULL	PRI	auto_increment
+employee_training	employee_id	int(11)	NO	NULL	MUL	
+employee_training	training_id	int(11)	NO	NULL	MUL	
+employee_training	completion_date	date	YES	NULL		
+employee_training	certificate_path	varchar(255)	YES	NULL		
+employee_training	score	decimal(5,2)	YES	NULL		
+employee_training	ai_assessment	longtext	YES	NULL		
+employee_training	status	enum('enrolled','in_progress','completed','failed')	YES	'enrolled'		
+employee_training	created_at	datetime	NO	NULL		
+exchange_rates	id	int(11)	NO	NULL	PRI	auto_increment
+exchange_rates	from_currency	varchar(3)	YES	NULL		
+exchange_rates	to_currency	varchar(3)	YES	NULL		
+exchange_rates	rate	decimal(15,6)	YES	NULL		
+exchange_rates	effective_date	date	YES	NULL		
+fiscal_periods	id	int(11)	NO	NULL	PRI	auto_increment
+fiscal_periods	fiscal_year_id	int(11)	NO	NULL	MUL	
+fiscal_periods	period_number	int(11)	NO	NULL	MUL	
+fiscal_periods	period_name	varchar(50)	YES	NULL		
+fiscal_periods	start_date	date	NO	NULL		
+fiscal_periods	end_date	date	NO	NULL		
+fiscal_periods	status	enum('open','closed','locked')	YES	'open'		
+fiscal_periods	created_at	datetime	NO	NULL		
+fiscal_years	id	int(11)	NO	NULL	PRI	auto_increment
+fiscal_years	year_name	varchar(20)	NO	NULL		
+fiscal_years	start_date	date	NO	NULL		
+fiscal_years	end_date	date	NO	NULL		
+fiscal_years	status	enum('open','closed','locked')	YES	'open'		
+fiscal_years	is_current	tinyint(4)	YES	0		
+fiscal_years	created_at	datetime	NO	NULL		
+fixed_assets	id	int(11)	NO	NULL	PRI	auto_increment
+fixed_assets	asset_code	varchar(50)	NO	NULL	UNI	
+fixed_assets	asset_name	varchar(200)	NO	NULL		
+fixed_assets	asset_category	varchar(50)	YES	NULL		
+fixed_assets	purchase_date	date	NO	NULL		
+fixed_assets	purchase_cost	decimal(15,2)	NO	NULL		
+fixed_assets	salvage_value	decimal(15,2)	YES	0.00		
+fixed_assets	useful_life_years	int(11)	NO	NULL		
+fixed_assets	depreciation_method	enum('straight_line','declining_balance')	YES	'straight_line'		
+fixed_assets	current_value	decimal(15,2)	YES	NULL		
+fixed_assets	accumulated_depreciation	decimal(15,2)	YES	0.00		
+fixed_assets	status	enum('active','disposed','fully_depreciated')	YES	'active'		
+fixed_assets	created_at	datetime	NO	NULL		
+generated_documents	id	int(11)	NO	NULL	PRI	auto_increment
+generated_documents	template_id	int(11)	NO	NULL	MUL	
+generated_documents	document_id	int(11)	NO	NULL	MUL	
+generated_documents	generated_data	longtext	YES	NULL		
+generated_documents	generated_by	int(11)	YES	NULL		
+generated_documents	generated_at	datetime	NO	current_timestamp()		
+goals	id	int(11)	NO	NULL	PRI	auto_increment
+goals	employee_id	int(11)	NO	NULL	MUL	
+goals	goal_name	varchar(200)	NO	NULL		
+goals	description	text	YES	NULL		
+goals	category	enum('individual','team','company')	YES	'individual'		
+goals	start_date	date	NO	NULL		
+goals	target_date	date	NO	NULL		
+goals	weight	decimal(5,2)	YES	100.00		
+goals	progress	decimal(5,2)	YES	0.00		
+goals	status	enum('not_started','in_progress','completed','cancelled')	YES	'not_started'	MUL	
+goals	key_results	longtext	YES	NULL		
+goals	ai_suggestions	longtext	YES	NULL		
+goals	created_by	int(11)	NO	NULL		
+goals	created_at	datetime	NO	NULL		
+goals	completed_at	datetime	YES	NULL		
+goods_receipts	id	int(11)	NO	NULL	PRI	auto_increment
+goods_receipts	grn_number	varchar(50)	NO	NULL	UNI	
+goods_receipts	purchase_order_id	int(11)	NO	NULL	MUL	
+goods_receipts	vendor_id	int(11)	NO	NULL	MUL	
+goods_receipts	receipt_date	date	NO	NULL		
+goods_receipts	invoice_number	varchar(50)	YES	NULL		
+goods_receipts	delivery_note	varchar(100)	YES	NULL		
+goods_receipts	status	enum('draft','confirmed','cancelled')	YES	'draft'		
+goods_receipts	notes	text	YES	NULL		
+goods_receipts	received_by	int(11)	NO	NULL	MUL	
+goods_receipts	created_at	datetime	NO	NULL		
+goods_receipts	confirmed_at	datetime	YES	NULL		
+goods_receipt_items	id	int(11)	NO	NULL	PRI	auto_increment
+goods_receipt_items	goods_receipt_id	int(11)	NO	NULL	MUL	
+goods_receipt_items	purchase_order_item_id	int(11)	NO	NULL	MUL	
+goods_receipt_items	product_id	int(11)	YES	NULL	MUL	
+goods_receipt_items	quantity_received	decimal(15,2)	NO	NULL		
+goods_receipt_items	quantity_accepted	decimal(15,2)	NO	NULL		
+goods_receipt_items	quantity_rejected	decimal(15,2)	YES	0.00		
+goods_receipt_items	rejection_reason	text	YES	NULL		
+goods_receipt_items	batch_number	varchar(50)	YES	NULL		
+goods_receipt_items	expiry_date	date	YES	NULL		
+goods_receipt_items	created_at	datetime	NO	NULL		
+interviews	id	int(11)	NO	NULL	PRI	auto_increment
+interviews	candidate_id	int(11)	NO	NULL	MUL	
+interviews	job_posting_id	int(11)	NO	NULL	MUL	
+interviews	interviewer_id	int(11)	YES	NULL	MUL	
+interviews	interview_type	enum('phone','video','technical','behavioral','panel')	NO	NULL		
+interviews	scheduled_date	datetime	NO	NULL	MUL	
+interviews	duration_minutes	int(11)	YES	60		
+interviews	location	varchar(200)	YES	NULL		
+interviews	meeting_link	varchar(255)	YES	NULL		
+interviews	feedback	text	YES	NULL		
+interviews	rating	decimal(3,2)	YES	NULL		
+interviews	ai_transcript	longtext	YES	NULL		
+interviews	ai_sentiment	longtext	YES	NULL		
+interviews	status	enum('scheduled','completed','cancelled','rescheduled')	YES	'scheduled'		
+interviews	created_at	datetime	NO	NULL		
+invoices	id	int(11)	NO	NULL	PRI	auto_increment
+invoices	invoice_number	varchar(50)	NO	NULL	UNI	
+invoices	client_id	int(11)	NO	NULL	MUL	
+invoices	quote_id	int(11)	YES	NULL	MUL	
+invoices	invoice_date	date	NO	NULL		
+invoices	due_date	date	NO	NULL	MUL	
+invoices	status	enum('draft','sent','partial','paid','overdue','cancelled')	YES	'draft'	MUL	
+invoices	subtotal	decimal(12,2)	NO	NULL		
+invoices	discount_amount	decimal(12,2)	YES	0.00		
+invoices	tax_amount	decimal(12,2)	YES	0.00		
+invoices	total_amount	decimal(12,2)	NO	NULL		
+invoices	paid_amount	decimal(12,2)	YES	0.00		
+invoices	notes	text	YES	NULL		
+invoices	bank_account_id	int(11)	YES	NULL		
+invoices	payment_terms	varchar(50)	YES	'Net 30'		
+invoices	lpo_number	varchar(100)	YES	NULL		
+invoices	created_by	int(11)	YES	NULL	MUL	
+invoices	created_at	timestamp	NO	current_timestamp()		
+invoices	updated_at	timestamp	NO	current_timestamp()		on update current_timestamp()
+invoice_items	id	int(11)	NO	NULL	PRI	auto_increment
+invoice_items	invoice_id	int(11)	NO	NULL	MUL	
+invoice_items	product_id	int(11)	YES	NULL	MUL	
+invoice_items	description	text	NO	NULL		
+invoice_items	quantity	decimal(10,2)	NO	NULL		
+invoice_items	unit_price	decimal(12,2)	NO	NULL		
+invoice_items	discount	decimal(5,2)	YES	0.00		
+invoice_items	total	decimal(12,2)	NO	NULL		
+invoice_items	created_at	timestamp	NO	current_timestamp()		
+job_postings	id	int(11)	NO	NULL	PRI	auto_increment
+job_postings	job_title	varchar(200)	NO	NULL		
+job_postings	department_id	int(11)	YES	NULL	MUL	
+job_postings	position_id	int(11)	YES	NULL	MUL	
+job_postings	description	text	YES	NULL		
+job_postings	requirements	text	YES	NULL		
+job_postings	responsibilities	text	YES	NULL		
+job_postings	location	varchar(100)	YES	NULL		
+job_postings	employment_type	enum('full_time','part_time','contract','intern')	YES	NULL		
+job_postings	salary_range_min	decimal(15,2)	YES	NULL		
+job_postings	salary_range_max	decimal(15,2)	YES	NULL		
+job_postings	posting_date	date	NO	NULL	MUL	
+job_postings	closing_date	date	YES	NULL		
+job_postings	status	enum('draft','published','closed','cancelled')	YES	'draft'	MUL	
+job_postings	ai_match_threshold	int(11)	YES	70		
+job_postings	created_by	int(11)	NO	NULL		
+job_postings	created_at	datetime	NO	NULL		
+journal_entries	id	int(11)	NO	NULL	PRI	auto_increment
+journal_entries	entry_number	varchar(50)	NO	NULL	UNI	
+journal_entries	entry_date	date	NO	NULL	MUL	
+journal_entries	description	text	YES	NULL		
+journal_entries	reference	varchar(100)	YES	NULL		
+journal_entries	status	enum('draft','posted','void')	YES	'draft'	MUL	
+journal_entries	created_by	int(11)	NO	NULL	MUL	
+journal_entries	created_at	datetime	NO	NULL		
+journal_entries	posted_at	datetime	YES	NULL		
+journal_entries	posted_by	int(11)	YES	NULL	MUL	
+journal_entries	entry_type_id	int(11)	YES	NULL	MUL	
+journal_entries	is_recurring	tinyint(4)	YES	0		
+journal_entries	recurring_frequency	enum('daily','weekly','monthly','quarterly','yearly')	YES	NULL		
+journal_entries	recurring_end_date	date	YES	NULL		
+journal_entries	is_reversing	tinyint(4)	YES	0		
+journal_entries	reversal_date	date	YES	NULL		
+journal_entries	attachment	varchar(500)	YES	NULL		
+journal_entries	approved_by	int(11)	YES	NULL	MUL	
+journal_entries	approved_at	datetime	YES	NULL		
+journal_entry_lines	id	int(11)	NO	NULL	PRI	auto_increment
+journal_entry_lines	journal_entry_id	int(11)	NO	NULL	MUL	
+journal_entry_lines	account_id	int(11)	NO	NULL	MUL	
+journal_entry_lines	entry_type	enum('debit','credit')	NO	NULL	MUL	
+journal_entry_lines	amount	decimal(15,2)	NO	NULL		
+journal_entry_lines	description	text	YES	NULL		
+journal_entry_lines	project_id	int(11)	YES	NULL	MUL	
+journal_entry_lines	created_at	datetime	NO	NULL		
+journal_entry_types	id	int(11)	NO	NULL	PRI	auto_increment
+journal_entry_types	name	varchar(100)	YES	NULL		
+journal_entry_types	code	varchar(20)	YES	NULL		
+journal_entry_types	is_system	tinyint(4)	YES	0		
+journal_entry_types	is_recurring	tinyint(4)	YES	0		
+kpi_performance	id	int(11)	NO	NULL	PRI	auto_increment
+kpi_performance	employee_id	int(11)	NO	NULL	MUL	
+kpi_performance	kpi_id	int(11)	NO	NULL	MUL	
+kpi_performance	period_start	date	NO	NULL		
+kpi_performance	period_end	date	NO	NULL		
+kpi_performance	achieved_value	decimal(10,2)	YES	NULL		
+kpi_performance	achieved_score	decimal(5,2)	YES	NULL		
+kpi_performance	evidence	text	YES	NULL		
+kpi_performance	task_ids	longtext	YES	NULL		
+kpi_performance	created_at	datetime	NO	NULL		
+leave_balances	id	int(11)	NO	NULL	PRI	auto_increment
+leave_balances	employee_id	int(11)	NO	NULL	MUL	
+leave_balances	leave_type_id	int(11)	NO	NULL	MUL	
+leave_balances	year	int(11)	NO	NULL		
+leave_balances	total_days	decimal(5,2)	NO	NULL		
+leave_balances	total_earned	decimal(10,2)	YES	0.00		
+leave_balances	used_days	decimal(5,2)	YES	0.00		
+leave_balances	remaining_days	decimal(10,2)	YES	0.00		
+leave_balances	pending_days	decimal(5,2)	YES	0.00		
+leave_balances	carried_over	decimal(5,2)	YES	0.00		
+leave_balances	adjusted_days	decimal(5,2)	YES	0.00		
+leave_balances	notes	text	YES	NULL		
+leave_balances	created_at	datetime	NO	NULL		
+leave_balances	updated_at	datetime	YES	NULL		
+leave_requests	id	int(11)	NO	NULL	PRI	auto_increment
+leave_requests	employee_id	int(11)	NO	NULL	MUL	
+leave_requests	leave_type_id	int(11)	NO	NULL	MUL	
+leave_requests	start_date	date	NO	NULL	MUL	
+leave_requests	end_date	date	NO	NULL		
+leave_requests	duration_days	decimal(5,2)	NO	NULL		
+leave_requests	reason	text	YES	NULL		
+leave_requests	attachment	varchar(255)	YES	NULL		
+leave_requests	status	enum('pending','approved','rejected','cancelled')	YES	'pending'	MUL	
+leave_requests	approved_by	int(11)	YES	NULL	MUL	
+leave_requests	approved_at	datetime	YES	NULL		
+leave_requests	rejection_reason	text	YES	NULL		
+leave_requests	adjustment_details	longtext	YES	NULL		
+leave_requests	cancelled_by	int(11)	YES	NULL		
+leave_requests	cancelled_at	datetime	YES	NULL		
+leave_requests	created_at	datetime	NO	NULL		
+leave_transactions	id	int(11)	NO	NULL	PRI	auto_increment
+leave_transactions	employee_id	int(11)	NO	NULL	MUL	
+leave_transactions	transaction_type	enum('earned','used','adjusted','carried_over')	NO	NULL		
+leave_transactions	days	decimal(10,2)	NO	NULL		
+leave_transactions	reference	varchar(100)	YES	NULL		
+leave_transactions	description	text	YES	NULL		
+leave_transactions	created_at	datetime	YES	current_timestamp()		
+leave_types	id	int(11)	NO	NULL	PRI	auto_increment
+leave_types	leave_code	varchar(20)	NO	NULL	UNI	
+leave_types	leave_name	varchar(100)	NO	NULL		
+leave_types	description	text	YES	NULL		
+leave_types	default_days	int(11)	YES	0		
+leave_types	days_allowed	int(11)	NO	NULL		
+leave_types	is_paid	tinyint(4)	YES	1		
+leave_types	is_carry_over	tinyint(4)	YES	0		
+leave_types	carry_over	tinyint(4)	YES	0		
+leave_types	max_carry_over	int(11)	YES	0		
+leave_types	requires_documentation	tinyint(4)	YES	0		
+leave_types	requires_approval	tinyint(4)	YES	1		
+leave_types	requires_document	tinyint(4)	YES	0		
+leave_types	color	varchar(7)	YES	'#FFD700'		
+leave_types	status	enum('active','inactive')	YES	'active'		
+leave_types	created_at	datetime	NO	NULL		
+leave_types	updated_at	datetime	YES	NULL		
+license_audit_log	id	int(11)	NO	NULL	PRI	auto_increment
+license_audit_log	company_id	int(11)	NO	NULL	MUL	
+license_audit_log	action	varchar(50)	NO	NULL		
+license_audit_log	details	longtext	YES	NULL		
+license_audit_log	ip_address	varchar(45)	YES	NULL		
+license_audit_log	user_agent	text	YES	NULL		
+license_audit_log	created_at	datetime	YES	current_timestamp()		
+license_keys	id	int(11)	NO	NULL	PRI	auto_increment
+license_keys	license_key	varchar(100)	NO	NULL	UNI	
+license_keys	company_id	int(11)	YES	NULL	MUL	
+license_keys	plan_id	int(11)	YES	NULL	MUL	
+license_keys	max_companies	int(11)	YES	1		
+license_keys	expires_at	datetime	YES	NULL		
+license_keys	status	enum('active','used','expired')	YES	'active'		
+license_keys	created_at	datetime	YES	current_timestamp()		
+license_violations	id	int(11)	NO	NULL	PRI	auto_increment
+license_violations	company_id	int(11)	NO	NULL	MUL	
+license_violations	violation_type	enum('max_users_exceeded','module_access_denied','license_expired','license_mismatch','invalid_license_key')	NO	NULL		
+license_violations	violation_details	longtext	YES	NULL		
+license_violations	severity	enum('warning','critical')	YES	'warning'		
+license_violations	resolved	tinyint(1)	YES	0		
+license_violations	created_at	datetime	YES	current_timestamp()		
+license_violations	resolved_at	datetime	YES	NULL		
+master_activity_log	id	int(11)	NO	NULL	PRI	auto_increment
+master_activity_log	user_id	int(11)	YES	NULL	MUL	
+master_activity_log	company_id	int(11)	YES	NULL	MUL	
+master_activity_log	action	varchar(100)	YES	NULL		
+master_activity_log	details	text	YES	NULL		
+master_activity_log	ip_address	varchar(45)	YES	NULL		
+master_activity_log	user_agent	text	YES	NULL		
+master_activity_log	created_at	datetime	YES	current_timestamp()	MUL	
+master_companies	id	int(11)	NO	NULL	PRI	auto_increment
+master_companies	company_name	varchar(255)	NO	NULL		
+master_companies	company_code	varchar(50)	NO	NULL	UNI	
+master_companies	company_email	varchar(255)	YES	NULL		
+master_companies	company_phone	varchar(50)	YES	NULL		
+master_companies	company_address	text	YES	NULL		
+master_companies	database_name	varchar(100)	NO	NULL	UNI	
+master_companies	database_host	varchar(255)	YES	'localhost'		
+master_companies	database_user	varchar(100)	YES	'root'		
+master_companies	database_password	varchar(255)	YES	''		
+master_companies	status	enum('active','inactive','suspended','deleted')	YES	'active'	MUL	
+master_companies	created_by	int(11)	YES	NULL		
+master_companies	created_at	datetime	YES	current_timestamp()		
+master_companies	updated_at	datetime	YES	NULL		on update current_timestamp()
+master_companies	subscription_plan_id	int(11)	YES	1		
+master_companies	subscription_status	enum('trial','active','suspended','cancelled','expired')	YES	'trial'		
+master_companies	subscription_start_date	date	YES	NULL		
+master_companies	subscription_end_date	date	YES	NULL		
+master_companies	trial_ends_at	date	YES	NULL		
+master_companies	max_users	int(11)	YES	5		
+master_companies	storage_used_mb	int(11)	YES	0		
+master_companies	stripe_customer_id	varchar(100)	YES	NULL		
+master_companies	stripe_subscription_id	varchar(100)	YES	NULL		
+master_companies	last_payment_date	date	YES	NULL		
+master_companies	last_payment_amount	decimal(10,2)	YES	NULL		
+master_companies	mpesa_paybill_no	varchar(20)	YES	NULL		
+master_companies	license_key	varchar(100)	YES	NULL	UNI	
+master_companies	license_type	enum('standard','custom','promo','lifetime','enterprise')	YES	'standard'		
+master_companies	license_valid_from	date	YES	NULL		
+master_companies	license_valid_until	date	YES	NULL		
+master_companies	license_modules	longtext	YES	NULL		
+master_companies	license_last_checked	datetime	YES	NULL		
+master_companies	license_violations	int(11)	YES	0		
+master_companies	license_status	enum('active','suspended','expired','revoked')	YES	'active'		
+master_invitations	id	int(11)	NO	NULL	PRI	auto_increment
+master_invitations	email	varchar(255)	NO	NULL	MUL	
+master_invitations	company_id	int(11)	NO	NULL	MUL	
+master_invitations	invited_by	int(11)	NO	NULL		
+master_invitations	role	varchar(50)	YES	'user'		
+master_invitations	token	varchar(100)	NO	NULL	UNI	
+master_invitations	status	enum('pending','accepted','expired')	YES	'pending'		
+master_invitations	expires_at	datetime	NO	NULL		
+master_invitations	created_at	datetime	YES	current_timestamp()		
+master_users	id	int(11)	NO	NULL	PRI	auto_increment
+master_users	email	varchar(255)	NO	NULL	UNI	
+master_users	password	varchar(255)	NO	NULL		
+master_users	first_name	varchar(100)	YES	NULL		
+master_users	last_name	varchar(100)	YES	NULL		
+master_users	phone	varchar(20)	YES	NULL		
+master_users	is_super_admin	tinyint(1)	YES	0		
+master_users	status	enum('active','inactive','suspended')	YES	'active'		
+master_users	last_login	datetime	YES	NULL		
+master_users	created_at	datetime	YES	current_timestamp()		
+master_users	updated_at	datetime	YES	NULL		on update current_timestamp()
+master_user_companies	id	int(11)	NO	NULL	PRI	auto_increment
+master_user_companies	user_id	int(11)	NO	NULL	MUL	
+master_user_companies	company_id	int(11)	NO	NULL	MUL	
+master_user_companies	role_in_company	enum('owner','admin','manager','user')	YES	'user'		
+master_user_companies	is_default	tinyint(1)	YES	0		
+master_user_companies	status	enum('active','inactive')	YES	'active'		
+master_user_companies	joined_at	datetime	YES	current_timestamp()		
+mobile_sessions	id	int(11)	NO	NULL	PRI	auto_increment
+mobile_sessions	user_id	int(11)	NO	NULL	MUL	
+mobile_sessions	device_id	varchar(255)	NO	NULL		
+mobile_sessions	device_name	varchar(255)	YES	NULL		
+mobile_sessions	push_token	varchar(255)	YES	NULL		
+mobile_sessions	app_version	varchar(20)	YES	NULL		
+mobile_sessions	last_active	datetime	YES	NULL		
+mobile_sessions	created_at	datetime	YES	NULL		
+modules	id	int(11)	NO	NULL	PRI	auto_increment
+modules	module_code	varchar(50)	NO	NULL	UNI	
+modules	module_name	varchar(100)	NO	NULL		
+modules	description	text	YES	NULL		
+modules	icon	varchar(50)	YES	NULL		
+modules	default_price	decimal(10,2)	YES	0.00		
+modules	is_active	tinyint(1)	YES	1		
+modules	sort_order	int(11)	YES	0		
+modules	created_at	datetime	YES	current_timestamp()		
+module_permissions	id	int(11)	NO	NULL	PRI	auto_increment
+module_permissions	module_name	varchar(50)	NO	NULL	MUL	
+module_permissions	role_name	varchar(50)	NO	NULL		
+module_permissions	can_view	tinyint(1)	YES	1		
+module_permissions	can_create	tinyint(1)	YES	0		
+module_permissions	can_edit	tinyint(1)	YES	0		
+module_permissions	can_delete	tinyint(1)	YES	0		
+module_permissions	can_approve	tinyint(1)	YES	0		
+notifications	id	int(11)	NO	NULL	PRI	
+notifications	user_id	int(11)	YES	NULL		
+notifications	type	varchar(50)	YES	NULL		
+notifications	message	text	YES	NULL		
+notifications	is_read	tinyint(4)	YES	0		
+notifications	created_at	datetime	YES	NULL		
+offline_sync_queue	id	int(11)	NO	NULL	PRI	auto_increment
+offline_sync_queue	user_id	int(11)	NO	NULL		
+offline_sync_queue	action	varchar(50)	YES	NULL		
+offline_sync_queue	table_name	varchar(50)	YES	NULL		
+offline_sync_queue	record_data	longtext	YES	NULL		
+offline_sync_queue	sync_status	enum('pending','synced','failed')	YES	'pending'		
+offline_sync_queue	created_at	datetime	YES	NULL		
+offline_sync_queue	synced_at	datetime	YES	NULL		
+onboarding	id	int(11)	NO	NULL	PRI	auto_increment
+onboarding	candidate_id	int(11)	NO	NULL	MUL	
+onboarding	employee_id	int(11)	YES	NULL		
+onboarding	start_date	date	YES	NULL		
+onboarding	status	enum('pending','completed')	YES	'pending'	MUL	
+onboarding	documents_submitted	longtext	YES	NULL		
+onboarding	created_at	datetime	NO	NULL		
+onboarding	updated_at	datetime	YES	NULL		
+overtime_requests	id	int(11)	NO	NULL	PRI	auto_increment
+overtime_requests	employee_id	int(11)	NO	NULL	MUL	
+overtime_requests	overtime_date	date	NO	NULL		
+overtime_requests	hours	decimal(5,2)	NO	NULL		
+overtime_requests	reason	text	YES	NULL		
+overtime_requests	status	enum('pending','approved','rejected')	YES	'pending'	MUL	
+overtime_requests	approved_by	int(11)	YES	NULL	MUL	
+overtime_requests	approved_at	datetime	YES	NULL		
+overtime_requests	converted_to_leave	tinyint(4)	YES	0		
+overtime_requests	created_at	datetime	NO	NULL		
+overtime_requests	updated_at	datetime	YES	NULL		
+overtime_requests	conversion_rate	decimal(3,1)	YES	8.0		
+payments	id	int(11)	NO	NULL	PRI	auto_increment
+payments	payment_number	varchar(50)	NO	NULL	UNI	
+payments	invoice_id	int(11)	NO	NULL	MUL	
+payments	amount	decimal(12,2)	NO	NULL		
+payments	payment_date	date	NO	NULL		
+payments	payment_method	enum('cash','bank_transfer','credit_card','check','m-pesa')	NO	NULL		
+payments	reference_number	varchar(100)	YES	NULL		
+payments	notes	text	YES	NULL		
+payments	created_at	timestamp	NO	current_timestamp()		
+payroll_items	id	int(11)	NO	NULL	PRI	auto_increment
+payroll_items	payroll_period_id	int(11)	NO	NULL	MUL	
+payroll_items	employee_id	int(11)	NO	NULL	MUL	
+payroll_items	basic_salary	decimal(15,2)	NO	NULL		
+payroll_items	overtime_hours	decimal(5,2)	YES	0.00		
+payroll_items	overtime_amount	decimal(15,2)	YES	0.00		
+payroll_items	allowances	longtext	YES	NULL		
+payroll_items	bonus	decimal(15,2)	YES	0.00		
+payroll_items	commission	decimal(15,2)	YES	0.00		
+payroll_items	gross_pay	decimal(15,2)	NO	NULL		
+payroll_items	paye_tax	decimal(15,2)	YES	0.00		
+payroll_items	nssf	decimal(15,2)	YES	0.00		
+payroll_items	nhif	decimal(15,2)	YES	0.00		
+payroll_items	other_deductions	longtext	YES	NULL		
+payroll_items	total_deductions	decimal(15,2)	YES	0.00		
+payroll_items	net_pay	decimal(15,2)	NO	NULL		
+payroll_items	bank_account	varchar(50)	YES	NULL		
+payroll_items	mobile_money_number	varchar(20)	YES	NULL		
+payroll_items	payment_status	enum('pending','processing','paid','failed')	YES	'pending'	MUL	
+payroll_items	payment_reference	varchar(100)	YES	NULL		
+payroll_items	paid_at	datetime	YES	NULL		
+payroll_items	payslip_generated	tinyint(4)	YES	0		
+payroll_items	payslip_path	varchar(255)	YES	NULL		
+payroll_items	created_at	datetime	NO	NULL		
+payroll_periods	id	int(11)	NO	NULL	PRI	auto_increment
+payroll_periods	period_name	varchar(50)	NO	NULL		
+payroll_periods	start_date	date	NO	NULL	MUL	
+payroll_periods	end_date	date	NO	NULL		
+payroll_periods	payment_date	date	NO	NULL		
+payroll_periods	status	enum('draft','processing','approved','paid','closed')	YES	'draft'	MUL	
+payroll_periods	total_gross	decimal(15,2)	YES	0.00		
+payroll_periods	total_net	decimal(15,2)	YES	0.00		
+payroll_periods	total_deductions	decimal(15,2)	YES	0.00		
+payroll_periods	total_tax	decimal(15,2)	YES	0.00		
+payroll_periods	processed_by	int(11)	YES	NULL		
+payroll_periods	processed_at	datetime	YES	NULL		
+payroll_periods	approved_by	int(11)	YES	NULL		
+payroll_periods	approved_at	datetime	YES	NULL		
+payroll_periods	created_at	datetime	NO	NULL		
+performance_notifications	id	int(11)	NO	NULL	PRI	auto_increment
+performance_notifications	employee_id	int(11)	NO	NULL	MUL	
+performance_notifications	task_id	int(11)	YES	NULL	MUL	
+performance_notifications	notification_type	enum('task_assigned','deadline_warning','deadline_passed','task_completed','performance_update')	YES	'task_assigned'		
+performance_notifications	title	varchar(200)	YES	NULL		
+performance_notifications	message	text	YES	NULL		
+performance_notifications	is_read	tinyint(4)	YES	0		
+performance_notifications	read_at	datetime	YES	NULL		
+performance_notifications	sent_at	datetime	YES	current_timestamp()		
+performance_reviews	id	int(11)	NO	NULL	PRI	auto_increment
+performance_reviews	employee_id	int(11)	NO	NULL	MUL	
+performance_reviews	reviewer_id	int(11)	NO	NULL	MUL	
+performance_reviews	review_period_start	date	NO	NULL	MUL	
+performance_reviews	review_period_end	date	NO	NULL		
+performance_reviews	review_type	enum('annual','quarterly','monthly','probation','ad_hoc')	NO	NULL		
+performance_reviews	overall_rating	decimal(3,2)	YES	NULL		
+performance_reviews	strengths	text	YES	NULL		
+performance_reviews	areas_for_improvement	text	YES	NULL		
+performance_reviews	goals_achieved	text	YES	NULL		
+performance_reviews	future_goals	text	YES	NULL		
+performance_reviews	development_plan	text	YES	NULL		
+performance_reviews	ai_insights	longtext	YES	NULL		
+performance_reviews	status	enum('draft','submitted','reviewed','approved','completed')	YES	'draft'		
+performance_reviews	submitted_at	datetime	YES	NULL		
+performance_reviews	reviewed_at	datetime	YES	NULL		
+performance_reviews	approved_at	datetime	YES	NULL		
+performance_reviews	created_at	datetime	NO	NULL		
+performance_tasks	id	int(11)	NO	NULL	PRI	
+performance_tasks	employee_id	int(11)	NO	NULL		
+performance_tasks	task_date	date	NO	NULL		
+performance_tasks	description	text	YES	NULL		
+performance_tasks	time_spent	int(11)	YES	NULL		
+performance_tasks	kpi_id	int(11)	YES	NULL		
+performance_tasks	ai_quality_score	decimal(5,2)	YES	NULL		
+performance_tasks	created_at	datetime	YES	NULL		
+permissions	id	int(11)	NO	NULL	PRI	auto_increment
+permissions	module	varchar(50)	NO	NULL	MUL	
+permissions	action	varchar(50)	NO	NULL		
+permissions	name	varchar(100)	NO	NULL		
+permissions	description	text	YES	NULL		
+positions	id	int(11)	NO	NULL	PRI	auto_increment
+positions	position_code	varchar(50)	NO	NULL	UNI	
+positions	position_name	varchar(100)	NO	NULL		
+positions	job_description	text	YES	NULL		
+positions	responsibilities	longtext	YES	NULL		
+positions	qualifications	longtext	YES	NULL		
+positions	required_skills	longtext	YES	NULL		
+positions	job_family	varchar(50)	YES	NULL		
+positions	job_grade	varchar(50)	YES	NULL		
+positions	minimum_salary	decimal(15,2)	YES	NULL		
+positions	maximum_salary	decimal(15,2)	YES	NULL		
+positions	salary_grade	varchar(20)	YES	NULL		
+positions	status	enum('active','inactive')	YES	'active'		
+positions	created_at	datetime	NO	NULL		
+positions	updated_at	datetime	YES	NULL		
+products	id	int(11)	NO	NULL	PRI	auto_increment
+products	product_code	varchar(50)	NO	NULL	UNI	
+products	product_name	varchar(255)	YES	NULL		
+products	sku	varchar(50)	YES	NULL	UNI	
+products	name	varchar(255)	NO	NULL		
+products	description	text	YES	NULL		
+products	category_id	int(11)	YES	NULL		
+products	unit	varchar(20)	YES	'pcs'		
+products	type	enum('product','service')	YES	'product'		
+products	unit_price	decimal(12,2)	NO	NULL		
+products	cost_price	decimal(12,2)	YES	NULL		
+products	current_stock	decimal(15,2)	YES	0.00		
+products	minimum_stock	decimal(15,2)	YES	0.00		
+products	maximum_stock	decimal(15,2)	YES	0.00		
+products	reorder_level	decimal(15,2)	YES	0.00		
+products	reorder_quantity	decimal(15,2)	YES	0.00		
+products	weight	decimal(10,2)	YES	NULL		
+products	dimensions	varchar(100)	YES	NULL		
+products	tax_rate	decimal(5,2)	YES	0.00		
+products	stock	int(11)	YES	0		
+products	status	enum('active','inactive')	YES	'active'	MUL	
+products	created_at	timestamp	NO	current_timestamp()		
+products	updated_at	timestamp	NO	current_timestamp()		on update current_timestamp()
+products	last_stock_take	date	YES	NULL		
+products	created_by	int(11)	YES	NULL	MUL	
+products	updated_by	int(11)	YES	NULL	MUL	
+product_categories	id	int(11)	NO	NULL	PRI	auto_increment
+product_categories	category_code	varchar(50)	NO	NULL	UNI	
+product_categories	category_name	varchar(100)	NO	NULL		
+product_categories	parent_id	int(11)	YES	NULL	MUL	
+product_categories	description	text	YES	NULL		
+product_categories	status	enum('active','inactive')	YES	'active'		
+product_categories	created_by	int(11)	NO	NULL		
+product_categories	created_at	datetime	NO	NULL		
+product_categories	updated_at	datetime	YES	NULL		
+projects	id	int(11)	NO	NULL	PRI	auto_increment
+projects	project_code	varchar(50)	NO	NULL	UNI	
+projects	project_name	varchar(200)	NO	NULL		
+projects	description	text	YES	NULL		
+projects	client_id	int(11)	YES	NULL	MUL	
+projects	start_date	date	YES	NULL		
+projects	end_date	date	YES	NULL		
+projects	budget_amount	decimal(15,2)	YES	0.00		
+projects	actual_cost	decimal(15,2)	YES	0.00		
+projects	actual_revenue	decimal(15,2)	YES	0.00		
+projects	status	enum('planning','active','on_hold','completed','cancelled')	YES	'planning'		
+projects	priority	enum('low','medium','high','critical')	YES	'medium'		
+projects	manager_id	int(11)	YES	NULL	MUL	
+projects	created_by	int(11)	YES	NULL	MUL	
+projects	created_at	datetime	YES	current_timestamp()		
+projects	updated_at	datetime	YES	NULL		on update current_timestamp()
+project_budgets	id	int(11)	NO	NULL	PRI	auto_increment
+project_budgets	project_id	int(11)	NO	NULL	MUL	
+project_budgets	category	varchar(100)	NO	NULL		
+project_budgets	budgeted_amount	decimal(15,2)	YES	0.00		
+project_budgets	actual_amount	decimal(15,2)	YES	0.00		
+project_budgets	notes	text	YES	NULL		
+project_comments	id	int(11)	NO	NULL	PRI	auto_increment
+project_comments	project_id	int(11)	NO	NULL	MUL	
+project_comments	task_id	int(11)	YES	NULL	MUL	
+project_comments	user_id	int(11)	NO	NULL	MUL	
+project_comments	comment	text	NO	NULL		
+project_comments	attachments	longtext	YES	NULL		
+project_comments	created_at	datetime	YES	current_timestamp()		
+project_comments	updated_at	datetime	YES	NULL		on update current_timestamp()
+project_expenses	id	int(11)	NO	NULL	PRI	auto_increment
+project_expenses	project_id	int(11)	NO	NULL	MUL	
+project_expenses	journal_entry_id	int(11)	YES	NULL	MUL	
+project_expenses	expense_date	date	NO	NULL		
+project_expenses	description	text	YES	NULL		
+project_expenses	amount	decimal(15,2)	NO	NULL		
+project_expenses	category	varchar(100)	YES	NULL		
+project_expenses	vendor_id	int(11)	YES	NULL	MUL	
+project_expenses	receipt_path	varchar(500)	YES	NULL		
+project_expenses	approved_by	int(11)	YES	NULL	MUL	
+project_expenses	status	enum('pending','approved','rejected')	YES	'pending'		
+project_expenses	created_at	datetime	YES	current_timestamp()		
+project_invoices	id	int(11)	NO	NULL	PRI	auto_increment
+project_invoices	project_id	int(11)	NO	NULL	MUL	
+project_invoices	invoice_id	int(11)	NO	NULL	MUL	
+project_invoices	allocated_amount	decimal(15,2)	NO	NULL		
+project_invoices	created_at	datetime	YES	current_timestamp()		
+project_tasks	id	int(11)	NO	NULL	PRI	auto_increment
+project_tasks	project_id	int(11)	NO	NULL	MUL	
+project_tasks	task_name	varchar(200)	NO	NULL		
+project_tasks	description	text	YES	NULL		
+project_tasks	assigned_to	int(11)	YES	NULL	MUL	
+project_tasks	started_at	datetime	YES	NULL		
+project_tasks	assigned_by	int(11)	YES	NULL		
+project_tasks	start_date	date	YES	NULL		
+project_tasks	end_date	date	YES	NULL		
+project_tasks	deadline_date	date	YES	NULL		
+project_tasks	estimated_hours	decimal(10,2)	YES	NULL		
+project_tasks	actual_hours	decimal(10,2)	YES	0.00		
+project_tasks	estimated_cost	decimal(15,2)	YES	0.00		
+project_tasks	actual_cost	decimal(15,2)	YES	0.00		
+project_tasks	status	enum('pending','in_progress','review','completed','cancelled')	YES	'pending'		
+project_tasks	priority	enum('low','medium','high')	YES	'medium'		
+project_tasks	completion_percent	decimal(5,2)	YES	0.00		
+project_tasks	completed_at	datetime	YES	NULL		
+project_tasks	performance_score	decimal(5,2)	YES	0.00		
+project_tasks	performance_rating	enum('excellent','good','average','poor','overdue')	YES	NULL		
+project_tasks	created_at	datetime	YES	current_timestamp()		
+project_team	id	int(11)	NO	NULL	PRI	auto_increment
+project_team	project_id	int(11)	NO	NULL	MUL	
+project_team	employee_id	int(11)	NO	NULL	MUL	
+project_team	role	varchar(100)	YES	NULL		
+project_team	allocation_percentage	decimal(5,2)	YES	100.00		
+project_team	hourly_rate	decimal(10,2)	YES	NULL		
+project_team	joined_at	date	YES	NULL		
+project_team	left_at	date	YES	NULL		
+project_team	created_at	datetime	YES	current_timestamp()		
+project_time_entries	id	int(11)	NO	NULL	PRI	auto_increment
+project_time_entries	project_id	int(11)	NO	NULL	MUL	
+project_time_entries	task_id	int(11)	YES	NULL	MUL	
+project_time_entries	employee_id	int(11)	NO	NULL	MUL	
+project_time_entries	entry_date	date	NO	NULL		
+project_time_entries	hours	decimal(5,2)	NO	NULL		
+project_time_entries	description	text	YES	NULL		
+project_time_entries	billable	tinyint(4)	YES	1		
+project_time_entries	hourly_rate	decimal(10,2)	YES	NULL		
+project_time_entries	total_amount	decimal(15,2)	YES	NULL		
+project_time_entries	status	enum('pending','approved','rejected')	YES	'pending'		
+project_time_entries	approved_by	int(11)	YES	NULL		
+project_time_entries	approved_at	datetime	YES	NULL		
+project_time_entries	created_at	datetime	YES	current_timestamp()		
+project_time_entries	updated_at	datetime	YES	NULL		on update current_timestamp()
+purchase_orders	id	int(11)	NO	NULL	PRI	auto_increment
+purchase_orders	po_number	varchar(50)	NO	NULL	UNI	
+purchase_orders	vendor_id	int(11)	NO	NULL	MUL	
+purchase_orders	order_date	date	NO	NULL	MUL	
+purchase_orders	expected_delivery	date	YES	NULL		
+purchase_orders	status	enum('draft','sent','confirmed','partially_received','fully_received','cancelled')	YES	'draft'	MUL	
+purchase_orders	subtotal	decimal(15,2)	YES	0.00		
+purchase_orders	tax_amount	decimal(15,2)	YES	0.00		
+purchase_orders	total_amount	decimal(15,2)	YES	0.00		
+purchase_orders	currency	varchar(3)	YES	'KES'		
+purchase_orders	notes	text	YES	NULL		
+purchase_orders	terms	text	YES	NULL		
+purchase_orders	created_by	int(11)	NO	NULL	MUL	
+purchase_orders	created_at	datetime	NO	NULL		
+purchase_orders	updated_at	datetime	YES	NULL		
+purchase_orders	sent_at	datetime	YES	NULL		
+purchase_orders	confirmed_at	datetime	YES	NULL		
+purchase_order_items	id	int(11)	NO	NULL	PRI	auto_increment
+purchase_order_items	purchase_order_id	int(11)	NO	NULL	MUL	
+purchase_order_items	product_id	int(11)	YES	NULL	MUL	
+purchase_order_items	product_name	varchar(200)	NO	NULL		
+purchase_order_items	description	text	YES	NULL		
+purchase_order_items	quantity	decimal(15,2)	NO	NULL		
+purchase_order_items	unit_price	decimal(15,2)	NO	NULL		
+purchase_order_items	discount	decimal(15,2)	YES	0.00		
+purchase_order_items	tax_rate	decimal(5,2)	YES	0.00		
+purchase_order_items	tax_amount	decimal(15,2)	YES	0.00		
+purchase_order_items	total	decimal(15,2)	NO	NULL		
+purchase_order_items	received_quantity	decimal(15,2)	YES	0.00		
+purchase_order_items	created_at	datetime	NO	NULL		
+quotes	id	int(11)	NO	NULL	PRI	auto_increment
+quotes	quote_number	varchar(50)	NO	NULL	UNI	
+quotes	client_id	int(11)	NO	NULL	MUL	
+quotes	assigned_to	int(11)	YES	NULL	MUL	
+quotes	rfq_id	int(11)	YES	NULL	MUL	
+quotes	issue_date	date	NO	NULL		
+quotes	valid_until	date	NO	NULL	MUL	
+quotes	status	enum('draft','sent','approved','rejected','expired','converted')	YES	'draft'	MUL	
+quotes	subtotal	decimal(12,2)	NO	NULL		
+quotes	discount_amount	decimal(12,2)	YES	0.00		
+quotes	tax_amount	decimal(12,2)	YES	0.00		
+quotes	total_amount	decimal(12,2)	NO	NULL		
+quotes	notes	text	YES	NULL		
+quotes	bank_account_id	int(11)	YES	NULL	MUL	
+quotes	terms_conditions	text	YES	NULL		
+quotes	created_by	int(11)	YES	NULL	MUL	
+quotes	created_at	timestamp	NO	current_timestamp()		
+quotes	updated_at	timestamp	NO	current_timestamp()		on update current_timestamp()
+quotes	sent_at	datetime	YES	NULL		
+quotes	approved_at	datetime	YES	NULL		
+quotes	approved_by	int(11)	YES	NULL	MUL	
+quotes	converted_to_invoice	int(11)	YES	NULL		
+quote_followups	id	int(11)	NO	NULL	PRI	auto_increment
+quote_followups	quote_id	int(11)	YES	NULL	MUL	
+quote_followups	scheduled_date	datetime	YES	NULL		
+quote_followups	followup_type	enum('email','call','meeting')	YES	NULL		
+quote_followups	status	enum('pending','completed','cancelled')	YES	NULL		
+quote_followups	notes	text	YES	NULL		
+quote_followups	created_at	datetime	YES	NULL		
+quote_items	id	int(11)	NO	NULL	PRI	auto_increment
+quote_items	quote_id	int(11)	NO	NULL	MUL	
+quote_items	product_id	int(11)	YES	NULL	MUL	
+quote_items	description	text	NO	NULL		
+quote_items	quantity	decimal(10,2)	NO	NULL		
+quote_items	unit_price	decimal(12,2)	NO	NULL		
+quote_items	discount	decimal(5,2)	YES	0.00		
+quote_items	total	decimal(12,2)	NO	NULL		
+quote_items	created_at	timestamp	NO	current_timestamp()		
+quote_messages	id	int(11)	NO	NULL	PRI	auto_increment
+quote_messages	quote_id	int(11)	NO	NULL	MUL	
+quote_messages	user_id	int(11)	NO	NULL	MUL	
+quote_messages	message	text	NO	NULL		
+quote_messages	attachment	varchar(255)	YES	NULL		
+quote_messages	created_at	datetime	YES	current_timestamp()		
+recognition_badges	id	int(11)	NO	NULL	PRI	auto_increment
+recognition_badges	badge_name	varchar(100)	NO	NULL		
+recognition_badges	badge_icon	varchar(50)	YES	NULL		
+recognition_badges	description	text	YES	NULL		
+recognition_badges	points	int(11)	YES	0		
+recognition_badges	level	enum('bronze','silver','gold','platinum')	YES	'bronze'		
+recognition_badges	criteria	longtext	YES	NULL		
+recognition_badges	created_at	datetime	NO	NULL		
+recurring_journals	id	int(11)	NO	NULL	PRI	auto_increment
+recurring_journals	name	varchar(100)	NO	NULL		
+recurring_journals	description	text	YES	NULL		
+recurring_journals	frequency	enum('daily','weekly','monthly','quarterly','yearly')	NO	NULL		
+recurring_journals	day_of_month	int(11)	YES	NULL		
+recurring_journals	start_date	date	NO	NULL		
+recurring_journals	end_date	date	YES	NULL		
+recurring_journals	last_posted	date	YES	NULL		
+recurring_journals	next_post_date	date	YES	NULL		
+recurring_journals	status	enum('active','inactive')	YES	'active'		
+recurring_journals	created_by	int(11)	NO	NULL		
+recurring_journals	created_at	datetime	NO	NULL		
+recurring_journal_lines	id	int(11)	NO	NULL	PRI	auto_increment
+recurring_journal_lines	recurring_journal_id	int(11)	NO	NULL	MUL	
+recurring_journal_lines	account_id	int(11)	NO	NULL	MUL	
+recurring_journal_lines	entry_type	enum('debit','credit')	NO	NULL		
+recurring_journal_lines	amount	decimal(15,2)	NO	NULL		
+recurring_journal_lines	description	text	YES	NULL		
+report_schedules	id	int(11)	NO	NULL	PRI	auto_increment
+report_schedules	report_id	int(11)	NO	NULL	MUL	
+report_schedules	recipient_emails	longtext	YES	NULL		
+report_schedules	format	enum('pdf','excel','csv')	YES	'pdf'		
+report_schedules	last_sent	datetime	YES	NULL		
+report_schedules	next_send	datetime	YES	NULL		
+request_for_quotations	id	int(11)	NO	NULL	PRI	auto_increment
+request_for_quotations	rfq_number	varchar(50)	NO	NULL	UNI	
+request_for_quotations	title	varchar(200)	NO	NULL		
+request_for_quotations	description	text	YES	NULL		
+request_for_quotations	required_date	date	YES	NULL		
+request_for_quotations	status	enum('draft','sent','received','closed','cancelled')	YES	'draft'	MUL	
+request_for_quotations	created_by	int(11)	NO	NULL		
+request_for_quotations	created_at	datetime	NO	NULL		
+request_for_quotations	closed_at	datetime	YES	NULL		
+rfqs	id	int(11)	NO	NULL	PRI	auto_increment
+rfqs	rfq_number	varchar(50)	NO	NULL	UNI	
+rfqs	client_id	int(11)	NO	NULL	MUL	
+rfqs	issue_date	date	NO	NULL		
+rfqs	required_by	date	NO	NULL		
+rfqs	status	enum('draft','sent','quoted','closed','cancelled')	YES	'draft'	MUL	
+rfqs	description	text	YES	NULL		
+rfqs	total_amount	decimal(12,2)	YES	0.00		
+rfqs	created_at	timestamp	NO	current_timestamp()		
+rfqs	updated_at	timestamp	NO	current_timestamp()		on update current_timestamp()
+rfq_items	id	int(11)	NO	NULL	PRI	auto_increment
+rfq_items	rfq_id	int(11)	NO	NULL	MUL	
+rfq_items	product_id	int(11)	YES	NULL	MUL	
+rfq_items	description	text	YES	NULL		
+rfq_items	quantity	decimal(10,2)	NO	NULL		
+rfq_items	unit_of_measure	varchar(20)	YES	NULL		
+rfq_items	created_at	timestamp	NO	current_timestamp()		
+roles	id	int(11)	NO	NULL	PRI	auto_increment
+roles	name	varchar(50)	NO	NULL	UNI	
+roles	display_name	varchar(100)	NO	NULL		
+roles	description	text	YES	NULL		
+roles	created_at	datetime	NO	NULL		
+roles	updated_at	datetime	YES	NULL		
+role_permissions	role_id	int(11)	NO	NULL	PRI	
+role_permissions	permission_id	int(11)	NO	NULL	PRI	
+saved_reports	id	int(11)	NO	NULL	PRI	auto_increment
+saved_reports	user_id	int(11)	NO	NULL	MUL	
+saved_reports	name	varchar(200)	NO	NULL		
+saved_reports	report_type	varchar(50)	NO	NULL		
+saved_reports	filters	longtext	YES	NULL		
+saved_reports	columns	longtext	YES	NULL		
+saved_reports	schedule_frequency	enum('none','daily','weekly','monthly')	YES	'none'		
+saved_reports	next_send	datetime	YES	NULL		
+saved_reports	last_sent	datetime	YES	NULL		
+saved_reports	schedule_recipients	longtext	YES	NULL		
+saved_reports	last_generated	datetime	YES	NULL		
+saved_reports	created_at	datetime	YES	NULL		
+saved_reports	status	enum('active','paused')	YES	'active'		
+settings	id	int(11)	NO	NULL	PRI	auto_increment
+settings	setting_key	varchar(100)	NO	NULL	UNI	
+settings	value	text	YES	NULL		
+settings	created_at	timestamp	NO	current_timestamp()		
+settings	updated_at	timestamp	NO	current_timestamp()		on update current_timestamp()
+skills	id	int(11)	NO	NULL	PRI	auto_increment
+skills	skill_code	varchar(20)	NO	NULL	UNI	
+skills	skill_name	varchar(100)	NO	NULL		
+skills	category	varchar(50)	YES	NULL		
+skills	description	text	YES	NULL		
+skills	is_certification	tinyint(4)	YES	0		
+skills	created_at	datetime	NO	NULL		
+sso_settings	id	int(11)	NO	NULL	PRI	auto_increment
+sso_settings	provider	varchar(50)	NO	NULL		
+sso_settings	enabled	tinyint(4)	YES	0		
+sso_settings	client_id	varchar(255)	YES	NULL		
+sso_settings	client_secret	varchar(255)	YES	NULL		
+sso_settings	redirect_uri	varchar(255)	YES	NULL		
+sso_settings	additional_config	longtext	YES	NULL		
+sso_settings	created_at	timestamp	NO	current_timestamp()		
+sso_settings	updated_at	timestamp	NO	current_timestamp()		on update current_timestamp()
+stock_adjustments	id	int(11)	NO	NULL	PRI	auto_increment
+stock_adjustments	adjustment_number	varchar(50)	NO	NULL	UNI	
+stock_adjustments	adjustment_date	date	NO	NULL		
+stock_adjustments	type	enum('increase','decrease')	NO	NULL		
+stock_adjustments	reason	enum('damage','theft','expired','count_correction','return','other')	NO	NULL		
+stock_adjustments	notes	text	YES	NULL		
+stock_adjustments	status	enum('draft','approved','posted')	YES	'draft'		
+stock_adjustments	approved_by	int(11)	YES	NULL		
+stock_adjustments	approved_at	datetime	YES	NULL		
+stock_adjustments	created_by	int(11)	NO	NULL		
+stock_adjustments	created_at	datetime	NO	NULL		
+stock_adjustment_items	id	int(11)	NO	NULL	PRI	auto_increment
+stock_adjustment_items	adjustment_id	int(11)	NO	NULL	MUL	
+stock_adjustment_items	product_id	int(11)	NO	NULL	MUL	
+stock_adjustment_items	quantity	decimal(15,2)	NO	NULL		
+stock_adjustment_items	quantity_before	decimal(15,2)	NO	NULL		
+stock_adjustment_items	quantity_after	decimal(15,2)	NO	NULL		
+stock_adjustment_items	unit_cost	decimal(15,2)	YES	NULL		
+stock_adjustment_items	notes	text	YES	NULL		
+stock_layers	id	int(11)	NO	NULL	PRI	auto_increment
+stock_layers	product_id	int(11)	NO	NULL	MUL	
+stock_layers	purchase_date	date	NO	NULL	MUL	
+stock_layers	quantity	decimal(15,2)	NO	NULL		
+stock_layers	remaining_quantity	decimal(15,2)	NO	NULL		
+stock_layers	unit_cost	decimal(15,2)	NO	NULL		
+stock_layers	total_cost	decimal(15,2)	NO	NULL		
+stock_layers	reference_type	varchar(50)	YES	NULL		
+stock_layers	reference_id	int(11)	YES	NULL		
+stock_layers	created_at	datetime	NO	NULL		
+stock_movements	id	int(11)	NO	NULL	PRI	auto_increment
+stock_movements	product_id	int(11)	NO	NULL	MUL	
+stock_movements	movement_type	enum('purchase','sale','transfer_in','transfer_out','adjustment_in','adjustment_out','return_in','return_out')	NO	NULL	MUL	
+stock_movements	quantity	decimal(15,2)	NO	NULL		
+stock_movements	quantity_before	decimal(15,2)	NO	NULL		
+stock_movements	quantity_after	decimal(15,2)	NO	NULL		
+stock_movements	reference_type	varchar(50)	YES	NULL	MUL	
+stock_movements	reference_id	int(11)	YES	NULL		
+stock_movements	reference_number	varchar(100)	YES	NULL		
+stock_movements	unit_price	decimal(15,2)	YES	NULL		
+stock_movements	total_value	decimal(15,2)	YES	NULL		
+stock_movements	notes	text	YES	NULL		
+stock_movements	location	varchar(100)	YES	NULL		
+stock_movements	created_by	int(11)	NO	NULL	MUL	
+stock_movements	created_at	datetime	NO	NULL	MUL	
+stock_transfers	id	int(11)	NO	NULL	PRI	auto_increment
+stock_transfers	transfer_number	varchar(50)	NO	NULL	UNI	
+stock_transfers	from_location	varchar(100)	YES	NULL		
+stock_transfers	to_location	varchar(100)	YES	NULL		
+stock_transfers	transfer_date	date	NO	NULL		
+stock_transfers	status	enum('draft','pending','in_transit','completed','cancelled')	YES	'draft'	MUL	
+stock_transfers	notes	text	YES	NULL		
+stock_transfers	created_by	int(11)	NO	NULL		
+stock_transfers	created_at	datetime	NO	NULL		
+stock_transfers	completed_by	int(11)	YES	NULL		
+stock_transfers	completed_at	datetime	YES	NULL		
+stock_transfer_items	id	int(11)	NO	NULL	PRI	auto_increment
+stock_transfer_items	transfer_id	int(11)	NO	NULL	MUL	
+stock_transfer_items	product_id	int(11)	NO	NULL	MUL	
+stock_transfer_items	quantity	decimal(15,2)	NO	NULL		
+stock_transfer_items	received_quantity	decimal(15,2)	YES	0.00		
+stock_transfer_items	unit_price	decimal(15,2)	YES	NULL		
+stock_transfer_items	notes	text	YES	NULL		
+subscription_plans	id	int(11)	NO	NULL	PRI	auto_increment
+subscription_plans	plan_code	varchar(50)	NO	NULL	UNI	
+subscription_plans	plan_name	varchar(100)	NO	NULL		
+subscription_plans	price_monthly	decimal(10,2)	YES	NULL		
+subscription_plans	price_yearly	decimal(10,2)	YES	NULL		
+subscription_plans	max_users	int(11)	YES	5		
+subscription_plans	max_companies	int(11)	YES	1		
+subscription_plans	max_storage_mb	int(11)	YES	100		
+subscription_plans	features	longtext	YES	NULL		
+subscription_plans	is_active	tinyint(1)	YES	1		
+subscription_plans	created_at	datetime	YES	current_timestamp()		
+subscription_plans	price_per_user	decimal(10,2)	YES	0.00		
+subscription_plans	base_price	decimal(10,2)	YES	0.00		
+subscription_plans	billing_type	enum('flat','per_user','hybrid')	YES	'flat'		
+subscription_plans	allowed_modules	longtext	YES	NULL		
+subscription_plans	custom_features	text	YES	NULL		
+subscription_transactions	id	int(11)	NO	NULL	PRI	auto_increment
+subscription_transactions	company_id	int(11)	NO	NULL	MUL	
+subscription_transactions	plan_id	int(11)	NO	NULL	MUL	
+subscription_transactions	transaction_id	varchar(100)	NO	NULL	UNI	
+subscription_transactions	amount	decimal(12,2)	NO	NULL		
+subscription_transactions	currency	varchar(3)	YES	'KES'		
+subscription_transactions	payment_method	enum('mpesa','stripe','paypal','bank_transfer')	NO	NULL		
+subscription_transactions	status	enum('pending','completed','failed','refunded')	YES	'pending'	MUL	
+subscription_transactions	mpesa_receipt	varchar(100)	YES	NULL		
+subscription_transactions	stripe_payment_id	varchar(100)	YES	NULL		
+subscription_transactions	invoice_url	text	YES	NULL		
+subscription_transactions	payment_details	longtext	YES	NULL		
+subscription_transactions	created_at	datetime	YES	current_timestamp()	MUL	
+succession_plans	id	int(11)	NO	NULL	PRI	auto_increment
+succession_plans	position_id	int(11)	NO	NULL	MUL	
+succession_plans	current_holder_id	int(11)	NO	NULL	MUL	
+succession_plans	potential_successors	longtext	YES	NULL		
+succession_plans	readiness_level	enum('ready_now','ready_1_2_years','ready_3_5_years','potential')	YES	'potential'		
+succession_plans	development_plan	text	YES	NULL		
+succession_plans	risk_level	enum('low','medium','high','critical')	YES	'medium'		
+succession_plans	ai_prediction	longtext	YES	NULL		
+succession_plans	updated_at	datetime	NO	NULL		
+supplier_bills	id	int(11)	NO	NULL	PRI	auto_increment
+supplier_bills	bill_number	varchar(50)	NO	NULL	UNI	
+supplier_bills	vendor_id	int(11)	NO	NULL	MUL	
+supplier_bills	purchase_order_id	int(11)	YES	NULL	MUL	
+supplier_bills	goods_receipt_id	int(11)	YES	NULL	MUL	
+supplier_bills	bill_date	date	NO	NULL		
+supplier_bills	due_date	date	NO	NULL	MUL	
+supplier_bills	reference	varchar(100)	YES	NULL		
+supplier_bills	subtotal	decimal(15,2)	NO	NULL		
+supplier_bills	tax_amount	decimal(15,2)	YES	0.00		
+supplier_bills	total_amount	decimal(15,2)	NO	NULL		
+supplier_bills	paid_amount	decimal(15,2)	YES	0.00		
+supplier_bills	status	enum('draft','received','approved','paid','partially_paid','cancelled')	YES	'draft'	MUL	
+supplier_bills	notes	text	YES	NULL		
+supplier_bills	created_by	int(11)	NO	NULL	MUL	
+supplier_bills	created_at	datetime	NO	NULL		
+supplier_bills	approved_by	int(11)	YES	NULL		
+supplier_bills	approved_at	datetime	YES	NULL		
+supplier_bills	paid_at	datetime	YES	NULL		
+supplier_bill_items	id	int(11)	NO	NULL	PRI	auto_increment
+supplier_bill_items	supplier_bill_id	int(11)	NO	NULL	MUL	
+supplier_bill_items	purchase_order_item_id	int(11)	YES	NULL	MUL	
+supplier_bill_items	product_id	int(11)	YES	NULL	MUL	
+supplier_bill_items	description	text	YES	NULL		
+supplier_bill_items	quantity	decimal(15,2)	NO	NULL		
+supplier_bill_items	unit_price	decimal(15,2)	NO	NULL		
+supplier_bill_items	discount	decimal(15,2)	YES	0.00		
+supplier_bill_items	tax_rate	decimal(5,2)	YES	0.00		
+supplier_bill_items	tax_amount	decimal(15,2)	YES	0.00		
+supplier_bill_items	total	decimal(15,2)	NO	NULL		
+supplier_bill_items	created_at	datetime	NO	NULL		
+supplier_payments	id	int(11)	NO	NULL	PRI	auto_increment
+supplier_payments	payment_number	varchar(50)	NO	NULL	UNI	
+supplier_payments	vendor_id	int(11)	NO	NULL	MUL	
+supplier_payments	supplier_bill_id	int(11)	YES	NULL	MUL	
+supplier_payments	payment_date	date	NO	NULL		
+supplier_payments	amount	decimal(15,2)	NO	NULL		
+supplier_payments	payment_method	enum('cash','bank_transfer','cheque','mobile_money','credit_card')	NO	NULL		
+supplier_payments	bank_account_id	int(11)	YES	NULL	MUL	
+supplier_payments	reference	varchar(100)	YES	NULL		
+supplier_payments	notes	text	YES	NULL		
+supplier_payments	created_by	int(11)	NO	NULL	MUL	
+supplier_payments	created_at	datetime	NO	NULL		
+tax_jurisdictions	id	int(11)	NO	NULL	PRI	
+tax_jurisdictions	country	varchar(100)	YES	NULL		
+tax_jurisdictions	state	varchar(100)	YES	NULL		
+tax_jurisdictions	tax_rate	decimal(5,2)	YES	NULL		
+tax_rates	id	int(11)	NO	NULL	PRI	auto_increment
+tax_rates	tax_code	varchar(20)	NO	NULL	UNI	
+tax_rates	tax_name	varchar(100)	NO	NULL		
+tax_rates	tax_rate	decimal(5,2)	NO	NULL		
+tax_rates	tax_type	enum('vat_input','vat_output','withholding','excise')	NO	NULL		
+tax_rates	is_default	tinyint(4)	YES	0		
+tax_rates	status	enum('active','inactive')	YES	'active'		
+tax_rates	created_at	datetime	NO	NULL		
+tax_rules	id	int(11)	NO	NULL	PRI	
+tax_rules	tax_code	varchar(20)	YES	NULL		
+tax_rules	tax_name	varchar(100)	YES	NULL		
+tax_rules	rate	decimal(5,2)	YES	NULL		
+tax_rules	compound_with	varchar(20)	YES	NULL		
+tax_rules	applies_to	enum('products','services','both')	YES	NULL		
+tax_rules	is_recoverable	tinyint(4)	YES	1		
+training_programs	id	int(11)	NO	NULL	PRI	auto_increment
+training_programs	program_code	varchar(20)	NO	NULL	UNI	
+training_programs	program_name	varchar(200)	NO	NULL		
+training_programs	description	text	YES	NULL		
+training_programs	duration_hours	int(11)	YES	NULL		
+training_programs	cost	decimal(15,2)	YES	NULL		
+training_programs	provider	varchar(100)	YES	NULL		
+training_programs	certification	varchar(100)	YES	NULL		
+training_programs	ai_recommended	tinyint(4)	YES	0		
+training_programs	status	enum('active','inactive')	YES	'active'		
+training_programs	created_at	datetime	NO	NULL		
+usage_tracking	id	int(11)	NO	NULL	PRI	auto_increment
+usage_tracking	company_id	int(11)	NO	NULL	MUL	
+usage_tracking	month_year	date	NO	NULL	MUL	
+usage_tracking	quotes_used	int(11)	YES	0		
+usage_tracking	invoices_used	int(11)	YES	0		
+usage_tracking	clients_count	int(11)	YES	0		
+usage_tracking	employees_count	int(11)	YES	0		
+usage_tracking	projects_count	int(11)	YES	0		
+usage_tracking	storage_used_mb	int(11)	YES	0		
+usage_tracking	api_calls	int(11)	YES	0		
+usage_tracking	created_at	datetime	YES	current_timestamp()		
+usage_tracking	updated_at	datetime	YES	current_timestamp()		on update current_timestamp()
+users	id	int(11)	NO	NULL	PRI	auto_increment
+users	username	varchar(100)	NO	NULL	UNI	
+users	email	varchar(255)	NO	NULL	UNI	
+users	password	varchar(255)	NO	NULL		
+users	first_name	varchar(100)	YES	NULL		
+users	last_name	varchar(100)	YES	NULL		
+users	role	enum('admin','super_admin','hr_manager','manager','sales','accountant','viewer','employee')	YES	'employee'		
+users	employee_id	int(11)	YES	NULL		
+users	role_id	int(11)	YES	NULL	MUL	
+users	status	enum('active','inactive')	YES	'active'	MUL	
+users	last_login	timestamp	YES	NULL		
+users	created_at	timestamp	NO	current_timestamp()		
+users	updated_at	timestamp	NO	current_timestamp()		on update current_timestamp()
+user_activity_log	id	int(11)	NO	NULL	PRI	auto_increment
+user_activity_log	user_id	int(11)	NO	NULL	MUL	
+user_activity_log	session_id	varchar(255)	YES	NULL		
+user_activity_log	activity_type	varchar(50)	YES	NULL	MUL	
+user_activity_log	page_url	varchar(500)	YES	NULL		
+user_activity_log	ip_address	varchar(45)	YES	NULL		
+user_activity_log	user_agent	text	YES	NULL		
+user_activity_log	created_at	datetime	YES	current_timestamp()	MUL	
+user_companies	id	int(11)	NO	NULL	PRI	auto_increment
+user_companies	user_id	int(11)	NO	NULL	MUL	
+user_companies	company_id	int(11)	NO	NULL	MUL	
+user_companies	role_in_company	enum('admin','manager','viewer')	YES	'viewer'		
+user_companies	is_default	tinyint(1)	YES	0		
+user_companies	created_at	datetime	YES	current_timestamp()		
+user_module_roles	id	int(11)	NO	NULL	PRI	auto_increment
+user_module_roles	user_id	int(11)	NO	NULL	MUL	
+user_module_roles	module_name	varchar(50)	NO	NULL		
+user_module_roles	role_name	varchar(50)	NO	NULL		
+user_module_roles	assigned_by	int(11)	YES	NULL		
+user_module_roles	assigned_at	timestamp	NO	current_timestamp()		
+user_permissions	user_id	int(11)	NO	NULL	PRI	
+user_permissions	permission_id	int(11)	NO	NULL	PRI	
+user_permissions	granted	tinyint(4)	YES	1		
+user_roles	user_id	int(11)	NO	NULL	PRI	
+user_roles	role_id	int(11)	NO	NULL	PRI	
+user_sessions	id	int(11)	NO	NULL	PRI	auto_increment
+user_sessions	user_id	int(11)	NO	NULL	MUL	
+user_sessions	session_token	varchar(255)	NO	NULL	UNI	
+user_sessions	ip_address	varchar(45)	YES	NULL		
+user_sessions	user_agent	text	YES	NULL		
+user_sessions	last_activity	timestamp	NO	current_timestamp()		
+user_sessions	created_at	timestamp	NO	current_timestamp()		
+vendors	id	int(11)	NO	NULL	PRI	auto_increment
+vendors	vendor_code	varchar(50)	NO	NULL	UNI	
+vendors	company_name	varchar(255)	NO	NULL	MUL	
+vendors	contact_person	varchar(255)	YES	NULL		
+vendors	email	varchar(255)	YES	NULL		
+vendors	phone	varchar(50)	YES	NULL		
+vendors	address	text	YES	NULL		
+vendors	city	varchar(100)	YES	NULL		
+vendors	country	varchar(100)	YES	'Kenya'		
+vendors	tax_id	varchar(100)	YES	NULL		
+vendors	payment_terms	int(11)	YES	30		
+vendors	status	enum('active','inactive','deleted')	YES	'active'	MUL	
+vendors	created_by	int(11)	YES	NULL	MUL	
+vendors	created_at	datetime	YES	current_timestamp()		
+vendors	updated_at	datetime	YES	NULL		
+vendors	deleted_at	datetime	YES	NULL		
+vendor_quotations	id	int(11)	NO	NULL	PRI	auto_increment
+vendor_quotations	rfq_id	int(11)	NO	NULL	MUL	
+vendor_quotations	vendor_id	int(11)	NO	NULL	MUL	
+vendor_quotations	quotation_number	varchar(50)	YES	NULL		
+vendor_quotations	quotation_date	date	NO	NULL		
+vendor_quotations	valid_until	date	YES	NULL		
+vendor_quotations	subtotal	decimal(15,2)	NO	NULL		
+vendor_quotations	tax_amount	decimal(15,2)	YES	0.00		
+vendor_quotations	total_amount	decimal(15,2)	NO	NULL		
+vendor_quotations	notes	text	YES	NULL		
+vendor_quotations	status	enum('pending','accepted','rejected')	YES	'pending'		
+vendor_quotations	created_at	datetime	NO	NULL		
+vendor_quotation_items	id	int(11)	NO	NULL	PRI	auto_increment
+vendor_quotation_items	vendor_quotation_id	int(11)	NO	NULL	MUL	
+vendor_quotation_items	rfq_item_id	int(11)	NO	NULL	MUL	
+vendor_quotation_items	unit_price	decimal(15,2)	NO	NULL		
+vendor_quotation_items	total	decimal(15,2)	NO	NULL		
+vendor_quotation_items	notes	text	YES	NULL		
+warehouses	id	int(11)	NO	NULL	PRI	auto_increment
+warehouses	warehouse_code	varchar(50)	NO	NULL	UNI	
+warehouses	warehouse_name	varchar(100)	NO	NULL		
+warehouses	address	text	YES	NULL		
+warehouses	manager	varchar(100)	YES	NULL		
+warehouses	phone	varchar(20)	YES	NULL		
+warehouses	is_default	tinyint(4)	YES	0		
+warehouses	status	enum('active','inactive')	YES	'active'		
+warehouses	created_at	datetime	NO	NULL		
+webhooks	id	int(11)	NO	NULL	PRI	auto_increment
+webhooks	name	varchar(100)	NO	NULL		
+webhooks	event_type	varchar(100)	NO	NULL	MUL	
+webhooks	url	varchar(500)	NO	NULL		
+webhooks	secret	varchar(255)	YES	NULL		
+webhooks	status	enum('active','inactive')	YES	'active'		
+webhooks	created_at	datetime	YES	NULL		
+webhook_logs	id	int(11)	NO	NULL	PRI	auto_increment
+webhook_logs	webhook_id	int(11)	YES	NULL	MUL	
+webhook_logs	event_type	varchar(100)	YES	NULL		
+webhook_logs	payload	longtext	YES	NULL		
+webhook_logs	response_code	int(11)	YES	NULL		
+webhook_logs	response_body	text	YES	NULL		
+webhook_logs	created_at	datetime	YES	NULL	MUL	
+wellness_challenges	id	int(11)	NO	NULL	PRI	auto_increment
+wellness_challenges	challenge_name	varchar(200)	NO	NULL		
+wellness_challenges	description	text	YES	NULL		
+wellness_challenges	start_date	date	NO	NULL		
+wellness_challenges	end_date	date	NO	NULL		
+wellness_challenges	target_metric	enum('steps','mood','sleep','checkins')	NO	NULL		
+wellness_challenges	target_value	int(11)	NO	NULL		
+wellness_challenges	points_reward	int(11)	YES	100		
+wellness_challenges	status	enum('active','completed','cancelled')	YES	'active'		
+wellness_challenges	created_at	datetime	NO	NULL		
+wellness_challenge_progress	id	int(11)	NO	NULL	PRI	auto_increment
+wellness_challenge_progress	employee_id	int(11)	NO	NULL	MUL	
+wellness_challenge_progress	challenge_id	int(11)	NO	NULL	MUL	
+wellness_challenge_progress	progress	decimal(10,2)	YES	0.00		
+wellness_challenge_progress	completed_at	datetime	YES	NULL		
+wellness_challenge_progress	updated_at	datetime	YES	NULL		
+wellness_checkins	id	int(11)	NO	NULL	PRI	auto_increment
+wellness_checkins	employee_id	int(11)	NO	NULL	MUL	
+wellness_checkins	checkin_date	date	NO	NULL		
+wellness_checkins	mood_score	tinyint(4)	YES	NULL		
+wellness_checkins	stress_level	tinyint(4)	YES	NULL		
+wellness_checkins	energy_level	tinyint(4)	YES	NULL		
+wellness_checkins	sleep_hours	decimal(3,1)	YES	NULL		
+wellness_checkins	notes	text	YES	NULL		
+wellness_checkins	ai_sentiment	longtext	YES	NULL		
+wellness_checkins	ai_suggestion	text	YES	NULL		
+wellness_checkins	created_at	datetime	NO	NULL		

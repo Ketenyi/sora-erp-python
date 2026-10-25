@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-columns"></i> Sales Pipeline</h1>
+        <p>Quotes grouped by stage. Values include tax.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/sales/quotes/create" class="btn btn-primary"><i class="fas fa-plus"></i> New Quote</a>
+    </div>
+</div>
+
+<div class="kanban">
+    {% for column in columns %}
+    <div class="kanban-column">
+        <h3>
+            <span>{{ column.label }}</span>
+            <span>{{ column.quotes|length }}</span>
+        </h3>
+        {% for quote in column.quotes %}
+        <div class="kanban-card">
+            <a href="/sales/quotes/view/{{ quote.id }}">{{ quote.quote_number }}</a>
+            <div class="client">{% with client=clients|get_item:quote.client_id %}{{ client.company_name|default:"-" }}{% endwith %}</div>
+            <div class="amount">{{ currency_symbol }} {{ quote.total_amount|floatformat:2|intcomma }}</div>
+            <div class="client">{{ quote.issue_date|date:"M d" }} &middot; valid {{ quote.valid_until|date:"M d" }}</div>
+        </div>
+        {% empty %}
+        <div class="info" style="padding: 8px 4px;">No quotes</div>
+        {% endfor %}
+        <div class="info" style="padding: 10px 4px 0; border-top:1px solid #e2e8f0; margin-top:8px;">
+            Total: {{ currency_symbol }} {{ column.value|floatformat:2|intcomma }}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

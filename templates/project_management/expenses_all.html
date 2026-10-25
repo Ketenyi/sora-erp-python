@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-receipt"></i> Field Expenses</h1>
+        <p>{{ page_obj.paginator.count }} claim{{ page_obj.paginator.count|pluralize }} across the portfolio. Project budgets alert Finance at 80% burn.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/portfolio" class="btn btn-secondary"><i class="fas fa-folder-open"></i> Portfolio</a>
+        <a href="?export=csv&project={{ project_filter }}&status={{ status_filter }}&category={{ category_filter }}&q={{ search_query }}" class="btn btn-secondary"><i class="fas fa-file-csv"></i> Export CSV</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="filter-bar">
+            <div class="form-group">
+                <label>Search</label>
+                <input type="text" name="q" class="form-control" value="{{ search_query }}" placeholder="Description or category">
+            </div>
+            <div class="form-group">
+                <label>Project</label>
+                <select name="project" class="form-control">
+                    <option value="">All projects</option>
+                    {% for project_id, label in projects.items %}
+                    <option value="{{ project_id }}" {% if project_filter == project_id|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <select name="category" class="form-control">
+                    <option value="">All categories</option>
+                    {% for value, label in category_choices %}
+                    <option value="{{ value }}" {% if category_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All statuses</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+                    <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                </select>
+            </div>
+            <div class="form-group"><button class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button></div>
+            {% if search_query or project_filter or category_filter or status_filter %}<div class="form-group"><a href="/projects/expenses" class="btn btn-secondary">Reset</a></div>{% endif %}
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr><th>Date</th><th>Project</th><th>Category</th><th>Description</th><th class="text-right">Amount</th><th>Submitted by</th><th>Status</th><th>Receipt</th></tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td>{{ row.expense_date|date:"M d, Y" }}</td>
+                    <td><a href="/projects/{{ row.project_id }}">{{ row.project_label }}</a></td>
+                    <td>{{ row.category|capfirst|default:"—" }}</td>
+                    <td>{{ row.description|default:"—"|truncatechars:60 }}</td>
+                    <td class="text-right money">{{ currency_symbol }} {{ row.amount|floatformat:2|intcomma }}</td>
+                    <td>{{ row.submitter_name }}</td>
+                    <td><span class="badge badge-{% if row.status == 'approved' %}success{% elif row.status == 'rejected' %}danger{% else %}warning{% endif %}">{{ row.get_status_display }}</span></td>
+                    <td>{% if row.receipt_url %}<a href="{{ row.receipt_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-secondary"><i class="fas fa-paperclip"></i></a>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8"><div class="empty-state"><i class="fas fa-receipt"></i><p>No expense claims match the current filters.</p></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

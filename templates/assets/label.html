@@ -1,0 +1,68 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }}</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: "Inter", Arial, sans-serif; background: #f1f5f9; margin: 0; padding: 40px 20px; color: #0f172a; }
+        .toolbar { max-width: 520px; margin: 0 auto 18px; display: flex; justify-content: space-between; gap: 10px; }
+        .btn { border: 0; border-radius: 9px; padding: 10px 18px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary { background: #4f46e5; color: #fff; }
+        .btn-secondary { background: #fff; color: #0f172a; border: 1px solid #cbd5e1; }
+        .label-card { width: 420px; max-width: 100%; margin: 0 auto; background: #fff; border: 2px solid #0f172a; border-radius: 14px; padding: 22px; display: flex; gap: 20px; align-items: center; }
+        .qr { flex: 0 0 160px; width: 160px; height: 160px; display: flex; align-items: center; justify-content: center; background: #f8fafc; border-radius: 8px; }
+        .qr img, .qr canvas { width: 150px !important; height: 150px !important; }
+        .brand { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #64748b; margin-bottom: 6px; }
+        .name { font-size: 18px; font-weight: 800; line-height: 1.25; margin: 0 0 4px; }
+        .code { font-family: "Courier New", monospace; font-size: 15px; font-weight: 700; background: #eef2ff; color: #3730a3; display: inline-block; padding: 3px 8px; border-radius: 6px; margin-bottom: 8px; }
+        .meta { font-size: 11px; color: #475569; line-height: 1.6; }
+        .meta strong { color: #0f172a; }
+        @media print {
+            body { background: #fff; padding: 0; }
+            .toolbar { display: none; }
+            .label-card { border-radius: 0; box-shadow: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <a href="/assets/{{ asset.id }}" class="btn btn-secondary">&larr; Back to asset</a>
+        <button class="btn btn-primary" onclick="window.print()">Print label</button>
+    </div>
+
+    <div class="label-card">
+        <div class="qr" id="qrcode"></div>
+        <div style="min-width:0;">
+            <div class="brand">{{ company_name }}</div>
+            <h1 class="name">{{ asset.name }}</h1>
+            <div class="code">{{ asset.asset_code }}</div>
+            <div class="meta">
+                {% if asset.category %}<div><strong>Category:</strong> {{ asset.category.category_name }}</div>{% endif %}
+                {% if asset.serial_number %}<div><strong>Serial:</strong> {{ asset.serial_number }}</div>{% endif %}
+                {% if asset.location %}<div><strong>Location:</strong> {{ asset.location }}</div>{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        (function () {
+            var target = document.getElementById("qrcode");
+            if (typeof QRCode === "undefined") {
+                target.innerHTML = '<div style="font-size:11px;color:#64748b;text-align:center;padding:10px;">{{ asset.asset_code|escapejs }}<br>Scan unavailable offline</div>';
+                return;
+            }
+            new QRCode(target, {
+                text: "{{ label_url|escapejs }}",
+                width: 150,
+                height: 150,
+                colorDark: "#0f172a",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        })();
+    </script>
+</body>
+</html>

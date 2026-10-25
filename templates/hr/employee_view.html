@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>{{ employee.first_name }} {{ employee.last_name }}</h1>
+        <p>{{ employee.job_title|default:"Employee" }} &middot; {{ employee.employee_code }} &middot; <span class="badge badge-{{ employee.status|status_class }}">{{ employee.get_status_display }}</span></p>
+    </div>
+    <div class="page-actions">
+        <a href="/hr/employees" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Employees</a>
+        {% if can_manage %}
+        <a href="/hr/employees/edit/{{ employee.id }}" class="btn btn-primary"><i class="fas fa-pen"></i> Edit profile</a>
+        <a href="/hr/leave/balance?employee={{ employee.id }}" class="btn btn-secondary"><i class="fas fa-calendar-alt"></i> Leave balance</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-id-badge"></i> Employment</span></div>
+            <div class="detail-grid" style="padding:20px;">
+                <div><div class="info">Department</div><strong>{{ department.department_name|default:"—" }}</strong></div>
+                <div><div class="info">Position</div><strong>{{ position.position_name|default:"—" }}</strong></div>
+                <div><div class="info">Reports to</div><strong>{% if manager %}{{ manager.first_name }} {{ manager.last_name }}{% else %}—{% endif %}</strong></div>
+                <div><div class="info">Employment type</div><strong>{{ employee.get_employee_type_display|default:"—" }}</strong></div>
+                <div><div class="info">Employment status</div><strong>{{ employee.get_employment_status_display }}</strong></div>
+                <div><div class="info">Hire date</div><strong>{{ employee.hire_date|date:"M d, Y" }}</strong></div>
+                <div><div class="info">Work location</div><strong>{{ employee.work_location|default:"—" }}</strong></div>
+                <div><div class="info">Salary</div><strong>{{ currency_symbol }} {{ employee.salary|floatformat:2|intcomma|default:"—" }}</strong></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-address-card"></i> Personal &amp; contact</span></div>
+            <div class="detail-grid" style="padding:20px;">
+                <div><div class="info">Email</div><strong>{{ employee.email }}</strong></div>
+                <div><div class="info">Personal email</div><strong>{{ employee.personal_email|default:"—" }}</strong></div>
+                <div><div class="info">Phone</div><strong>{{ employee.phone|default:"—" }}</strong></div>
+                <div><div class="info">Alternative phone</div><strong>{{ employee.alternative_phone|default:"—" }}</strong></div>
+                <div><div class="info">National ID</div><strong>{{ employee.national_id|default:"—" }}</strong></div>
+                <div><div class="info">Date of birth</div><strong>{{ employee.date_of_birth|date:"M d, Y"|default:"—" }}</strong></div>
+                <div><div class="info">Gender</div><strong>{{ employee.get_gender_display|default:"—" }}</strong></div>
+                <div><div class="info">Marital status</div><strong>{{ employee.get_marital_status_display|default:"—" }}</strong></div>
+                <div><div class="info">Address</div><strong>{{ employee.address|default:"—" }}</strong></div>
+                <div><div class="info">City / country</div><strong>{{ employee.city|default:"—" }}{% if employee.country %}, {{ employee.country }}{% endif %}</strong></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-clock"></i> Leave balances {{ today|date:"Y" }}</span><a href="/hr/leave/balance?employee={{ employee.id }}" class="btn btn-sm btn-secondary">Details</a></div>
+            <div style="padding:20px; display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px;">
+                {% for balance in balances %}
+                <div class="summary-box">
+                    <div class="info">{{ balance.type_name }}</div>
+                    <div class="stat-number" style="font-size:24px; color:{{ balance.color }};">{{ balance.remaining_days|floatformat:1 }}</div>
+                    <div class="info" style="font-size:12px;">of {{ balance.total_days|floatformat:1 }} days remaining</div>
+                </div>
+                {% empty %}<div class="empty-state"><p>No leave balances initialised.</p></div>{% endfor %}
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-history"></i> Employment movements</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Date</th><th>Type</th><th>From</th><th>To</th><th>Reason</th></tr></thead>
+                    <tbody>
+                        {% for movement in movements %}
+                        <tr><td>{{ movement.effective_date|date:"M d, Y" }}</td><td>{{ movement.get_movement_type_display }}</td><td>{{ movement.from_position|default:"—" }}</td><td>{{ movement.to_position|default:"—" }}</td><td>{{ movement.reason|default:"—" }}</td></tr>
+                        {% empty %}<tr><td colspan="5"><div class="empty-state"><p>No recorded movements.</p></div></td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-phone"></i> Emergency contact</span></div>
+            <div style="padding:18px;">
+                <div><div class="info">Contact</div><strong>{{ employee.emergency_contact_name|default:"—" }}</strong></div>
+                <div style="margin-top:10px;"><div class="info">Phone</div><strong>{{ employee.emergency_contact_phone|default:"—" }}</strong></div>
+                <div style="margin-top:10px;"><div class="info">Relationship</div><strong>{{ employee.emergency_contact_relationship|default:"—" }}</strong></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-university"></i> Banking &amp; statutory</span></div>
+            <div style="padding:18px;">
+                <div><div class="info">Bank</div><strong>{{ employee.bank_name|default:"—" }}</strong></div>
+                <div style="margin-top:10px;"><div class="info">Account</div><strong>{{ employee.bank_account|default:"—" }}</strong></div>
+                <div style="margin-top:10px;"><div class="info">Payment method</div><strong>{{ employee.get_payment_method_display|default:"—" }}</strong></div>
+                <div style="margin-top:10px;"><div class="info">KRA PIN</div><strong>{{ employee.kra_pin|default:"—" }}</strong></div>
+                <div style="margin-top:10px;"><div class="info">NSSF</div><strong>{{ employee.nssf_number|default:"—" }}</strong></div>
+                <div style="margin-top:10px;"><div class="info">NHIF / SHIF</div><strong>{{ employee.nhif_number|default:"—" }}</strong></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-users"></i> Direct reports</span></div>
+            <div style="padding:16px 18px;">
+                {% for report in reports %}
+                <div style="padding:7px 0; border-bottom:1px solid #f1f5f9;"><a href="/hr/employees/view/{{ report.id }}"><strong>{{ report.first_name }} {{ report.last_name }}</strong></a><div class="info" style="font-size:12px;">{{ report.job_title|default:"—" }}</div></div>
+                {% empty %}<p class="info">No direct reports.</p>{% endfor %}
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-file-alt"></i> Documents</span></div>
+            <div style="padding:16px 18px;">
+                {% for document in documents %}
+                <div style="padding:7px 0; border-bottom:1px solid #f1f5f9;"><a href="/uploads/{{ document.file_path }}" target="_blank">{{ document.document_name }}</a><div class="info" style="font-size:12px;">{{ document.document_type }}</div></div>
+                {% empty %}<p class="info">No documents uploaded.</p>{% endfor %}
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-star"></i> Skills</span></div>
+            <div style="padding:16px 18px; display:flex; flex-wrap:wrap; gap:8px;">
+                {% for skill in skills %}<span class="badge badge-info">{{ skill.skill_name }} · {{ skill.get_proficiency_display }}</span>{% empty %}<p class="info">No skills recorded.</p>{% endfor %}
+            </div>
+        </div>
+        {% if can_manage and employee.status == "active" %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-user-slash"></i> Deactivate</span></div>
+            <div style="padding:18px;">
+                <p class="info" style="font-size:12px; margin-bottom:12px;">Historical records are retained; the employee is removed from active rosters.</p>
+                <form method="post" action="/hr/employees/delete/{{ employee.id }}" onsubmit="return confirm('Deactivate this employee?');">
+                    {% csrf_token %}<button class="btn btn-danger btn-sm"><i class="fas fa-user-slash"></i> Deactivate employee</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

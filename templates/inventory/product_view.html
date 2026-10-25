@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-box"></i> {{ product.name }}
+            <span class="badge badge-{{ product.status|status_class }}" style="font-size:12px; vertical-align:middle;">{{ product.get_status_display }}</span>
+        </h1>
+        <p>{{ product.product_code }}{% if product.sku %} &middot; SKU {{ product.sku }}{% endif %} &middot; {{ category.category_name|default:"Uncategorised" }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/inventory/products" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+        <a href="/inventory/stock-movements/product/{{ product.id }}" class="btn btn-secondary"><i class="fas fa-history"></i> Stock History</a>
+        {% if can_edit %}<a href="/inventory/products/edit/{{ product.id }}" class="btn btn-primary"><i class="fas fa-pen"></i> Edit</a>{% endif %}
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-info-circle"></i> Product Information</span></div>
+            <div style="padding: 22px;">
+                <div class="detail-grid">
+                    <div class="detail-item"><div class="detail-label">Product code</div><div class="detail-value mono">{{ product.product_code }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Category</div><div class="detail-value">{{ category.category_name|default:"-" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Unit</div><div class="detail-value">{{ product.unit|default:"-" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Type</div><div class="detail-value">{{ product.get_type_display|default:"Product" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Selling price</div><div class="detail-value">{{ currency_symbol }} {{ product.unit_price|floatformat:2|intcomma }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Cost price</div><div class="detail-value">{{ currency_symbol }} {{ product.cost_price|floatformat:2|intcomma }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Tax rate</div><div class="detail-value">{{ product.tax_rate|floatformat:2 }}%</div></div>
+                    <div class="detail-item"><div class="detail-label">Margin per unit</div><div class="detail-value">{{ currency_symbol }} {{ margin|floatformat:2|intcomma }}</div></div>
+                </div>
+                {% if product.description %}
+                <div style="margin-top: 18px;">
+                    <div class="detail-label">Description</div>
+                    <p style="font-size: 13px; color:#475569; line-height:1.6;">{{ product.description|linebreaksbr }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-history"></i> Recent Stock Activity</span>
+                <a href="/inventory/stock-movements/product/{{ product.id }}" class="btn btn-sm btn-secondary">Full history</a>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Date</th><th>Type</th><th class="text-right">Qty</th><th class="text-right">Before</th><th class="text-right">After</th><th>Reference</th></tr></thead>
+                    <tbody>
+                        {% for movement in movements %}
+                        <tr>
+                            <td>{{ movement.created_at|date:"M d, Y H:i" }}</td>
+                            <td><span class="badge badge-{{ movement.movement_type|status_class }}">{{ movement.get_movement_type_display }}</span></td>
+                            <td class="text-right">{{ movement.quantity|floatformat:2 }}</td>
+                            <td class="text-right">{{ movement.quantity_before|floatformat:2 }}</td>
+                            <td class="text-right money">{{ movement.quantity_after|floatformat:2 }}</td>
+                            <td>{{ movement.reference_number|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6"><div class="empty-state"><i class="fas fa-history"></i><p>No stock movements for this product yet.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-warehouse"></i> Stock Position</span></div>
+            <div style="padding: 20px;">
+                <div style="font-size: 32px; font-weight: 800; line-height: 1.1;">
+                    {{ product.current_stock|floatformat:2 }}
+                    <span style="font-size: 14px; font-weight: 500; color:#64748b;">{{ product.unit }}</span>
+                </div>
+                <p class="info" style="margin-top: 4px;">on hand</p>
+                <div class="summary-box" style="margin-top: 16px;">
+                    <div class="summary-line"><span>Stock value (cost)</span><span class="money">{{ currency_symbol }} {{ stock_value|floatformat:2|intcomma }}</span></div>
+                    <div class="summary-line"><span>Retail value</span><span class="money">{{ currency_symbol }} {{ retail_value|floatformat:2|intcomma }}</span></div>
+                    <div class="summary-line total"><span>Potential margin</span><span>{{ currency_symbol }} {{ retail_value|floatformat:2|intcomma }}</span></div>
+                </div>
+                <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+                    <div class="summary-line" style="padding:0;"><span>Minimum stock</span><span>{{ product.minimum_stock|floatformat:2 }}</span></div>
+                    <div class="summary-line" style="padding:0;"><span>Maximum stock</span><span>{{ product.maximum_stock|floatformat:2 }}</span></div>
+                    <div class="summary-line" style="padding:0;"><span>Reorder level</span><span>{{ product.reorder_level|floatformat:2 }}</span></div>
+                    <div class="summary-line" style="padding:0;"><span>Reorder quantity</span><span>{{ product.reorder_quantity|floatformat:2 }}</span></div>
+                </div>
+                {% if product.current_stock <= product.reorder_level %}
+                <div class="alert alert-error" style="margin-top: 16px;"><i class="fas fa-exclamation-triangle"></i> Stock is at or below the reorder level.</div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if can_delete %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-trash"></i> Danger Zone</span></div>
+            <div style="padding: 20px;">
+                <p class="info" style="margin-bottom: 12px;">Deactivating hides the product from new transactions while preserving history.</p>
+                <a href="/inventory/products/delete/{{ product.id }}" class="btn btn-danger" style="width:100%; justify-content:center;"><i class="fas fa-trash"></i> Deactivate Product</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

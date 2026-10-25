@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-file-invoice"></i> Supplier Bills</h1>
+        <p>{{ page_obj.paginator.count }} bill{{ page_obj.paginator.count|pluralize }}.</p>
+    </div>
+    <div class="page-actions">
+        {% if can_create %}<a href="/purchasing/supplier-bills/create" class="btn btn-primary"><i class="fas fa-plus"></i> Record Bill</a>{% endif %}
+        <a href="/purchasing/supplier-payments" class="btn btn-secondary"><i class="fas fa-money-check-alt"></i> Payments</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="filter-bar">
+            <div class="form-group">
+                <label>Search</label>
+                <input type="text" name="q" class="form-control" value="{{ search_query }}" placeholder="Bill number, reference or supplier">
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All statuses</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group"><button class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button></div>
+            {% if search_query or status_filter %}<div class="form-group"><a href="/purchasing/supplier-bills" class="btn btn-secondary">Reset</a></div>{% endif %}
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Bill #</th><th>Supplier</th><th>Bill date</th><th>Due date</th><th>PO / GRN</th><th>Status</th><th class="text-right">Total</th><th class="text-right">Balance</th><th></th></tr></thead>
+            <tbody>
+                {% for bill in bills %}
+                <tr>
+                    <td><a href="/purchasing/supplier-bills/view/{{ bill.id }}"><strong>{{ bill.bill_number }}</strong></a></td>
+                    <td>{{ bill.vendor_name }}</td>
+                    <td>{{ bill.bill_date|date:"M d, Y" }}</td>
+                    <td>{{ bill.due_date|date:"M d, Y" }}</td>
+                    <td>
+                        {% if bill.po_number %}{{ bill.po_number }}{% endif %}
+                        {% if bill.grn_number %}{% if bill.po_number %} / {% endif %}{{ bill.grn_number }}{% endif %}
+                        {% if not bill.po_number and not bill.grn_number %}-{% endif %}
+                    </td>
+                    <td><span class="badge badge-{{ bill.status|status_class }}">{{ bill.get_status_display }}</span></td>
+                    <td class="text-right">{{ currency_symbol }} {{ bill.total_amount|floatformat:2|intcomma }}</td>
+                    <td class="text-right money">{{ currency_symbol }} {{ bill.balance|floatformat:2|intcomma }}</td>
+                    <td><div class="table-actions"><a href="/purchasing/supplier-bills/view/{{ bill.id }}" class="btn btn-sm btn-secondary" title="View"><i class="fas fa-eye"></i></a></div></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="9"><div class="empty-state"><i class="fas fa-file-invoice"></i><p>No supplier bills found.</p>{% if can_create %}<a href="/purchasing/supplier-bills/create">Record the first bill</a>{% endif %}</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

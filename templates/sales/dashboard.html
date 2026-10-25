@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-chart-line"></i> Sales Dashboard</h1>
+        <p>Quotes, pipeline and conversion performance.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/sales/quotes/create" class="btn btn-primary"><i class="fas fa-plus"></i> New Quote</a>
+        <a href="/sales/pipeline" class="btn btn-secondary"><i class="fas fa-columns"></i> Pipeline</a>
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
+        <div><div class="stat-number">{{ stats.total|intcomma }}</div><div class="stat-label">Total Quotes</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-clock"></i></div>
+        <div><div class="stat-number">{{ stats.open|intcomma }}</div><div class="stat-label">Open Quotes</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+        <div><div class="stat-number">{{ stats.approved|intcomma }}</div><div class="stat-label">Approved</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-file-invoice"></i></div>
+        <div><div class="stat-number">{{ stats.converted|intcomma }}</div><div class="stat-label">Converted</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-coins"></i></div>
+        <div>
+            <div class="stat-number">{{ currency_symbol }} {{ stats.value|floatformat:0|intcomma }}</div>
+            <div class="stat-label">Quoted value &middot; {{ stats.month }} this month</div>
+        </div>
+    </div>
+</div>
+
+<div class="stats-row">
+    {% for item in pipeline.values %}
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-layer-group"></i></div>
+        <div>
+            <div class="stat-number">{{ item.count }}</div>
+            <div class="stat-label">{{ item.label }} &middot; {{ currency_symbol }} {{ item.value|floatformat:0|intcomma }}</div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-history"></i> Recent Quotes</span>
+        <a href="/sales/quotes" class="btn btn-sm btn-secondary">View all</a>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Quote #</th>
+                    <th>Client</th>
+                    <th>Issue Date</th>
+                    <th>Valid Until</th>
+                    <th class="text-right">Amount</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for quote in recent_quotes %}
+                <tr>
+                    <td><a href="/sales/quotes/view/{{ quote.id }}"><strong>{{ quote.quote_number }}</strong></a></td>
+                    <td>{% with client=clients|get_item:quote.client_id %}{{ client.company_name|default:"-" }}{% endwith %}</td>
+                    <td>{{ quote.issue_date|date:"M d, Y" }}</td>
+                    <td>{{ quote.valid_until|date:"M d, Y" }}</td>
+                    <td class="text-right money">{{ currency_symbol }} {{ quote.total_amount|floatformat:2|intcomma }}</td>
+                    <td><span class="badge badge-{{ quote.status|status_class }}">{{ quote.get_status_display }}</span></td>
+                    <td class="text-right"><a href="/sales/quotes/view/{{ quote.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7"><div class="empty-state"><i class="fas fa-file-alt"></i><p>No quotes yet.</p><a href="/sales/quotes/create">Create your first quote</a></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

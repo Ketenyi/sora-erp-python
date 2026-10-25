@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-users"></i> Clients</h1>
+        <p>{{ page_obj.paginator.count }} client{{ page_obj.paginator.count|pluralize }}.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/crm/clients/create" class="btn btn-primary"><i class="fas fa-plus"></i> New Client</a>
+        <a href="/crm/clients/export" class="btn btn-secondary"><i class="fas fa-download"></i> Export</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="filter-bar">
+            <div class="form-group">
+                <label>Search</label>
+                <input type="text" name="q" class="form-control" value="{{ search_query }}" placeholder="Code, company, contact or email">
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All</option>
+                    <option value="active" {% if status_filter == "active" %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if status_filter == "inactive" %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <button class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button>
+                {% if search_query or status_filter %}<a href="/crm/clients" class="btn btn-secondary">Reset</a>{% endif %}
+            </div>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Code</th><th>Company</th><th>Contact</th><th>Email</th><th>Phone</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                {% for client in clients %}
+                <tr>
+                    <td><a href="/crm/clients/view/{{ client.id }}"><strong>{{ client.client_code }}</strong></a></td>
+                    <td>{{ client.company_name }}</td>
+                    <td>{{ client.contact_person|default:"-" }}</td>
+                    <td>{{ client.email|default:"-" }}</td>
+                    <td>{{ client.phone|default:"-" }}</td>
+                    <td><span class="badge badge-{{ client.status|status_class }}">{{ client.get_status_display }}</span></td>
+                    <td>
+                        <div class="table-actions">
+                            <a href="/crm/clients/view/{{ client.id }}" class="btn btn-sm btn-secondary" title="View"><i class="fas fa-eye"></i></a>
+                            <a href="/crm/clients/edit/{{ client.id }}" class="btn btn-sm btn-secondary" title="Edit"><i class="fas fa-pen"></i></a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7"><div class="empty-state"><i class="fas fa-users"></i><p>No clients found.</p><a href="/crm/clients/create">Add a client</a></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

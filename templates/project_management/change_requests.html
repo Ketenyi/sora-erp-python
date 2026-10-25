@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-code-pull-request"></i> Change Requests</h1>
+        <p>{{ project.project_code }} &middot; every out-of-scope task must be funded and approved before completion.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/{{ project.id }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Project</a>
+        <a href="/projects/approvals" class="btn btn-secondary"><i class="fas fa-envelope-open-text"></i> Approvals hub</a>
+        {% if can_create %}<a href="/projects/{{ project.id }}/change-requests/create" class="btn btn-primary"><i class="fas fa-plus"></i> New change request</a>{% endif %}
+    </div>
+</div>
+
+{% include "project_management/partials/project_tabs.html" with active="crs" %}
+
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-code-pull-request"></i> Scope change register</span></div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>CR #</th><th>Title</th><th>Linked task</th><th class="text-right">Cost impact</th><th class="text-right">Schedule impact</th><th>Status</th><th>Decision by</th><th></th></tr></thead>
+            <tbody>
+                {% for cr in change_requests %}
+                <tr>
+                    <td><a href="/projects/{{ project.id }}/change-requests/view/{{ cr.id }}"><strong>{{ cr.cr_number }}</strong></a></td>
+                    <td>{{ cr.title }}</td>
+                    <td>{{ cr.task_name|default:"—" }}</td>
+                    <td class="text-right money">{{ currency_symbol }} {{ cr.cost_impact|floatformat:2|intcomma }}</td>
+                    <td class="text-right">+{{ cr.schedule_impact_days }} day{{ cr.schedule_impact_days|pluralize }}</td>
+                    <td><span class="badge badge-{{ cr.status|status_class }}">{{ cr.get_status_display }}</span></td>
+                    <td>{{ cr.decided_by_name|default:"—" }}{% if cr.decided_at %}<div class="text-muted" style="font-size:11px;">{{ cr.decided_at|date:"M d, Y" }}</div>{% endif %}</td>
+                    <td><div class="table-actions"><a href="/projects/{{ project.id }}/change-requests/view/{{ cr.id }}" class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></a></div></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8"><div class="empty-state"><i class="fas fa-code-pull-request"></i><p>No change requests raised.</p>{% if can_create %}<a href="/projects/{{ project.id }}/change-requests/create">Raise the first change request</a>{% endif %}</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

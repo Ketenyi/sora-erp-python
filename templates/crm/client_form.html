@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-user-plus"></i> {% if is_edit %}Edit Client{% else %}New Client{% endif %}</h1>
+        <p>{% if is_edit %}{{ client.client_code }} &middot; {{ client.company_name }}{% else %}Add a customer to your CRM.{% endif %}</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% if is_edit %}/crm/clients/view/{{ client.id }}{% else %}/crm/clients{% endif %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-address-card"></i> Client Details</span></div>
+        <div style="padding: 20px;">
+            {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+            <div class="form-grid">
+                {% for field in form %}
+                <div class="form-group {% if field.name == 'address' %}span-2{% endif %}">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+                    {{ field }}
+                    {{ field.errors }}
+                </div>
+                {% endfor %}
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> {% if is_edit %}Save Changes{% else %}Create Client{% endif %}</button>
+        </div>
+    </div>
+</form>
+{% endblock %}

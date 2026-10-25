@@ -1,0 +1,106 @@
+{% extends "auth/base_auth.html" %}
+{% load static %}
+{% block title %}Onboard a device — {{ platform_name }}{% endblock %}
+{% block brand_kicker %}Device onboarding{% endblock %}
+{% block brand_title %}Connect a device in minutes{% endblock %}
+{% block brand_lead %}Use the single-use bootstrap token issued by your IT administrator. The agent registers this machine, binds it to the workspace and reports hardware, software and security posture automatically.{% endblock %}
+
+{% block extra_css %}
+<style>
+    .onboard-panel { background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px; margin:0 0 16px; }
+    .onboard-panel .meta { display:flex; justify-content:space-between; gap:12px; font-size:12px; color:#475569; padding:5px 0; }
+    .onboard-panel .meta strong { color:#0f172a; }
+    .onboard-command { background:#0f172a; color:#e2e8f0; border-radius:10px; padding:12px 14px; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; line-height:1.55; white-space:pre-wrap; word-break:break-all; margin:10px 0; }
+    .onboard-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+    .onboard-actions .auth-submit { width:auto; padding:10px 14px; margin:0; font-size:12px; }
+    .onboard-actions .auth-link { align-self:center; }
+    .onboard-note { font-size:11px; color:#64748b; line-height:1.6; margin-top:10px; }
+    .copy-state { color:#15803d; font-size:11px; margin-left:6px; }
+</style>
+{% endblock %}
+
+{% block card %}
+<span class="auth-card-kicker"><i class="fas fa-laptop-medical"></i> Self-onboarding</span>
+<h2>Onboard a device</h2>
+<p class="auth-lead">Paste the one-time bootstrap token from your administrator. It can be used for the number of enrolments shown when it was issued.</p>
+
+{% if error %}
+<div class="auth-flash error"><i class="fas fa-circle-exclamation"></i><span>{{ error }}</span></div>
+{% endif %}
+
+{% if token %}
+    <div class="onboard-panel">
+        <div class="meta"><span>Workspace</span><strong>{{ workspace_name }}</strong></div>
+        <div class="meta"><span>Token</span><strong>{{ token.token_prefix }}…</strong></div>
+        <div class="meta"><span>Expires</span><strong>{{ token.expires_at|date:"M d, Y H:i" }}</strong></div>
+        <div class="meta"><span>Enrolments remaining</span><strong>{{ token.uses_remaining }}</strong></div>
+    </div>
+
+    <label class="auth-field" style="display:block;font-weight:600;font-size:12px;color:#334155;">Linux — one-line bootstrap</label>
+    <div class="onboard-command" id="bootstrapCommand">{{ bootstrap_command }}</div>
+    <div class="onboard-actions">
+        <button type="button" class="auth-submit" data-copy="bootstrapCommand"><i class="fas fa-copy"></i> Copy command</button>
+        <a class="auth-link" href="{{ linux_package_url }}"><i class="fas fa-download"></i> Linux package</a>
+    </div>
+    <p class="onboard-note">Run the command with sudo on the target Linux host. It installs the agent under <strong>/opt/sora-agent</strong>, creates a hardened systemd unit and starts reporting. Python 3.8+ is required.</p>
+
+    <label class="auth-field" style="display:block;font-weight:600;font-size:12px;color:#334155;margin-top:18px;">Windows — silent package</label>
+    <div class="onboard-actions">
+        <a class="auth-submit" href="{{ windows_package_url }}"><i class="fas fa-download"></i> Download Windows package</a>
+    </div>
+    <p class="onboard-note">The ZIP contains a silent PowerShell installer for GPO, an MSI build script (WiX) and instructions. Deploy with <span class="mono">install.ps1</span> or <span class="mono">msiexec /i sora-asset-agent.msi /qn</span>. The bootstrap token is embedded in the package — treat it as a credential.</p>
+
+    <div class="onboard-note" style="margin-top:16px;">
+        <i class="fas fa-clock"></i> Heartbeat every {{ policy.heartbeat_seconds }}s · full inventory every {{ policy.inventory_minutes }} min.
+        <a href="/onboard-device">Use a different token</a>
+    </div>
+{% else %}
+<form method="post" action="/onboard-device" class="auth-form" data-guard>
+    {% csrf_token %}
+    <div class="auth-field">
+        <label for="token">Bootstrap token</label>
+        <div class="auth-input">
+            <i class="fas fa-key"></i>
+            <input type="password" id="token" name="token" placeholder="sora_enr_…" required autofocus autocomplete="off" spellcheck="false">
+            <button type="button" class="auth-reveal" data-reveal="token" aria-label="Show token">
+                <i class="fas fa-eye"></i>
+            </button>
+        </div>
+    </div>
+    <button type="submit" class="auth-submit"><i class="fas fa-arrow-right"></i> Continue</button>
+</form>
+<p class="onboard-note">Don't have a token? Ask your IT administrator to issue one from <strong>Assets → Endpoint Agents → Enrolment</strong>.</p>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    document.querySelectorAll('[data-copy]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            var target = document.getElementById(button.getAttribute('data-copy'));
+            if (!target) return;
+            var text = target.textContent.trim();
+            var done = function () {
+                var mark = document.createElement('span');
+                mark.className = 'copy-state';
+                mark.textContent = 'Copied';
+                button.parentNode.appendChild(mark);
+                window.setTimeout(function () { mark.remove(); }, 2200);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(done);
+            } else {
+                var area = document.createElement('textarea');
+                area.value = text;
+                document.body.appendChild(area);
+                area.select();
+                document.execCommand('copy');
+                area.remove();
+                done();
+            }
+        });
+    });
+})();
+</script>
+{% endblock %}

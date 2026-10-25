@@ -1,0 +1,38 @@
+from django.urls import path
+
+from apps.purchasing import views
+
+urlpatterns = [
+    path("dashboard", views.dashboard),
+    path("purchase-orders", views.purchase_orders),
+    path("purchase-orders/create", views.purchase_order_create),
+    path("purchase-orders/store", views.purchase_order_create),
+    path("purchase-orders/view/<int:pk>", views.purchase_order_view),
+    path("purchase-orders/edit/<int:pk>", views.purchase_order_edit),
+    path("purchase-orders/update/<int:pk>", views.purchase_order_edit),
+    path("purchase-orders/delete/<int:pk>", views.purchase_order_delete),
+    path("purchase-orders/send/<int:pk>", views.purchase_order_send),
+    path("purchase-orders/confirm/<int:pk>", views.purchase_order_confirm),
+    path("goods-receipts", views.goods_receipts),
+    path("goods-receipts/create", views.goods_receipt_create),
+    path("goods-receipts/store", views.goods_receipt_create),
+    path("goods-receipts/view/<int:pk>", views.goods_receipt_view),
+    path("supplier-bills", views.supplier_bills),
+    path("supplier-bills/create", views.supplier_bill_create),
+    path("supplier-bills/store", views.supplier_bill_create),
+    path("supplier-bills/view/<int:pk>", views.supplier_bill_view),
+    path("supplier-bills/approve/<int:pk>", views.supplier_bill_approve),
+    path("supplier-payments", views.supplier_payments),
+    path("supplier-payments/create", views.supplier_payment_create),
+    path("supplier-payments/store", views.supplier_payment_create),
+    path("supplier-payments/view/<int:pk>", views.supplier_payment_view),
+    path("rfq", views.rfq_list),
+    path("rfq/create", views.rfq_create),
+    path("rfq/store", views.rfq_create),
+    path("rfq/view/<int:pk>", views.rfq_view),
+    path("rfq/send/<int:pk>", views.rfq_send),
+    path("reports", views.reports),
+    path("reports/ap-aging", views.report_ap_aging),
+    path("reports/purchase-summary", views.report_purchase_summary),
+    path("reports/export", views.report_export),
+]

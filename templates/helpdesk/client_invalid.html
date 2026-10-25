@@ -1,0 +1,12 @@
+{% extends "helpdesk/client_base.html" %}
+
+{% block title %}Link unavailable &middot; {{ company_name|default:"Support" }}{% endblock %}
+
+{% block content %}
+<section class="card error-page">
+    <div class="icon">!</div>
+    <h1>This link is invalid or has expired</h1>
+    <p class="muted">For your security, client status links expire after a set period. Reply to your latest support email and our team will send a fresh link.</p>
+    <p class="muted" style="margin-top:14px;">Ticket reference: <strong>{{ ticket_id }}</strong></p>
+</section>
+{% endblock %}

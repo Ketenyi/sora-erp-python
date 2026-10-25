@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-chart-gantt"></i> {{ project.project_code }} timeline</h1>
+        <p>{{ range_start|date:"d M Y" }} → {{ range_end|date:"d M Y" }} &middot; {{ total_days }} days &middot; {% if project.baseline_locked_at %}Baseline locked{% else %}Baseline not locked{% endif %}{% if can_edit %} &middot; drag bars to reschedule{% endif %}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/{{ project.id }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Project</a>
+        <a href="/projects/{{ project.id }}/tasks" class="btn btn-secondary"><i class="fas fa-list-check"></i> Tasks</a>
+        <a href="/projects/gantt/{{ project.id }}/download" class="btn btn-primary"><i class="fas fa-file-pdf"></i> Export PDF</a>
+    </div>
+</div>
+
+{% include "project_management/partials/project_tabs.html" with active="gantt" %}
+
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-timeline"></i> {{ project.project_name }}</span>
+        <span class="gantt-legend">
+            <span><i style="background:#94a3b8;"></i> Backlog</span>
+            <span><i style="background:#3b82f6;"></i> In progress</span>
+            <span><i style="background:#ef4444;"></i> Blocked</span>
+            <span><i style="background:#f59e0b;"></i> In QA</span>
+            <span><i style="background:#10b981;"></i> Complete</span>
+            <span><i style="background:#ef4444; width:2px; height:12px; border-radius:0;"></i> Today</span>
+        </span>
+    </div>
+    <div class="gantt-scroll" id="ganttCanvas" data-can-edit="{% if can_edit %}1{% else %}0{% endif %}" data-total-days="{{ total_days }}" data-url="/projects/gantt/{{ project.id }}/reschedule/">
+        <div class="gantt-grid">
+            <div class="gantt-header">
+                <div class="gantt-label-head">Task / baseline</div>
+                <div class="gantt-months">
+                    {% for month in months %}<span style="left: {{ month.left }}%; width: {{ month.width }}%;">{{ month.label }}</span>{% endfor %}
+                </div>
+            </div>
+            {% for row in rows %}
+            <div class="gantt-row">
+                <div class="gantt-row-label">
+                    <strong>{{ row.task.task_name }}</strong>
+                    <small>{{ row.task.assignee_name }}{% if row.task.deadline_date %} &middot; due {{ row.task.deadline_date|date:"M d" }}{% endif %}</small>
+                </div>
+                <div class="gantt-track">
+                    {% if baseline %}<div class="baseline-band" style="left: {{ baseline.left }}%; width: {{ baseline.width }}%;"></div>{% endif %}
+                    {% if today_pct is not None %}<div class="today-line" style="left: {{ today_pct }}%;"></div>{% endif %}
+                    {% if row.task.start_date or row.task.deadline_date %}
+                    <div class="gantt-bar status-{{ row.task.status }}" style="left: {{ row.left }}%; width: {{ row.width }}%;" data-task-id="{{ row.task.id }}" data-can-edit="{% if can_edit %}1{% else %}0{% endif %}" title="{{ row.task.task_name }} · {{ row.start|date:'d M' }} → {{ row.end|date:'d M' }}">{{ row.task.get_status_display }}</div>
+                    {% else %}
+                    <span class="text-muted" style="font-size:10px; position:absolute; top:6px; left:4px;">Set dates to plot</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state" style="padding:30px;"><i class="fas fa-chart-gantt"></i><p>No tasks yet.</p></div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const canvas = document.getElementById('ganttCanvas');
+    if (!canvas || canvas.dataset.canEdit !== '1') return;
+    let active = null;
+
+    canvas.querySelectorAll('.gantt-bar').forEach(bar => {
+        bar.addEventListener('pointerdown', event => {
+            if (bar.dataset.canEdit !== '1') return;
+            event.preventDefault();
+            const track = bar.parentElement;
+            const trackWidth = track.clientWidth;
+            const pxPerDay = trackWidth / Number(canvas.dataset.totalDays || 1);
+            active = {
+                bar, track, trackWidth, pxPerDay,
+                startX: event.clientX,
+                startLeft: parseFloat(bar.style.left) / 100 * trackWidth,
+                moved: false
+            };
+            bar.setPointerCapture(event.pointerId);
+            bar.style.cursor = 'grabbing';
+        });
+
+        bar.addEventListener('pointermove', event => {
+            if (!active || active.bar !== bar) return;
+            const deltaX = event.clientX - active.startX;
+            if (Math.abs(deltaX) > 3) active.moved = true;
+            const newPx = Math.max(0, Math.min(active.trackWidth - bar.offsetWidth, active.startLeft + deltaX));
+            bar.style.left = (newPx / active.trackWidth * 100) + '%';
+        });
+
+        bar.addEventListener('pointerup', async event => {
+            if (!active || active.bar !== bar) return;
+            const state = active;
+            active = null;
+            bar.style.cursor = '';
+            if (!state.moved) return;
+            const newPx = parseFloat(bar.style.left) / 100 * state.trackWidth;
+            const deltaDays = Math.round((newPx - state.startLeft) / state.pxPerDay);
+            if (!deltaDays) {
+                bar.style.left = (state.startLeft / state.trackWidth * 100) + '%';
+                return;
+            }
+            try {
+                const response = await fetch(canvas.dataset.url + bar.dataset.taskId, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN},
+                    body: JSON.stringify({delta_days: deltaDays})
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    alert(data.error || 'Could not reschedule the task.');
+                    bar.style.left = (state.startLeft / state.trackWidth * 100) + '%';
+                } else {
+                    window.location.reload();
+                }
+            } catch (error) {
+                alert('Network error while rescheduling.');
+                bar.style.left = (state.startLeft / state.trackWidth * 100) + '%';
+            }
+        });
+    });
+})();
+</script>
+{% endblock %}

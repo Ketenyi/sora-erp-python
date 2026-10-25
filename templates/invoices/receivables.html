@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-hand-holding-usd"></i> Receivables</h1>
+        <p>{{ totals.count }} open invoice{{ totals.count|pluralize }} &middot; {{ currency_symbol }} {{ totals.outstanding|floatformat:2|intcomma }} outstanding.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/invoices/list" class="btn btn-secondary"><i class="fas fa-list"></i> All Invoices</a>
+        <a href="/invoices/export?status=sent" class="btn btn-secondary"><i class="fas fa-download"></i> Export</a>
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ buckets.current|floatformat:0|intcomma }}</div><div class="stat-label">Current</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-calendar-day"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ buckets|get_item:"1_30"|floatformat:0|intcomma }}</div><div class="stat-label">1-30 days</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-calendar-week"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ buckets|get_item:"31_60"|floatformat:0|intcomma }}</div><div class="stat-label">31-60 days</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ buckets|get_item:"61_90"|floatformat:0|intcomma }}</div><div class="stat-label">61-90 days</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-fire"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ buckets|get_item:"over_90"|floatformat:0|intcomma }}</div><div class="stat-label">90+ days</div></div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-clock"></i> Open Invoices</span>
+        <span class="info">Ordered by due date</span>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Invoice</th>
+                    <th>Client</th>
+                    <th>Due date</th>
+                    <th>Age</th>
+                    <th>Status</th>
+                    <th class="text-right">Total</th>
+                    <th class="text-right">Outstanding</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in invoices %}
+                <tr>
+                    <td><a href="/invoices/view/{{ invoice.id }}"><strong>{{ invoice.invoice_number }}</strong></a></td>
+                    <td>{{ clients|get_item:invoice.client_id|default_if_none:"-" }}</td>
+                    <td>{{ invoice.due_date|date:"M d, Y" }}</td>
+                    <td>
+                        {% if invoice.days_overdue > 0 %}
+                        <span class="badge badge-danger">{{ invoice.days_overdue }}d overdue</span>
+                        {% else %}
+                        <span class="badge badge-success">Current</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="badge badge-{{ invoice.status|status_class }}">{{ invoice.get_status_display }}</span></td>
+                    <td class="text-right">{{ currency_symbol }} {{ invoice.total_amount|floatformat:2|intcomma }}</td>
+                    <td class="text-right money">{{ currency_symbol }} {{ invoice.outstanding|floatformat:2|intcomma }}</td>
+                    <td>
+                        <div class="table-actions">
+                            <a href="/invoices/view/{{ invoice.id }}" class="btn btn-sm btn-secondary" title="View"><i class="fas fa-eye"></i></a>
+                            <a href="/invoices/pay/{{ invoice.id }}" class="btn btn-sm btn-primary" title="Record payment"><i class="fas fa-money-bill-wave"></i></a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8"><div class="empty-state"><i class="fas fa-check-circle"></i><p>No outstanding receivables. Everything is collected.</p></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

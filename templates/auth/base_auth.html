@@ -1,0 +1,94 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>{% block title %}{{ login_title }} — {{ platform_name }}{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="auth-body" data-show-password="{{ login_show_password }}" data-hide-password="{{ login_hide_password }}">
+<div class="auth-shell">
+    <aside class="auth-brand">
+        <div class="auth-brand-top">
+            <a class="auth-logo" href="/">
+                <span class="auth-logo-mark">
+                    {% if company_logo %}<img src="{{ company_logo }}" alt="{{ platform_name }}">{% else %}{{ platform_name|slice:":1" }}{% endif %}
+                </span>
+                <span class="auth-logo-text">
+                    {{ platform_name }}
+                    <small>{{ platform_tagline }}</small>
+                </span>
+            </a>
+        </div>
+
+        <div class="auth-brand-copy">
+            <span class="auth-eyebrow"><i class="fas fa-shield-halved"></i> {% block brand_kicker %}{{ login_kicker }}{% endblock %}</span>
+            <h1>{% block brand_title %}{{ platform_tagline }}{% endblock %}</h1>
+            <p class="auth-brand-lead">{% block brand_lead %}{{ login_lead }}{% endblock %}</p>
+            {% if login_points %}
+            <ul class="auth-points">
+                {% for point in login_points %}
+                <li><i class="fas fa-check"></i><span>{{ point }}</span></li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+
+        <div class="auth-brand-footer">
+            <strong>{{ platform_name }}</strong>
+            <span>&copy; {% now "Y" %} {{ legal_footer }}</span>
+        </div>
+    </aside>
+
+    <main class="auth-panel">
+        <div class="auth-card">
+            {% if messages %}
+            {% for message in messages %}
+            <div class="auth-flash {{ message.tags }}">
+                <i class="fas {% if message.tags == 'success' %}fa-circle-check{% elif message.tags == 'warning' %}fa-triangle-exclamation{% elif message.tags == 'info' %}fa-circle-info{% else %}fa-circle-exclamation{% endif %}"></i>
+                <span>{{ message }}</span>
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% block card %}{% endblock %}
+            <div class="auth-footnote">{% block footnote %}{{ login_support_note }}{% endblock %}</div>
+        </div>
+        {% if login_security_note %}
+        <p class="auth-meta"><i class="fas fa-lock"></i> {{ login_security_note }}</p>
+        {% endif %}
+    </main>
+</div>
+<script>
+(function () {
+    document.querySelectorAll('[data-reveal]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            var input = document.getElementById(button.getAttribute('data-reveal'));
+            if (!input) return;
+            var showing = input.type === 'text';
+            input.type = showing ? 'password' : 'text';
+            var labels = document.body.dataset;
+            button.setAttribute('aria-label', showing ? labels.showPassword : labels.hidePassword);
+            var icon = button.querySelector('i');
+            if (icon) {
+                icon.classList.toggle('fa-eye', showing);
+                icon.classList.toggle('fa-eye-slash', !showing);
+            }
+        });
+    });
+    document.querySelectorAll('form[data-guard]').forEach(function (form) {
+        form.addEventListener('submit', function () {
+            var button = form.querySelector('button[type="submit"]');
+            if (button) {
+                button.disabled = true;
+            }
+        });
+    });
+})();
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-heart-pulse"></i> Complete Health Check #{{ check.id }}</h1>
+        <p>{{ contract.contract_number }} &middot; {{ check.get_check_type_display }} &middot; {{ check.scheduled_date|date:"F d, Y" }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/sla/contracts/{{ contract.id }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Contract</a>
+        <a href="/projects/sla/health-checks" class="btn btn-secondary"><i class="fas fa-list"></i> All checks</a>
+    </div>
+</div>
+
+<div class="card" style="max-width:760px;">
+    <div class="card-header"><span><i class="fas fa-clipboard-check"></i> Findings</span></div>
+    <div style="padding:20px;">
+        <div class="detail-grid" style="margin-bottom:16px;">
+            <div class="detail-item"><div class="detail-label">Scheduled date</div><div class="detail-value">{{ check.scheduled_date|date:"F d, Y" }}</div></div>
+            <div class="detail-item"><div class="detail-label">Contract</div><div class="detail-value"><a href="/projects/sla/contracts/{{ contract.id }}">{{ contract.contract_number }}</a></div></div>
+            <div class="detail-item"><div class="detail-label">Client</div><div class="detail-value">{{ contract.client_name|default:"—" }}</div></div>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            {% include "project_management/partials/form_fields.html" with form=form %}
+            <div class="page-actions" style="margin-top:10px;">
+                <button class="btn btn-primary"><i class="fas fa-check"></i> Mark visit complete</button>
+                <a href="/projects/sla/contracts/{{ contract.id }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

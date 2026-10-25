@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-comments"></i> Feedback</h1><p>Share praise and constructive feedback with colleagues.</p></div>
+    <div class="page-actions"><a href="/hr/performance" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Performance</a></div>
+</div>
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-stream"></i> Team feed</span></div>
+            <div style="padding:18px;">
+                {% for row in feedback_rows %}
+                <div style="padding:14px 0; border-bottom:1px solid #f1f5f9;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div><strong>{{ row.sender_name }}</strong> <span class="info">→</span> <strong>{{ row.recipient_name }}</strong><div class="info" style="font-size:11px;">{{ row.created_at|date:"M d, Y H:i" }}</div></div>
+                        <span class="badge badge-{% if row.feedback_type == 'praise' %}success{% elif row.feedback_type == 'constructive' %}warning{% else %}secondary{% endif %}">{{ row.get_feedback_type_display }}</span>
+                    </div>
+                    <p style="margin-top:8px;">{{ row.message|linebreaksbr }}</p>
+                </div>
+                {% empty %}<div class="empty-state"><i class="fas fa-comments"></i><p>No feedback yet.</p></div>{% endfor %}
+            </div>
+            {% include "partials/pagination.html" %}
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-pen"></i> Give feedback</span></div>
+        <div style="padding:18px;">
+            {% if can_give %}
+            <form method="post" action="/hr/performance/store-feedback">
+                {% csrf_token %}
+                {% for field in form %}
+                <div class="form-group"><label>{{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}</label>{{ field }}{% for error in field.errors %}<div class="error-text" style="color:#dc2626;font-size:12px;">{{ error }}</div>{% endfor %}</div>
+                {% endfor %}
+                <button class="btn btn-primary" style="width:100%;"><i class="fas fa-paper-plane"></i> Share feedback</button>
+            </form>
+            {% else %}<p class="info">Link your user to an employee record to give feedback.</p>{% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

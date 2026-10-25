@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1><i class="fas fa-graduation-cap"></i> Training</h1><p>Programmes available for professional development.</p></div>
+    <div class="page-actions">
+        <a href="/hr/training/my-trainings" class="btn btn-secondary"><i class="fas fa-book-open"></i> My trainings</a>
+        {% if can_manage %}<a href="/hr/training/create" class="btn btn-primary"><i class="fas fa-plus"></i> New programme</a>{% endif %}
+    </div>
+</div>
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-book"></i></div><div><div class="stat-number">{{ stats.programs }}</div><div class="stat-label">Programmes</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-play-circle"></i></div><div><div class="stat-number">{{ stats.active }}</div><div class="stat-label">Active programmes</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-user-graduate"></i></div><div><div class="stat-number">{{ stats.enrollments }}</div><div class="stat-label">Enrolments</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div><div class="stat-number">{{ stats.completed }}</div><div class="stat-label">Completed</div></div></div>
+</div>
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-list"></i> Programme catalogue</span></div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Programme</th><th>Provider</th><th class="text-right">Hours</th><th class="text-right">Cost</th><th class="text-right">Enrolled</th><th>Status</th><th style="width:190px;"></th></tr></thead>
+            <tbody>
+            {% for program in programs %}
+                <tr>
+                    <td><strong>{{ program.program_name }}</strong><div class="info" style="font-size:12px;">{{ program.program_code }}{% if program.certification %} &middot; {{ program.certification }}{% endif %}</div><div class="info" style="font-size:12px;">{{ program.description|truncatechars:110 }}</div></td>
+                    <td>{{ program.provider|default:"—" }}</td>
+                    <td class="text-right">{{ program.duration_hours|default:"—" }}</td>
+                    <td class="text-right">{% if program.cost %}{{ currency_symbol }} {{ program.cost|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
+                    <td class="text-right">{{ program.enrollment_count }}</td>
+                    <td><span class="badge badge-{{ program.status|status_class }}">{{ program.get_status_display|default:program.status }}</span></td>
+                    <td>
+                        {% if program.my_enrollment %}
+                            {% if program.my_enrollment.status == "completed" %}
+                                <span class="badge badge-success"><i class="fas fa-check"></i> Completed{% if program.my_enrollment.score %} · {{ program.my_enrollment.score|floatformat:0 }}%{% endif %}</span>
+                            {% else %}
+                                <div style="display:flex; gap:6px;">
+                                    <span class="badge badge-info">{{ program.my_enrollment.get_status_display }}</span>
+                                    <form method="post" action="/hr/training/complete/{{ program.my_enrollment.id }}" style="display:flex; gap:4px;">{% csrf_token %}<input type="hidden" name="next" value="/hr/training"><input type="number" name="score" min="0" max="100" placeholder="Score" class="form-control" style="width:72px; padding:4px 6px;"><button type="submit" class="btn btn-sm btn-secondary">Complete</button></form>
+                                </div>
+                            {% endif %}
+                        {% elif employee and program.status == "active" %}
+                            <form method="post" action="/hr/training/enroll">{% csrf_token %}<input type="hidden" name="program_id" value="{{ program.id }}"><input type="hidden" name="next" value="/hr/training"><button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-plus"></i> Enrol</button></form>
+                        {% else %}<span class="info" style="font-size:12px;">{{ program.status|capfirst }}</span>{% endif %}
+                    </td>
+                </tr>
+            {% empty %}<tr><td colspan="7"><div class="empty-state"><i class="fas fa-graduation-cap"></i><p>No training programmes yet.</p>{% if can_manage %}<a href="/hr/training/create" class="btn btn-primary btn-sm">Create a programme</a>{% endif %}</div></td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

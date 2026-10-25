@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-chart-bar"></i> Purchasing Reports</h1>
+        <p>Payables exposure and purchasing activity.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/purchasing/dashboard" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Dashboard</a>
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-hand-holding-usd"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ total_outstanding|floatformat:0|intcomma }}</div><div class="stat-label">Outstanding payables</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-calendar"></i></div>
+        <div><div class="stat-number">{{ currency_symbol }} {{ year_total|floatformat:0|intcomma }}</div><div class="stat-label">Purchase orders in {{ year }}</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-file-invoice"></i></div>
+        <div><div class="stat-number">AP</div><div class="stat-label">Aging by due date</div></div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+        <div><div class="stat-number">12</div><div class="stat-label">Monthly purchase summary</div></div>
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-hourglass-half"></i> Accounts Payable Aging</span></div>
+        <div style="padding: 20px;">
+            <p style="font-size:13px; color:#475569;">Approved supplier bills with an outstanding balance, grouped by how long they have been due.</p>
+            <a href="/purchasing/reports/ap-aging" class="btn btn-primary" style="margin-top:12px;"><i class="fas fa-table"></i> Open AP aging</a>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><span><i class="fas fa-shopping-cart"></i> Purchase Summary</span></div>
+        <div style="padding: 20px;">
+            <p style="font-size:13px; color:#475569;">Purchase order count and value by month for the selected year.</p>
+            <a href="/purchasing/reports/purchase-summary" class="btn btn-primary" style="margin-top:12px;"><i class="fas fa-chart-bar"></i> Open purchase summary</a>
+        </div>
+    </div>
+</div>
+
+{% if can_export %}
+<div class="card">
+    <div class="card-header"><span><i class="fas fa-file-export"></i> Exports</span></div>
+    <div style="padding: 20px; display:flex; gap:10px; flex-wrap:wrap;">
+        <a href="/purchasing/reports/export?type=ap_aging" class="btn btn-secondary"><i class="fas fa-download"></i> Export AP aging CSV</a>
+        <a href="/purchasing/reports/export?type=purchase_summary" class="btn btn-secondary"><i class="fas fa-download"></i> Export {{ year }} purchase summary CSV</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

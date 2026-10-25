@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% load static sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<style>
+    .secret-box { background:#0f172a; color:#e2e8f0; border-radius:12px; padding:16px 18px; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:13px; line-height:1.6; overflow-x:auto; white-space:pre-wrap; word-break:break-all; }
+    .step { display:flex; gap:14px; padding:16px 0; border-bottom:1px solid #eef2f6; }
+    .step:last-child { border-bottom:none; }
+    .step-number { width:28px; height:28px; border-radius:50%; background:var(--brand, #FFD700); color:#111; font-weight:800; display:flex; align-items:center; justify-content:center; flex:0 0 28px; font-size:13px; }
+    body[data-theme="dark"] .step { border-color:#334155; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-key"></i> Enrolment Token Ready</h1>
+        <p>{{ token.label }} &middot; valid until {{ token.expires_at|date:"M d, Y H:i" }} &middot; {{ token.max_uses }} enrolment{{ token.max_uses|pluralize }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/assets/agents/enrollment" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to tokens</a>
+        <a href="/assets/agents" class="btn btn-secondary"><i class="fas fa-desktop"></i> Endpoint Agents</a>
+    </div>
+</div>
+
+<div class="alert alert-warning" style="display:flex; gap:10px; align-items:flex-start;">
+    <i class="fas fa-triangle-exclamation" style="margin-top:2px;"></i>
+    <div><strong>Copy this token now.</strong> Only a hash is stored, so the full token cannot be recovered after you leave this page. If it is lost, revoke it and issue another.</div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-fingerprint"></i> Token</span><span class="badge badge-active">{{ token.max_uses }} use{{ token.max_uses|pluralize }}</span></div>
+            <div style="padding: 20px;">
+                <div class="secret-box">{{ raw_token }}</div>
+                <div class="detail-grid" style="margin-top:18px;">
+                    <div class="detail-item"><div class="detail-label">Label</div><div class="detail-value">{{ token.label }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Expires</div><div class="detail-value">{{ token.expires_at|date:"M d, Y H:i" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Enrolments allowed</div><div class="detail-value">{{ token.max_uses }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Server</div><div class="detail-value mono">{{ server_url }}</div></div>
+                </div>
+                {% if token.notes %}<p class="info" style="margin-top:14px;">{{ token.notes }}</p>{% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-truck-fast"></i> Deploy the agent</span></div>
+            <div style="padding: 8px 20px 20px;">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div style="flex:1;">
+                        <strong>Linux — one-line bootstrap</strong>
+                        <p class="info">Installs the agent under <span class="mono">/opt/sora-agent</span> with a hardened systemd unit. Python 3.8+ is required.</p>
+                        <div class="secret-box">{{ bootstrap_command }}</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div style="flex:1;">
+                        <strong>Windows — silent GPO / MSI rollout</strong>
+                        <p class="info">The package embeds this token and includes a silent PowerShell installer plus a WiX/MSI build helper for Intune or Group Policy.</p>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+                            <a class="btn btn-sm btn-primary" href="{{ windows_package_url }}"><i class="fas fa-download"></i> Windows package</a>
+                            <a class="btn btn-sm btn-secondary" href="{{ linux_package_url }}"><i class="fas fa-download"></i> Linux package</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div style="flex:1;">
+                        <strong>Self-onboarding portal</strong>
+                        <p class="info">Send this link to the device user together with the token. They can install the agent without an administrator signing in on that machine.</p>
+                        <div class="secret-box">{{ onboard_url }}</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div style="flex:1;">
+                        <strong>Manual install (any OS)</strong>
+                        <p class="info">Python 3.8+ only. Run once to verify connectivity; omit <span class="mono">--once</span> to run continuously.</p>
+                        <div class="secret-box">python sora_asset_agent.py \
+  --server {{ server_url }} \
+  --enroll-token {{ raw_token }} \
+  --once</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-circle-check"></i> What happens next</span></div>
+            <div style="padding: 18px 20px; font-size: 13px; color:#475569; line-height:1.7;">
+                <div class="summary-line"><span>1. Agent registers</span><span>Token exchanged for a bound JWT</span></div>
+                <div class="summary-line"><span>2. Inventory arrives</span><span>Hardware, disks, ports, security, apps</span></div>
+                <div class="summary-line"><span>3. You link an asset</span><span>Custody + book value together</span></div>
+                <div class="summary-line"><span>4. Heartbeats continue</span><span>Every {{ policy.heartbeat_seconds }}s · inventory every {{ policy.inventory_minutes }} min</span></div>
+                <p class="info" style="margin-top:14px;">The token can only be used {{ token.max_uses }} time{{ token.max_uses|pluralize }} and expires {{ token.expires_at|timeuntil }}.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-shield-halved"></i> Keep it safe</span></div>
+            <div style="padding: 18px 20px; font-size: 13px; color:#475569; line-height:1.7;">
+                <p><i class="fas fa-lock"></i> Treat this token like a password. Anyone with it and network access to {{ server_url }} can enrol a machine while it remains valid.</p>
+                <p><i class="fas fa-clock"></i> Short-lived, single-use tokens are best for one-off installs. Use a multi-use token only for a controlled batch rollout.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

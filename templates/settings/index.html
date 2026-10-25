@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load static humanize %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-cog"></i> Settings</h1>
+        <p>Manage the company profile, users, access control, communication and integrations.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/admin/dashboard" class="btn btn-secondary"><i class="fas fa-shield-halved"></i> Admin console</a>
+        <a href="/settings/company" class="btn btn-primary"><i class="fas fa-building"></i> Company settings</a>
+    </div>
+</div>
+
+{% include "settings/_nav.html" %}
+
+<div class="stats-row">
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-users"></i></div><div><div class="stat-number">{{ stats.users }}</div><div class="stat-label">Active users</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-user-shield"></i></div><div><div class="stat-number">{{ stats.roles }}</div><div class="stat-label">Roles</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-key"></i></div><div><div class="stat-number">{{ stats.permissions }}</div><div class="stat-label">Permissions</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-file-lines"></i></div><div><div class="stat-number">{{ stats.templates }}</div><div class="stat-label">Active templates</div></div></div>
+    <div class="stat-box"><div class="stat-icon"><i class="fas fa-plug"></i></div><div><div class="stat-number">{{ stats.integrations }}</div><div class="stat-label">Integrations on</div></div></div>
+</div>
+
+<div class="detail-layout">
+    <div>
+        {% for group in groups %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-{{ group.icon }}"></i> {{ group.title }}</span></div>
+            <div style="padding:16px 18px;">
+                <div class="report-links" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
+                    {% for card in group.cards %}
+                    <a href="{{ card.2 }}" class="report-link" style="padding:16px;">
+                        <i class="fas fa-{{ card.3 }}" style="color:{% if card.4 == 'brand' %}#b8860b{% elif card.4 == 'blue' %}#3b82f6{% elif card.4 == 'green' %}#10b981{% elif card.4 == 'violet' %}#8b5cf6{% elif card.4 == 'amber' %}#f59e0b{% elif card.4 == 'red' %}#ef4444{% else %}#64748b{% endif %};"></i>
+                        <strong>{{ card.0 }}</strong>
+                        <span>{{ card.1 }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-building"></i> Company profile</span></div>
+            <div style="padding:16px 18px;">
+                <div class="detail-grid" style="grid-template-columns:1fr;">
+                    <div class="detail-item"><div class="detail-label">Company</div><div class="detail-value">{{ settings.company_name|default:"Not set" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Email</div><div class="detail-value">{{ settings.company_email|default:"Not set" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Phone</div><div class="detail-value">{{ settings.company_phone|default:"Not set" }}</div></div>
+                    <div class="detail-item"><div class="detail-label">Currency</div><div class="detail-value">{{ settings.currency_symbol|default:"KSh" }} ({{ settings.currency_code|default:"KES" }})</div></div>
+                    <div class="detail-item"><div class="detail-label">VAT rate</div><div class="detail-value">{{ settings.vat_rate|default:settings.tax_rate|default:"16" }}%</div></div>
+                </div>
+                <a href="/settings/company" class="btn btn-secondary btn-sm" style="margin-top:14px;"><i class="fas fa-pen"></i> Edit profile</a>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-circle-info"></i> Integration status</span></div>
+            <div style="padding:16px 18px; display:flex; flex-direction:column; gap:10px; font-size:13px;">
+                <div style="display:flex; justify-content:space-between;"><span>Email</span><span class="badge {% if settings.mail_enabled == 'true' %}badge-success{% else %}badge-secondary{% endif %}">{% if settings.mail_enabled == 'true' %}Enabled{% else %}Off{% endif %}</span></div>
+                <div style="display:flex; justify-content:space-between;"><span>eTIMS</span><span class="badge {% if settings.etims_enabled == 'true' %}badge-success{% else %}badge-secondary{% endif %}">{% if settings.etims_enabled == 'true' %}Connected{% else %}Off{% endif %}</span></div>
+                <div style="display:flex; justify-content:space-between;"><span>AI assistant</span><span class="badge {% if settings.openai_enabled == 'true' %}badge-success{% else %}badge-secondary{% endif %}">{% if settings.openai_enabled == 'true' %}On{% else %}Off{% endif %}</span></div>
+                <div style="display:flex; justify-content:space-between;"><span>Zoho presence</span><span class="badge {% if settings.zoho_presence_enabled == 'true' %}badge-success{% else %}badge-secondary{% endif %}">{% if settings.zoho_presence_enabled == 'true' %}On{% else %}Off{% endif %}</span></div>
+                <div style="display:flex; justify-content:space-between;"><span>SSO providers</span><span class="badge badge-info">{{ stats.sso }}</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

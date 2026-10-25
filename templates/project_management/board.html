@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-columns"></i> Task Board <span class="text-muted" style="font-size:14px;">· {{ project.project_code }}</span></h1>
+        <p>Drag cards between columns. Out-of-scope tasks require an approved change request before they can be completed.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/{{ project.id }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Project</a>
+        {% if can_create %}<a href="/projects/{{ project.id }}/tasks/create" class="btn btn-primary"><i class="fas fa-plus"></i> New task</a>{% endif %}
+    </div>
+</div>
+
+{% include "project_management/partials/project_tabs.html" with active="board" %}
+
+<div class="kanban" id="kanbanBoard" data-url="/projects/{{ project.id }}/board/move" data-can-edit="{% if can_edit %}1{% else %}0{% endif %}">
+    {% for column in columns %}
+    <div class="kanban-column" data-status="{{ column.status }}">
+        <h3>{{ column.label }} <span>{{ column.tasks|length }}</span></h3>
+        {% for task in column.tasks %}
+        <div class="kanban-card" draggable="{% if can_edit %}true{% else %}false{% endif %}" data-task-id="{{ task.id }}">
+            <a href="/projects/{{ project.id }}/tasks/edit/{{ task.id }}">{{ task.task_name }}</a>
+            <div class="client">{{ task.assignee_name }}{% if task.deadline_date %} &middot; due {{ task.deadline_date|date:"M d" }}{% endif %}</div>
+            <div class="badges">
+                <span class="badge badge-{{ task.priority|status_class }}">{{ task.get_priority_display }}</span>
+                {% if task.is_scope_change %}<span class="badge badge-{% if task.scope_approved %}success{% else %}warning{% endif %}">{% if task.scope_approved %}CR ok{% else %}CR needed{% endif %}</span>{% endif %}
+                {% if task.is_overdue %}<span class="badge badge-danger">Overdue</span>{% endif %}
+            </div>
+            <div class="progress-track mt-2"><span style="width: {{ task.completion_percent|floatformat:0 }}%;"></span></div>
+        </div>
+        {% empty %}
+        <p class="text-muted" style="font-size:11px;">Drop tasks here.</p>
+        {% endfor %}
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const board = document.getElementById('kanbanBoard');
+    if (!board || board.dataset.canEdit !== '1') return;
+    let dragged = null;
+
+    board.querySelectorAll('.kanban-card[draggable="true"]').forEach(card => {
+        card.addEventListener('dragstart', () => {
+            dragged = card;
+            card.classList.add('dragging');
+        });
+        card.addEventListener('dragend', () => {
+            card.classList.remove('dragging');
+            dragged = null;
+        });
+    });
+
+    board.querySelectorAll('.kanban-column').forEach(column => {
+        column.addEventListener('dragover', event => {
+            event.preventDefault();
+            column.classList.add('drag-over');
+        });
+        column.addEventListener('dragleave', () => column.classList.remove('drag-over'));
+        column.addEventListener('drop', async event => {
+            event.preventDefault();
+            column.classList.remove('drag-over');
+            if (!dragged) return;
+            const target = column.querySelector('.kanban-card') || null;
+            if (target === dragged) return;
+            if (target) column.insertBefore(dragged, target);
+            else column.appendChild(dragged);
+
+            const payload = {
+                task_id: dragged.dataset.taskId,
+                status: column.dataset.status,
+                ordered_ids: Array.from(column.querySelectorAll('.kanban-card')).map(row => row.dataset.taskId)
+            };
+            try {
+                const response = await fetch(board.dataset.url, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN},
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    alert(data.error || 'Could not move task.');
+                    window.location.reload();
+                }
+            } catch (error) {
+                alert('Network error while moving the task.');
+                window.location.reload();
+            }
+        });
+    });
+})();
+</script>
+{% endblock %}

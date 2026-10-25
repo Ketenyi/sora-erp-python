@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load static humanize sora_tags %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/module.css' %}">{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>{{ posting.job_title }} <span class="badge badge-{{ posting.status|status_class }}">{{ posting.get_status_display }}</span></h1>
+        <p>{{ department.department_name|default:"Unassigned department" }}{% if position %} &middot; {{ position.position_name }}{% endif %} &middot; {{ posting.location|default:"Location not set" }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/hr/recruitment/jobs" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+        {% if can_manage %}
+        <a href="/hr/recruitment/edit-job/{{ posting.id }}" class="btn btn-secondary"><i class="fas fa-edit"></i> Edit</a>
+        <a href="/hr/recruitment/create-candidate?job={{ posting.id }}" class="btn btn-primary"><i class="fas fa-user-plus"></i> Add candidate</a>
+        {% endif %}
+    </div>
+</div>
+<div class="detail-layout">
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-align-left"></i> Role description</span></div>
+            <div style="padding:18px;">
+                <h3>About the role</h3>
+                <p>{{ posting.description|linebreaks|default:"No description provided." }}</p>
+                <h3>Requirements</h3>
+                <p>{{ posting.requirements|linebreaks|default:"No requirements listed." }}</p>
+                <h3>Responsibilities</h3>
+                <p>{{ posting.responsibilities|linebreaks|default:"No responsibilities listed." }}</p>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-users"></i> Applicants</span><span class="badge badge-info">{{ candidates|length }}</span></div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Candidate</th><th>Email</th><th>Source</th><th>Applied</th><th>Status</th><th></th></tr></thead>
+                    <tbody>
+                    {% for candidate in candidates %}
+                        <tr>
+                            <td><strong>{{ candidate.first_name }} {{ candidate.last_name }}</strong></td>
+                            <td>{{ candidate.email }}</td>
+                            <td>{{ candidate.source|default:"—" }}</td>
+                            <td>{{ candidate.created_at|date:"M d, Y" }}</td>
+                            <td><span class="badge badge-{{ candidate.status|status_class }}">{{ candidate.get_status_display }}</span></td>
+                            <td><a href="/hr/recruitment/candidate/{{ candidate.id }}" class="btn btn-sm btn-secondary">View</a></td>
+                        </tr>
+                    {% empty %}<tr><td colspan="6"><div class="empty-state"><i class="fas fa-user-slash"></i><p>No candidates have applied to this opening.</p></div></td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div>
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-circle-info"></i> Details</span></div>
+            <div style="padding:18px;">
+                <div class="detail-grid">
+                    <div><span class="label">Status</span><strong>{{ posting.get_status_display }}</strong></div>
+                    <div><span class="label">Employment type</span><strong>{{ posting.get_employment_type_display|default:posting.employment_type|default:"—" }}</strong></div>
+                    <div><span class="label">Posted</span><strong>{{ posting.posting_date|date:"M d, Y" }}</strong></div>
+                    <div><span class="label">Closing</span><strong>{{ posting.closing_date|date:"M d, Y"|default:"Open" }}</strong></div>
+                    <div><span class="label">Interviews</span><strong>{{ interview_count }}</strong></div>
+                    <div><span class="label">Candidates</span><strong>{{ candidates|length }}</strong></div>
+                </div>
+                <div class="summary-box" style="margin-top:16px;">
+                    <div style="display:flex; justify-content:space-between;"><span>Salary range</span><strong>{{ currency_symbol }} {{ posting.salary_range_min|floatformat:0|intcomma|default:"—" }} – {{ posting.salary_range_max|floatformat:0|intcomma|default:"—" }}</strong></div>
+                </div>
+            </div>
+        </div>
+        {% if can_manage %}
+        <div class="card">
+            <div class="card-header"><span><i class="fas fa-sliders"></i> Manage</span></div>
+            <div style="padding:18px; display:flex; flex-direction:column; gap:8px;">
+                <a href="/hr/recruitment/schedule-interview?candidate=" class="btn btn-secondary btn-sm"><i class="fas fa-calendar-plus"></i> Schedule interview</a>
+                <form method="post" action="/hr/recruitment/delete-job/{{ posting.id }}" onsubmit="return confirm('Delete this job opening?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm" style="width:100%;"><i class="fas fa-trash"></i> Delete opening</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

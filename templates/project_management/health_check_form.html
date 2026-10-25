@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/module.css' %}">
+<link rel="stylesheet" href="{% static 'css/projects.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1><i class="fas fa-calendar-plus"></i> Schedule Visits</h1>
+        <p>{{ contract.contract_number }} &middot; {{ contract.title }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="/projects/sla/contracts/{{ contract.id }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Contract</a>
+        <a href="/projects/sla/health-checks" class="btn btn-secondary"><i class="fas fa-heart-pulse"></i> All checks</a>
+    </div>
+</div>
+
+<div class="card" style="max-width:760px;">
+    <div class="card-header"><span><i class="fas fa-calendar-check"></i> Preventive maintenance plan</span></div>
+    <div style="padding:20px;">
+        <form method="post">
+            {% csrf_token %}
+            {% include "project_management/partials/form_fields.html" with form=form %}
+            <div class="page-actions" style="margin-top:10px;">
+                <button class="btn btn-primary"><i class="fas fa-calendar-plus"></i> Schedule visits</button>
+                <a href="/projects/sla/contracts/{{ contract.id }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
